@@ -29,6 +29,7 @@ const handleInvalidTokenError = () =>
 const handleExpiredTokenError = () =>
   new AppError('Your token has expired! Please log in again.', 401);
 
+// Development Error Message
 const handleDevErrors = (err, req, res) => {
   // A) API
   if (req.originalUrl.startsWith('/api')) {
@@ -48,6 +49,7 @@ const handleDevErrors = (err, req, res) => {
   });
 };
 
+// Production Error Message
 const handleProdErrors = (err, req, res) => {
   // A) API
   if (req.originalUrl.startsWith('/api')) {
