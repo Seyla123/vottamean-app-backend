@@ -3,7 +3,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
-// Import routes
+// Errorr Handler
+const globalErrorHandler = require('./controllers/errorController');
 
 // Middleware
 const app = express();
@@ -21,6 +22,9 @@ app.use(bodyParser.json());
 app.get('/', (req, res) => {
   res.send('Welcome to the School API');
 });
+
+// Global Error Handling Middleware
+app.use(globalErrorHandler);
 
 // Export app
 module.exports = app;
