@@ -46,7 +46,32 @@ class APIFeatures {
     return this;
   }
 
- 
+  // Limit Fields Function
+  limitFields() {
+    if (this.queryString.fields) {
+      const fields = this.queryString.fields.split(',');
+      this.options.attributes = fields;
+    } else {
+      this.options.attributes = { exclude: ['__v'] }; // Assuming '__v' is relevant
+    }
+
+    console.log('Fields:', this.options.attributes); // Debug log
+    return this;
+  }
+
+  // Pagination Function
+  paginate() {
+    const page = this.queryString.page * 1 || 1;
+    const limit = this.queryString.limit * 1 || 100;
+    const offset = (page - 1) * limit;
+
+    this.options.limit = limit;
+    this.options.offset = offset;
+
+    console.log('Pagination:', { limit, offset }); // Debug log
+    return this;
+  }
+
   // Execute the query
   async exec() {
     try {
