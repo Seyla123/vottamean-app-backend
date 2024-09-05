@@ -1,31 +1,35 @@
+// Import App Error Utils
 const AppError = require('./../utils/appError');
 
-const handleCastErrorDB = (err) => {
-  const message = `Invalid ${err.path}: ${err.value}.`;
+// Handle Sequelize Validation Errors
+const handleSequelizeValidationError = (err) => {
+  const errors = err.errors.map((e) => e.message);
+  const message = `Invalid input data. ${errors.join('. ')}`;
   return new AppError(message, 400);
 };
 
-const handleDuplicateFieldsDB = (err) => {
-  const value = err.errmsg.match(/(["'])(\\?.)*?\1/)[0];
+// Handle Sequelize Unique Constraint Errors
+const handleSequelizeUniqueConstraintError = (err) => {
+  // Extract the duplicate field value from the error message
+  const match = err.message.match(/(["'])(\\?.)*?\1/);
+  const value = match ? match[0] : 'unknown';
 
   const message = `Duplicate field value: ${value}. Please use another value!`;
   return new AppError(message, 400);
 };
 
-const handleValidationErrorDB = (err) => {
-  const errors = Object.values(err.errors).map((el) => el.message);
+// Handle Sequelize Database Errors
+const handleSequelizeDatabaseError = () =>
+  new AppError('Database operation failed. Please try again later.', 500);
 
-  const message = `Invalid input data. ${errors.join('. ')}`;
-  return new AppError(message, 400);
-};
-
-const handleJWTError = () =>
+// Handle JWT Errors
+const handleInvalidTokenError = () =>
   new AppError('Invalid token. Please log in again!', 401);
 
-const handleJWTExpiredError = () =>
+const handleExpiredTokenError = () =>
   new AppError('Your token has expired! Please log in again.', 401);
 
-const sendErrorDev = (err, req, res) => {
+const handleDevErrors = (err, req, res) => {
   // A) API
   if (req.originalUrl.startsWith('/api')) {
     return res.status(err.statusCode).json({
@@ -44,7 +48,7 @@ const sendErrorDev = (err, req, res) => {
   });
 };
 
-const sendErrorProd = (err, req, res) => {
+const handleProdErrors = (err, req, res) => {
   // A) API
   if (req.originalUrl.startsWith('/api')) {
     // A) Operational, trusted error: send message to client
@@ -83,24 +87,26 @@ const sendErrorProd = (err, req, res) => {
 };
 
 module.exports = (err, req, res, next) => {
-  // console.log(err.stack);
-
+  // Set default error properties
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 
   if (process.env.NODE_ENV === 'development') {
-    sendErrorDev(err, req, res);
+    handleDevErrors(err, req, res);
   } else if (process.env.NODE_ENV === 'production') {
     let error = { ...err };
     error.message = err.message;
 
-    if (error.name === 'CastError') error = handleCastErrorDB(error);
-    if (error.code === 11000) error = handleDuplicateFieldsDB(error);
-    if (error.name === 'ValidationError')
-      error = handleValidationErrorDB(error);
-    if (error.name === 'JsonWebTokenError') error = handleJWTError();
-    if (error.name === 'TokenExpiredError') error = handleJWTExpiredError();
+    // Sequelize specific errors
+    if (error.name === 'SequelizeValidationError')
+      error = handleSequelizeValidationError(error);
+    if (error.name === 'SequelizeUniqueConstraintError')
+      error = handleSequelizeUniqueConstraintError(error);
+    if (error.name === 'SequelizeDatabaseError')
+      error = handleSequelizeDatabaseError(error);
+    if (error.name === 'JsonWebTokenError') error = handleInvalidTokenError();
+    if (error.name === 'TokenExpiredError') error = handleExpiredTokenError();
 
-    sendErrorProd(error, req, res);
+    handleProdErrors(error, req, res);
   }
 };
