@@ -1,11 +1,16 @@
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
-  const Session = sequelize.define(
-    'Session',
+  class Session extends Model {
+    // instance or class methods here if needed
+  }
+
+  Session.init(
     {
       session_id: {
         type: DataTypes.INTEGER,
-        primaryKey: true,
         autoIncrement: true,
+        primaryKey: true,
       },
       active: {
         type: DataTypes.BOOLEAN,
@@ -14,6 +19,7 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
     {
+      sequelize,
       tableName: 'sessions',
       timestamps: true,
       underscored: true,

@@ -1,6 +1,11 @@
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
-  const School = sequelize.define(
-    'School',
+  class School extends Model {
+    // instance or class methods here if needed
+  }
+
+  School.init(
     {
       school_id: {
         type: DataTypes.INTEGER,
@@ -26,6 +31,7 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
     {
+      sequelize,
       tableName: 'schools',
       timestamps: true,
       underscored: true,

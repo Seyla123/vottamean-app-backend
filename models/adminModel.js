@@ -1,6 +1,11 @@
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
-  const Admin = sequelize.define(
-    'Admin',
+  class Admin extends Model {
+    // instance or class methods here if needed
+  }
+
+  Admin.init(
     {
       admin_id: {
         type: DataTypes.INTEGER,
@@ -14,20 +19,20 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
     {
+      sequelize,
       tableName: 'admins',
       timestamps: true,
       underscored: true,
     }
   );
 
-  /**
-   * ASSOCIATE MODELS
-   */
+  // Define associations
   Admin.associate = (models) => {
     Admin.belongsTo(models.User, {
       foreignKey: 'user_id',
       as: 'User',
     });
+
     Admin.belongsToMany(models.School, {
       through: models.SchoolAdmin,
       foreignKey: 'admin_id',

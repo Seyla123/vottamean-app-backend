@@ -1,11 +1,16 @@
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
-  const Status = sequelize.define(
-    'Status',
+  class Status extends Model {
+    // instance or class methods here if needed
+  }
+
+  Status.init(
     {
       status_id: {
         type: DataTypes.INTEGER,
-        primaryKey: true,
         autoIncrement: true,
+        primaryKey: true,
       },
       status: {
         type: DataTypes.ENUM(
@@ -24,6 +29,7 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
     {
+      sequelize,
       tableName: 'status',
       timestamps: true,
       underscored: true,
@@ -32,7 +38,7 @@ module.exports = (sequelize, DataTypes) => {
 
   Status.associate = (models) => {
     Status.hasMany(models.Session, {
-      foreignKey: 'day_id',
+      foreignKey: 'status_id',
       as: 'Sessions',
       onDelete: 'CASCADE',
     });

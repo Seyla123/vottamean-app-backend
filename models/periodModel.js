@@ -1,6 +1,11 @@
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
-  const Period = sequelize.define(
-    'Period',
+  class Period extends Model {
+    // instance or class methods here if needed
+  }
+
+  Period.init(
     {
       period_id: {
         type: DataTypes.INTEGER,
@@ -26,13 +31,13 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
     {
+      sequelize,
       tableName: 'periods',
       timestamps: true,
       underscored: true,
     }
   );
 
-  // Associate
   Period.associate = (models) => {
     Period.hasMany(models.Session, {
       foreignKey: 'period_id',

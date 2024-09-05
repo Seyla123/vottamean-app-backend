@@ -1,6 +1,11 @@
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
-  const Info = sequelize.define(
-    'Info',
+  class Info extends Model {
+    // instance or class methods here if needed
+  }
+
+  Info.init(
     {
       info_id: {
         type: DataTypes.INTEGER,
@@ -37,15 +42,13 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
     {
+      sequelize,
       tableName: 'info',
       timestamps: true,
       underscored: true,
     }
   );
 
-  /**
-   * ASSOCIATE MODELS
-   */
   Info.associate = (models) => {
     Info.hasOne(models.Admin, {
       foreignKey: 'info_id',

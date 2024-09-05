@@ -1,6 +1,11 @@
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
-  const Attendance = sequelize.define(
-    'Attendance',
+  class Attendance extends Model {
+    // instance or class methods here if needed
+  }
+
+  Attendance.init(
     {
       attendance_id: {
         type: DataTypes.INTEGER,
@@ -18,15 +23,13 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
     {
+      sequelize,
       tableName: 'attendances',
       timestamps: true,
       underscored: true,
     }
   );
 
-  /**
-   * ASSOCIATE MODELS
-   */
   Attendance.associate = (models) => {
     Attendance.belongsTo(models.Student, {
       foreignKey: 'student_id',
