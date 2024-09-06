@@ -211,3 +211,36 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
   }
 });
 
+// Middleware to check if the user's email is verified
+exports.requireEmailVerification = catchAsync(async (req, res, next) => {
+  if (!req.user.emailVerified) {
+    return next(
+      new AppError(
+        'Please verify your email address to access this resource.',
+        403
+      )
+    );
+  }
+  next();
+});
+
+// Login function
+exports.login = catchAsync(async (req, res, next) => {
+  const { email, password } = req.body;
+
+  // Check if email and password are provided
+  if (!email || !password) {
+    return next(new AppError('Please provide email and password', 400));
+  }
+
+  // Find the user by email and include the password (scope 'withPassword')
+  const user = await User.scope('withPassword').findOne({ where: { email } });
+
+  // Check if the user exists and if the provided password is correct
+  if (!user || !(await user.correctPassword(password))) {
+    return next(new AppError('Incorrect email or password', 401));
+  }
+
+  // Send the JWT token to the user
+  createSendToken(user, 200, req, res);
+});
