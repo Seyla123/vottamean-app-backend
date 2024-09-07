@@ -244,3 +244,199 @@ exports.login = catchAsync(async (req, res, next) => {
   // Send the JWT token to the user
   createSendToken(user, 200, req, res);
 });
+
+// Logout function
+exports.logout = (req, res) => {
+  res.cookie('jwt', 'loggedout', {
+    expires: new Date(Date.now() + 1 * 1000), // Set the cookie to expire in 1 second
+    httpOnly: true, // Prevents access to the cookie via JavaScript
+    secure: req.secure || req.headers['x-forwarded-proto'] === 'https', // Ensure cookie is sent over HTTPS
+  });
+
+  res
+    .status(200)
+    .json({ status: 'success', message: 'Logged out successfully' });
+};
+
+// Middleware to protect routes (requires authentication)
+exports.protect = catchAsync(async (req, res, next) => {
+  let token;
+
+  // Check if the token is provided in the Authorization header or cookies
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies.jwt) {
+    token = req.cookies.jwt;
+  }
+
+  // If no token is found, return an error
+  if (!token) {
+    return next(
+      new AppError('You are not logged in! Please log in to get access.', 401)
+    );
+  }
+
+  // Verify the token
+  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+
+  // Find the user associated with the token
+  const currentUser = await User.findByPk(decoded.id);
+  if (!currentUser) {
+    return next(
+      new AppError('The user belonging to this token no longer exists.', 401)
+    );
+  }
+
+  // Check if the user has changed their password after the token was issued
+  if (currentUser.changedPasswordAfter(decoded.iat)) {
+    return next(
+      new AppError('User recently changed password! Please log in again.', 401)
+    );
+  }
+
+  // Grant access to the protected route
+  req.user = currentUser;
+  res.locals.user = currentUser;
+  next();
+});
+
+// Restrict access to specific roles
+exports.restrictTo =
+  (...roles) =>
+  (req, res, next) => {
+    // Check if the user's role is allowed to access this route
+    if (!roles.includes(req.user.role)) {
+      return next(
+        new AppError('You do not have permission to perform this action', 403)
+      );
+    }
+    next();
+  };
+
+// Check if the user is logged in (used for frontend)
+exports.isLoggedIn = catchAsync(async (req, res, next) => {
+  if (req.cookies.jwt) {
+    try {
+      // Verify the token
+      const decoded = await promisify(jwt.verify)(
+        req.cookies.jwt,
+        process.env.JWT_SECRET
+      );
+
+      // Find the user associated with the token
+      const currentUser = await User.findByPk(decoded.id);
+      if (!currentUser || currentUser.changedPasswordAfter(decoded.iat)) {
+        return next();
+      }
+
+      // Make the user data available to the views
+      res.locals.user = currentUser;
+      return next();
+    } catch (err) {
+      return next();
+    }
+  }
+  next();
+});
+
+// Forgot Password function
+exports.forgotPassword = catchAsync(async (req, res, next) => {
+  // Find the user by email
+  const user = await User.findOne({ where: { email: req.body.email } });
+
+  // If the user does not exist, return an error
+  if (!user) {
+    return next(new AppError('There is no user with that email address.', 404));
+  }
+
+  // Generate a password reset token
+  const resetToken = user.createPasswordResetToken();
+  await user.save({ validateBeforeSave: false });
+
+  // // Construct the password reset URL
+  // const resetURL = `${req.protocol}://${req.get(
+  //   'host'
+  // )}/api/v1/users/resetPassword/${resetToken}`;
+
+  // Testing with local client (should be the frontend domain later)
+  const resetURL = `http://localhost:5173/reset-password/${resetToken}`;
+
+  // Send the reset email
+  try {
+    await new Email(user, resetURL).sendPasswordReset();
+    res.status(200).json({
+      status: 'success',
+      message: 'Token sent to email!',
+    });
+  } catch (err) {
+    // If email sending fails, reset the password reset token fields
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    return next(
+      new AppError('There was an error sending the email. Try again later!'),
+      500
+    );
+  }
+});
+
+const { Op } = require('sequelize');
+// Reset Password function
+exports.resetPassword = catchAsync(async (req, res, next) => {
+  // Hash the token received from the user
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
+
+  // Find the user with the hashed token and check if it's still valid
+  const user = await User.findOne({
+    where: {
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { [Op.gt]: Date.now() }, // Check if the token has not expired
+    },
+  });
+
+  // If the user is not found or the token is invalid, return an error
+  if (!user) {
+    return next(new AppError('Token is invalid or has expired.', 400));
+  }
+
+  // Check if passwords match
+  if (req.body.password !== req.body.passwordConfirm) {
+    return next(new AppError('Passwords do not match.', 400));
+  }
+
+  // Update the user's password and clear the reset token fields
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save();
+
+  // Log the user in by sending a JWT token
+  createSendToken(user, 200, req, res);
+});
+
+// Update Password function for logged-in users
+exports.updatePassword = catchAsync(async (req, res, next) => {
+  // Get the user from the collection
+  const user = await User.scope('withPassword').findByPk(req.user.user_id);
+
+  // Check if the current password is correct
+  if (!(await user.correctPassword(req.body.passwordCurrent))) {
+    return next(new AppError('Your current password is wrong.', 401));
+  }
+
+  // Update the user's password
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+  await user.save();
+
+  // Log the user in by sending a JWT token
+  createSendToken(user, 200, req, res);
+});
