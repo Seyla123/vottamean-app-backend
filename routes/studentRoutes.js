@@ -1,9 +1,9 @@
 // Express library
 const express = require('express');
 
-// Controllers
-const studentController = require('../controllers/studentController');
+// uthentication and Student Controller
 const authController = require('../controllers/authController');
+const studentController = require('../controllers/studentController');
 
 // Define Express Router
 const router = express.Router();
@@ -15,10 +15,7 @@ router.use(authController.protect);
 router.use(authController.restrictTo('admin', 'teacher'));
 
 // Student routes
-router
-  .route('/')
-  .post(studentController.addStudent) // Create student with default attendance
-  .get(studentController.getAllStudents);
+router.route('/').get(studentController.getAllStudents);
 
 router
   .route('/:id')

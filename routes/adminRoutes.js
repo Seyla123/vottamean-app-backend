@@ -1,9 +1,9 @@
 // Express library
 const express = require('express');
 
-// Controllers
-const adminController = require('../controllers/adminController');
+// Authentication and Admin Controller
 const authController = require('../controllers/authController');
+const adminController = require('../controllers/adminController');
 
 // Define Express Router
 const router = express.Router();

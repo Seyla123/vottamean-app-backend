@@ -2,9 +2,9 @@
 // Frameworks and libraries:
 // -------------------------
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-
 // ---------------
 // IMPORT ROUTES :
 // ---------------

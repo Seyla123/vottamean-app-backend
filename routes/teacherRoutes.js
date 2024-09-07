@@ -1,7 +1,7 @@
 // Express library
 const express = require('express');
 
-// Controllers
+// Authentication and Teacher Controller
 const teacherController = require('../controllers/teacherController');
 const authController = require('../controllers/authController');
 

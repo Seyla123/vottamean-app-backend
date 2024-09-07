@@ -2,8 +2,8 @@
 const express = require('express');
 
 // Authentication and User Controller
-const userController = require('../controllers/userController');
 const authController = require('../controllers/authController');
+const userController = require('../controllers/userController');
 
 // File upload and resizing Controller
 const fileController = require('../controllers/fileController');
@@ -52,7 +52,7 @@ router.use(authController.restrictTo('admin'));
 router.post('/signup/teacher', teacherController.signupTeacher);
 
 // Student route
-router;
+router.post('/', studentController.addStudent);
 
 // Password management route for admin
 router.patch('/updatePassword', authController.updatePassword);
