@@ -1,5 +1,6 @@
 // Database models
 const { Student, Attendance, Class, Info } = require('../models');
+
 // Error handler
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
