@@ -1,17 +1,17 @@
-// encryption library
+// encryption Library
 const bcrypt = require('bcryptjs');
 
-// Database models
+// Database Models
 const { Teacher, Info } = require('../models');
 
-// Factory handler
-const factory = require('./handlerFactory');
+// Email Handlers
+const { sendVerificationEmail } = require('../utils/authUtils');
 
-// Error handlers
+// Error Handlers
 const catchAsync = require('../utils/catchAsync');
 
-// Email handlers
-const { sendVerificationEmail } = require('../utils/authUtils');
+// Factory ះandler
+const factory = require('./handlerFactory');
 
 // Get one teacher
 exports.getTeacher = factory.getOne(Teacher, 'teacher_id', [

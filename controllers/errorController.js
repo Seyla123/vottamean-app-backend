@@ -26,6 +26,7 @@ const handleSequelizeDatabaseError = () =>
 const handleInvalidTokenError = () =>
   new AppError('Invalid token. Please log in again!', 401);
 
+// Handle JWT Errors
 const handleExpiredTokenError = () =>
   new AppError('Your token has expired! Please log in again.', 401);
 
@@ -88,6 +89,7 @@ const handleProdErrors = (err, req, res) => {
   });
 };
 
+// Global error handling middleware
 module.exports = (err, req, res, next) => {
   // Set default error properties
   err.statusCode = err.statusCode || 500;

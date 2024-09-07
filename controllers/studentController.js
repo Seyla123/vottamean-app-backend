@@ -1,7 +1,11 @@
+// Database models
 const { Student, Attendance, Class, Info } = require('../models');
-const factory = require('./handlerFactory');
+// Error handler
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+
+// Factory handler
+const factory = require('./handlerFactory');
 
 // Add a new student and create default attendance
 exports.addStudent = catchAsync(async (req, res, next) => {
