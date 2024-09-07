@@ -52,13 +52,16 @@ router.use(authController.restrictTo('admin'));
 router.post('/signup/teacher', teacherController.signupTeacher);
 
 // Student route
-router.post('/', studentController.addStudent);
+router;
 
 // Password management route for admin
 router.patch('/updatePassword', authController.updatePassword);
 
 // User management routes
-router.route('/').get(userController.getAllUsers);
+router
+  .route('/')
+  .get(userController.getAllUsers)
+  .post(studentController.addStudent);
 
 router
   .route('/:id')
