@@ -16,8 +16,6 @@ const userRoutes = require('./routes/userRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 
-//
-
 // Errorr Handler
 const globalErrorHandler = require('./controllers/errorController');
 
@@ -44,6 +42,13 @@ app.use(bodyParser.json());
 app.get('/', (req, res) => {
   res.send('Welcome to the School API');
 });
+
+// User Routes Middleware
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/admins', adminRoutes);
+app.use('/api/v1/teachers', teacherRoutes);
+app.use('/api/v1/students', studentRoutes);
 
 // Global Error Handling Middleware
 app.use(globalErrorHandler);

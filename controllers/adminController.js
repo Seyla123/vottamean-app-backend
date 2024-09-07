@@ -1,4 +1,7 @@
+// Database Models
 const { Admin, Info } = require('../models');
+
+// Factory handler
 const factory = require('./handlerFactory');
 
 // Get one admin

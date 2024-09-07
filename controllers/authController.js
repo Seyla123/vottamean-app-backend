@@ -1,3 +1,4 @@
+// Database Models
 const {
   sequelize,
   User,
@@ -6,11 +7,15 @@ const {
   School,
   SchoolAdmin,
 } = require('../models');
-const catchAsync = require('../utils/catchAsync');
-const AppError = require('../utils/appError');
+
+// Middleware to authenticate the user's JWT token
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { promisify } = require('util');
+
+// Middleware to validate the user's email format
+const catchAsync = require('../utils/catchAsync');
+const AppError = require('../utils/appError');
 const Email = require('../utils/email');
 
 // Function to sign a JWT token for the user
