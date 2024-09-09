@@ -1,5 +1,5 @@
 // Database models
-const { Student, Attendance, Class, Info } = require('../models');
+const { Student, Info, sequelize } = require('../models');
 
 // Error handler
 const catchAsync = require('../utils/catchAsync');
@@ -10,35 +10,63 @@ const factory = require('./handlerFactory');
 
 // Add a new student and create default attendance
 exports.addStudent = catchAsync(async (req, res, next) => {
-  const { name, class_id, user_id } = req.body;
-
-  // Check if the class exists
-  const classExists = await Class.findByPk(class_id);
-  if (!classExists) {
-    return next(new AppError('Class not found', 404));
-  }
-
-  // Create the student and assign it to the class
-  const student = await Student.create({
-    name,
+  const {
     class_id,
-    user_id,
-  });
+    guardian_name,
+    guardian_email,
+    guardian_relationship,
+    guardian_contact,
+    first_name,
+    last_name,
+    phone_number,
+    address,
+    dob,
+  } = req.body;
 
-  // Create a default attendance record with 'absent' status
-  await Attendance.create({
-    date: new Date(),
-    status: 'absent',
-    student_id: student.student_id,
-    class_id: class_id,
-  });
+  // Start a transaction
+  const transaction = await sequelize.transaction();
 
-  res.status(201).json({
-    status: 'success',
-    data: {
-      student,
-    },
-  });
+  try {
+    // Create info record
+    const newInfo = await Info.create(
+      {
+        first_name,
+        last_name,
+        phone_number,
+        address,
+        dob,
+      },
+      { transaction }
+    );
+
+    // Create Student record with associated Info
+    const newStudent = await Student.create(
+      {
+        class_id,
+        guardian_name,
+        guardian_email,
+        guardian_relationship,
+        guardian_contact,
+        info_id: newInfo.info_id,
+      },
+      { transaction }
+    );
+
+    // Commit the transaction
+    await transaction.commit();
+
+    res.status(201).json({
+      status: 'success',
+      data: {
+        student: newStudent,
+        info: newInfo,
+      },
+    });
+  } catch (error) {
+    // Rollback the transaction in case of error
+    await transaction.rollback();
+    return next(new AppError('Error creating student', 500));
+  }
 });
 
 // Get Student By ID with additional info

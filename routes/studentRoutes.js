@@ -12,7 +12,7 @@ const router = express.Router();
 router.use(authController.protect);
 
 // Restrict all routes to admin only
-router.use(authController.restrictTo('admin', 'teacher'));
+router.use(authController.restrictTo('admin'));
 
 // Student routes
 router.route('/').get(studentController.getAllStudents);

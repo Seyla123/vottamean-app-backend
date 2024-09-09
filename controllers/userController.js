@@ -1,13 +1,8 @@
-// Database Models
-const { User, Admin, Teacher } = require('../models');
-
-// Utility Methods
+const { User, Admin, Teacher, Student, Info } = require('../models');
+const { filterObj } = require('../utils/filterObj');
+const factory = require('./handlerFactory');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
-const { filterObj } = require('../utils/filterObj');
-
-// Factory handler
-const factory = require('./handlerFactory');
 
 // Middleware to get the current logged-in user
 exports.getMe = (req, res, next) => {
@@ -67,14 +62,35 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
 
 // Get one User
 exports.getUser = factory.getOne(User, 'user_id', [
-  { model: Admin, as: 'AdminProfile' },
-  { model: Teacher, as: 'TeacherProfile' },
+  {
+    model: Admin,
+    as: 'AdminProfile',
+    include: [{ model: Info, as: 'Info' }],
+  },
+  {
+    model: Teacher,
+    as: 'TeacherProfile',
+    include: [{ model: Info, as: 'Info' }],
+  },
 ]);
 
 // Get all Users
 exports.getAllUsers = factory.getAll(User, {}, [
-  { model: Admin, as: 'AdminProfile' },
-  { model: Teacher, as: 'TeacherProfile' },
+  {
+    model: Admin,
+    as: 'AdminProfile',
+    include: [{ model: Info, as: 'Info' }],
+  },
+  {
+    model: Teacher,
+    as: 'TeacherProfile',
+    include: [{ model: Info, as: 'Info' }],
+  },
+  {
+    model: Student,
+    as: 'StudentProfile',
+    include: [{ model: Info, as: 'Info' }],
+  },
 ]);
 
 // Update user details (excluding password)
