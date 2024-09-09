@@ -9,7 +9,7 @@ const APIFeatures = require('../utils/apiFeatures');
 
 // --------------------------------------------
 // Create Factory Handler function :
-// => Reusable middleware functions for all routes.
+// Reusable middleware functions for all routes.
 // --------------------------------------------
 
 // Create One
@@ -30,7 +30,7 @@ exports.getOne = (Model, idField, popOptions = []) =>
   catchAsync(async (req, res, next) => {
     let options = {
       where: { [idField]: req.params.id },
-      include: popOptions, // Include associations
+      include: popOptions, 
     };
 
     const doc = await Model.findOne(options);
@@ -133,7 +133,7 @@ exports.deleteAll = (Model) =>
     const doc = await Model.destroy({ where: {} });
 
     if (!doc) {
-      console.error('No documents found'); //
+      console.error('No documents found'); 
       return next(new AppError('No documents found', 404));
     }
 
