@@ -1,5 +1,6 @@
 // encryption Library
-const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 // Database Models
 const { Teacher, Info } = require('../models');
@@ -15,12 +16,20 @@ const factory = require('./handlerFactory');
 
 // Get one teacher
 exports.getTeacher = factory.getOne(Teacher, 'teacher_id', [
-  { model: Info, as: 'Info' },
+  {
+    model: Teacher,
+    as: 'TeacherProfile',
+    include: [{ model: Info, as: 'Info' }],
+  },
 ]);
 
 // Get all teachers
 exports.getAllTeachers = factory.getAll(Teacher, {}, [
-  { model: Info, as: 'Info' },
+  {
+    model: Teacher,
+    as: 'TeacherProfile',
+    include: [{ model: Info, as: 'Info' }],
+  },
 ]);
 
 // Update teacher
@@ -39,10 +48,10 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     passwordConfirm,
     address,
     dob,
-    role,
     first_name,
     last_name,
     phone_number,
+    school_admin_id,
   } = req.body;
 
   if (password !== passwordConfirm) {
@@ -62,10 +71,10 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
       password,
       address,
       dob: formattedDob,
-      role,
       first_name,
       last_name,
       phone_number,
+      school_admin_id,
       emailVerificationToken: hashedToken,
     },
     process.env.JWT_SECRET,
@@ -74,7 +83,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
 
   const verificationUrl = `${req.protocol}://${req.get(
     'host'
-  )}/api/v1/users/verifyEmail/${verificationToken}?token=${tempToken}`;
+  )}/api/v1/users/verifyEmail/teacher/${verificationToken}?token=${tempToken}`;
 
   await sendVerificationEmail(email, verificationUrl);
 
@@ -89,7 +98,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
 // ----------------------------
 // VERIFY EMAIL FUNCTION FOR TEACHERS
 // ----------------------------
-exports.verifyEmail = catchAsync(async (req, res, next) => {
+exports.verifyTeacherEmail = catchAsync(async (req, res, next) => {
   const hashedToken = crypto
     .createHash('sha256')
     .update(req.params.token)
@@ -97,61 +106,73 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
 
   const tempToken = req.query.token;
 
-  const decoded = await jwt.verify(tempToken, process.env.JWT_SECRET);
-
-  if (decoded.emailVerificationToken !== hashedToken) {
-    return next(new AppError('Token is invalid or has expired.', 400));
-  }
-
-  const transaction = await sequelize.transaction();
   try {
+    // Verify the JWT token
+    const decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+
+    // Check if the hashed tokens match
+    if (decoded.emailVerificationToken !== hashedToken) {
+      return next(new AppError('Token is invalid or has expired.', 400));
+    }
+
+    // Destructure the required values from the decoded token
     const {
       email,
       password,
       address,
       dob,
-      role,
       first_name,
       last_name,
       phone_number,
+      school_admin_id,
     } = decoded;
 
-    // Hash the password before saving it
-    const hashedPassword = await bcrypt.hash(password, 12);
+    // Validate the necessary fields are present
+    if (!email || !password || !first_name || !last_name || !school_admin_id) {
+      return next(new AppError('Missing required user information.', 400));
+    }
 
-    // Create the user with the role 'teacher' and hashed password
-    const user = await User.create(
-      { email, password: hashedPassword, emailVerified: true, role: 'teacher' },
-      { transaction }
-    );
+    const transaction = await sequelize.transaction();
 
-    // Create the info record related to the user
-    await Info.create(
-      {
-        user_id: user.user_id,
-        first_name,
-        last_name,
-        phone_number,
-        address,
-        dob,
-        role,
-      },
-      { transaction }
-    );
+    try {
+      // Create the User
+      const user = await User.create(
+        { email, password, emailVerified: true, role: 'teacher' },
+        { transaction }
+      );
 
-    // Create the teacher record
-    await Teacher.create({ user_id: user.user_id }, { transaction });
+      // Create the Info record
+      const info = await Info.create(
+        { first_name, last_name, phone_number, address, dob },
+        { transaction }
+      );
 
-    // Commit the transaction if everything is successful
-    await transaction.commit();
+      // Create the Teacher record
+      await Teacher.create(
+        {
+          user_id: user.user_id,
+          info_id: info.info_id,
+          school_admin_id,
+        },
+        { transaction }
+      );
 
-    res.status(200).json({
-      status: 'success',
-      message: 'Email verified and teacher account created successfully!',
-    });
+      // Commit the transaction if all operations are successful
+      await transaction.commit();
+
+      res.status(200).json({
+        status: 'success',
+        message: 'Email verified and teacher account created successfully!',
+      });
+    } catch (err) {
+      // Rollback the transaction in case of any error
+      await transaction.rollback();
+      console.error('Transaction Error:', err);
+      return next(new AppError('Failed to create teacher account', 500));
+    }
   } catch (err) {
-    // Rollback in case of any error
-    await transaction.rollback();
-    return next(new AppError('Failed to create teacher account', 500));
+    // Handle token verification error
+    console.error('JWT Error:', err);
+    return next(new AppError('Failed to verify token', 400));
   }
 });

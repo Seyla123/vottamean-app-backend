@@ -7,10 +7,11 @@ const AppError = require('../utils/appError');
 // Import API Features
 const APIFeatures = require('../utils/apiFeatures');
 
-// ------------------------------
-// Create handlerFactory function :
-// Reusable middleware functions for all routes
-// ------------------------------
+// --------------------------------------------
+// Create Factory Handler function :
+// Reusable middleware functions for all routes.
+// --------------------------------------------
+
 // Create One
 exports.createOne = (Model, popOptions = []) =>
   catchAsync(async (req, res, next) => {
@@ -29,7 +30,7 @@ exports.getOne = (Model, idField, popOptions = []) =>
   catchAsync(async (req, res, next) => {
     let options = {
       where: { [idField]: req.params.id },
-      include: popOptions, // Include associations
+      include: popOptions, 
     };
 
     const doc = await Model.findOne(options);
@@ -109,13 +110,13 @@ exports.deleteOne = (Model, idField) =>
   catchAsync(async (req, res, next) => {
     console.log(
       `Attempting to delete record with ${idField}: ${req.params.id}`
-    ); // Log the correct ID field
+    );
     const doc = await Model.destroy({
       where: { [idField]: req.params.id },
     });
 
     if (!doc) {
-      console.error(`No document found with ${idField}: ${req.params.id}`); // Log if no record is found
+      console.error(`No document found with ${idField}: ${req.params.id}`);
       return next(new AppError(`No document found with that ${idField}`, 404));
     }
 
@@ -128,11 +129,11 @@ exports.deleteOne = (Model, idField) =>
 // Delete All
 exports.deleteAll = (Model) =>
   catchAsync(async (req, res, next) => {
-    console.log('Deleting all records'); // Log the correct model name
+    console.log('Deleting all records');
     const doc = await Model.destroy({ where: {} });
 
     if (!doc) {
-      console.error('No documents found'); // Log if no records are found
+      console.error('No documents found'); 
       return next(new AppError('No documents found', 404));
     }
 

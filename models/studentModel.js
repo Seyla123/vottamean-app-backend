@@ -12,6 +12,22 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
+      guardian_name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      guardian_email: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      guardian_relationship: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      guardian_contact: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
       active: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
@@ -37,7 +53,7 @@ module.exports = (sequelize, DataTypes) => {
       as: 'Class',
     });
 
-    Student.hasOne(models.Info, {
+    Student.belongsTo(models.Info, {
       foreignKey: 'info_id',
       as: 'Info',
     });

@@ -1,4 +1,4 @@
-// Mail Librarយ
+// Mail Library
 const nodemailer = require('nodemailer');
 
 // HTML Parser

@@ -8,6 +8,7 @@ const signToken = (id) =>
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
 
+// Deliver Token To Client
 exports.createSendToken = (user, statusCode, req, res) => {
   const token = signToken(user.user_id); // Use signToken directly
 
@@ -33,6 +34,7 @@ exports.createSendToken = (user, statusCode, req, res) => {
   });
 };
 
+// Create and Send Verification Token To Client
 exports.createVerificationToken = () => {
   const verificationToken = crypto.randomBytes(32).toString('hex');
   const hashedToken = crypto

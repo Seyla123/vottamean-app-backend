@@ -2,8 +2,8 @@
 const express = require('express');
 
 // Authentication and User Controller
-const authController = require('../controllers/authController');
 const userController = require('../controllers/userController');
+const authController = require('../controllers/authController');
 
 // File upload and resizing Controller
 const fileController = require('../controllers/fileController');
@@ -21,6 +21,9 @@ router.post('/login', authController.login);
 
 // Email verification route
 router.get('/verifyEmail/:token', authController.verifyEmail);
+
+// Teacher verify email
+router.get('/verifyEmail/teacher/:token', teacherController.verifyTeacherEmail);
 
 // Should be enable after email get verified
 router.post('/forgotPassword', authController.forgotPassword);
@@ -58,14 +61,11 @@ router.post('/', studentController.addStudent);
 router.patch('/updatePassword', authController.updatePassword);
 
 // User management routes
-router
-  .route('/')
-  .get(userController.getAllUsers)
-  .post(studentController.addStudent);
+router.route('/').get(userController.getAllUsers);
 
 router
   .route('/:id')
-  .get(userController.getUser)
+  .get(userController.getUser, userController.getMe)
   .put(userController.updateUser)
   .delete(userController.deleteUser);
 

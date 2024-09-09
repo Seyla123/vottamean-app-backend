@@ -32,7 +32,7 @@ module.exports = (sequelize, DataTypes) => {
       as: 'SchoolAdmin',
     });
 
-    Teacher.hasOne(models.Info, {
+    Teacher.belongsTo(models.Info, {
       foreignKey: 'info_id',
       as: 'Info',
     });

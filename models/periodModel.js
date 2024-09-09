@@ -12,10 +12,6 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
-      period_name: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
       start_time: {
         type: DataTypes.TIME,
         allowNull: false,

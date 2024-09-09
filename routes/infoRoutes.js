@@ -1,9 +1,9 @@
 // Express library
 const express = require('express');
 
-// Authentication and Student Controller
+// Controllers
+const infoController = require('../controllers/infoController');
 const authController = require('../controllers/authController');
-const studentController = require('../controllers/studentController');
 
 // Define Express Router
 const router = express.Router();
@@ -14,13 +14,12 @@ router.use(authController.protect);
 // Restrict all routes to admin only
 router.use(authController.restrictTo('admin'));
 
-// Student routes
-router.route('/').get(studentController.getAllStudents);
+// Info routes
+router.get('/', infoController.getAllInfos).post('/', infoController.addInfo);
 
 router
-  .route('/:id')
-  .get(studentController.getStudent)
-  .patch(studentController.updateStudent)
-  .delete(studentController.deleteStudent);
+  .get('/:id', infoController.getInfo)
+  .put('/:id', infoController.updateInfo)
+  .delete('/:id', infoController.deleteInfo);
 
 module.exports = router;

@@ -34,7 +34,7 @@ module.exports = (sequelize, DataTypes) => {
       as: 'Schools',
     });
 
-    Admin.hasOne(models.Info, {
+    Admin.belongsTo(models.Info, {
       foreignKey: 'info_id',
       as: 'Info',
     });
