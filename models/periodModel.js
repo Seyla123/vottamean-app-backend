@@ -35,6 +35,11 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   Period.associate = (models) => {
+    Subject.belongsTo(models.SchoolAdmin, {
+      foreignKey: 'school_admin_id',
+      as: 'SchoolAdmin',
+    });
+
     Period.hasMany(models.Session, {
       foreignKey: 'period_id',
       as: 'Sessions',
