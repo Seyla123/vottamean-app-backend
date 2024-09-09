@@ -6,7 +6,7 @@ class APIFeatures {
   constructor(query, queryString) {
     this.query = query;
     this.queryString = queryString;
-    this.options = {}; // Collect options for findAll here
+    this.options = {};
   }
 
   // Filter Object Function
@@ -25,7 +25,7 @@ class APIFeatures {
       }
     });
 
-    console.log('Filters:', filters); // Debug log
+    console.log('Filters:', filters);
     this.options.where = filters;
 
     return this;
@@ -42,7 +42,7 @@ class APIFeatures {
       this.options.order = [['createdAt', 'DESC']];
     }
 
-    console.log('Sort Order:', this.options.order); // Debug log
+    console.log('Sort Order:', this.options.order);
     return this;
   }
 
@@ -52,10 +52,10 @@ class APIFeatures {
       const fields = this.queryString.fields.split(',');
       this.options.attributes = fields;
     } else {
-      this.options.attributes = { exclude: ['__v'] }; // Assuming '__v' is relevant
+      this.options.attributes = { exclude: ['__v'] };
     }
 
-    console.log('Fields:', this.options.attributes); // Debug log
+    console.log('Fields:', this.options.attributes);
     return this;
   }
 
@@ -68,7 +68,7 @@ class APIFeatures {
     this.options.limit = limit;
     this.options.offset = offset;
 
-    console.log('Pagination:', { limit, offset }); // Debug log
+    console.log('Pagination:', { limit, offset });
     return this;
   }
 
@@ -76,10 +76,10 @@ class APIFeatures {
   async exec() {
     try {
       const result = await this.query.findAll(this.options);
-      console.log('Result:', result); // Debug log
+      console.log('Result:', result);
       return result;
     } catch (err) {
-      console.error('Error executing query:', err); // Debug log for errors
+      console.error('Error executing query:', err);
       throw err;
     }
   }
