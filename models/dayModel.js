@@ -13,7 +13,15 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
       },
       day: {
-        type: DataTypes.STRING,
+        type: DataTypes.ENUM(
+          'monday',
+          'tuesday',
+          'wednesday',
+          'thursday',
+          'friday',
+          'saturday',
+          'sunday'
+        ),
         allowNull: false,
       },
       active: {

@@ -35,7 +35,7 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   Period.associate = (models) => {
-    Subject.belongsTo(models.SchoolAdmin, {
+    Period.belongsTo(models.SchoolAdmin, {
       foreignKey: 'school_admin_id',
       as: 'SchoolAdmin',
     });
