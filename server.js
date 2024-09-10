@@ -4,7 +4,8 @@ const app = require('./app');
 const dotenv = require('dotenv');
 
 // Seeder
-const seedDaysOfWeek = require('./seeders/seedDaysOfWeek'); 
+const seedDaysOfWeek = require('./seeders/seedDaysOfWeek');
+const seedStatus = require('./seeders/seedStatus');
 
 // Load environment variables based on NODE_ENV
 dotenv.config({ path: `.env.${process.env.NODE_ENV || 'development'}` });
@@ -18,6 +19,7 @@ sequelize
   .then(async () => {
     // Seed the days of the week after the database is synced
     await seedDaysOfWeek();
+    await seedStatus();
 
     // Start the server after seeding is done
     app.listen(PORT, () => {

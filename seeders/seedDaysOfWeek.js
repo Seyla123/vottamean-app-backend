@@ -1,5 +1,5 @@
-// seeders/seedDaysOfWeek.js
-const DayOfWeek = require('../models').DayOfWeek; // Adjust the path if necessary
+// Import Model
+const { DayOfWeek } = require('../models');
 
 // Function to seed days of the week
 const seedDaysOfWeek = async () => {

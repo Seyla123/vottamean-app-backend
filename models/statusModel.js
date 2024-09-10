@@ -13,12 +13,7 @@ module.exports = (sequelize, DataTypes) => {
         primaryKey: true,
       },
       status: {
-        type: DataTypes.ENUM(
-          'late',
-          'present',
-          'absent',
-          'absent_with_permission'
-        ),
+        type: DataTypes.STRING,
         allowNull: false,
         defaultValue: 'absent',
       },
