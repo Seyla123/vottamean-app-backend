@@ -83,7 +83,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
 
   const verificationUrl = `${req.protocol}://${req.get(
     'host'
-  )}/api/v1/users/verifyEmail/teacher/${verificationToken}?token=${tempToken}`;
+  )}/api/v1/auth/verifyEmail/teacher/${verificationToken}?token=${tempToken}`;
 
   await sendVerificationEmail(email, verificationUrl);
 
