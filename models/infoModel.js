@@ -48,21 +48,7 @@ module.exports = (sequelize, DataTypes) => {
       dob: {
         type: DataTypes.DATEONLY,
         allowNull: false,
-        validate: {
-          validator: function (value) {
-            const date = new Date(value);
-            if (isNaN(date.getTime())) {
-              return false; // Invalid date
-            }
-            const day = date.getUTCDate();
-            const month = date.getUTCMonth() + 1;
-            const year = date.getUTCFullYear();
-            return (
-              day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1900
-            );
-          },
-          message: 'Date of birth must include a valid day, month, and year',
-        },
+        validate: infoValidator.isValidDOB,
       },
       active: {
         type: DataTypes.BOOLEAN,
