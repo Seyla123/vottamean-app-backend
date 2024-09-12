@@ -49,6 +49,7 @@ exports.addStudent = catchAsync(async (req, res, next) => {
     isValidPhoneNumber(phone_number);
     isValidAddress(address);
     isValidGender(gender);
+    isValidName(guardian_name);
     isValidEmail(guardian_email);
     isValidGuardianRelationship(guardian_relationship);
     isValidPhoneNumber(guardian_phone_number);
