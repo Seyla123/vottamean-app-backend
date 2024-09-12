@@ -3,15 +3,23 @@ const validator = require('validator');
 module.exports = {
   // Validator for name field
   isValidName: (value) => {
+    // Check if the name is empty
     if (validator.isEmpty(value)) {
       throw new Error('Name is required');
     }
+
+    // Check if the length is between 2 and 50 characters
     if (!validator.isLength(value, { min: 2, max: 50 })) {
       throw new Error('Name must be between 2 and 50 characters');
     }
+
+    // Check if the name contains only letters and spaces using regex
     if (!/^[A-Za-z\s]+$/.test(value)) {
-      throw new Error('Name can only contain letters and spaces');
+      throw new Error(
+        'Name can only contain letters and spaces, no numbers or symbols'
+      );
     }
+
     return true;
   },
 
@@ -45,20 +53,28 @@ module.exports = {
 
   // Validator for Date of Birth (DOB) field
   isValidDOB: (value) => {
+    // Check if the value is empty
     if (validator.isEmpty(value)) {
       throw new Error('Date of birth is required');
     }
-    if (!validator.isDate(value)) {
-      throw new Error('Please provide a valid date of birth');
-    }
-    const date = new Date(value);
-    const day = date.getUTCDate();
-    const month = date.getUTCMonth() + 1;
-    const year = date.getUTCFullYear();
 
-    if (!day || !month || !year) {
-      throw new Error('Date of birth must include day, month, and year');
+    // Check if the format is YYYY-MM-DD using regex
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      throw new Error('Date of birth must be in the format YYYY-MM-DD');
     }
+
+    // Check if the value is a valid date
+    if (!validator.isDate(value, { format: 'YYYY-MM-DD', strictMode: true })) {
+      throw new Error(
+        'Please provide a valid date of birth in the format YYYY-MM-DD'
+      );
+    }
+
+    // Optional: Further check that the date is not in the future
+    if (validator.isAfter(value, new Date().toISOString().split('T')[0])) {
+      throw new Error('Date of birth cannot be in the future');
+    }
+
     return true;
   },
 
