@@ -105,17 +105,22 @@ exports.updateOne = (Model, idField) =>
     }
   });
 
-// Delete One
+// Set active to false instead of deleting one record
 exports.deleteOne = (Model, idField) =>
   catchAsync(async (req, res, next) => {
     console.log(
-      `Attempting to delete record with ${idField}: ${req.params.id}`
+      `Attempting to set active to false for record with ${idField}: ${req.params.id}`
     );
-    const doc = await Model.destroy({
-      where: { [idField]: req.params.id },
-    });
 
-    if (!doc) {
+    // Update the active field to false instead of deleting the record
+    const doc = await Model.update(
+      { active: false }, // Set active to false
+      { where: { [idField]: req.params.id } }
+    );
+
+    // Check if the document exists and was updated
+    if (doc[0] === 0) {
+      // Sequelize returns an array, first element is affected rows count
       console.error(`No document found with ${idField}: ${req.params.id}`);
       return next(new AppError(`No document found with that ${idField}`, 404));
     }
@@ -126,14 +131,21 @@ exports.deleteOne = (Model, idField) =>
     });
   });
 
-// Delete All
+// Delete All// Set active to false for all records instead of deleting them
 exports.deleteAll = (Model) =>
   catchAsync(async (req, res, next) => {
-    console.log('Deleting all records');
-    const doc = await Model.destroy({ where: {} });
+    console.log('Setting active to false for all records');
 
-    if (!doc) {
-      console.error('No documents found');
+    // Update the active field to false for all records
+    const doc = await Model.update(
+      { active: false }, // Set active to false
+      { where: {} }
+    );
+
+    // Check if any documents were updated
+    if (doc[0] === 0) {
+      // Sequelize returns affected rows count as the first element
+      console.error('No documents found to update');
       return next(new AppError('No documents found', 404));
     }
 
