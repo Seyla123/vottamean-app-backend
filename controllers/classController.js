@@ -11,7 +11,6 @@ exports.addClass = catchAsync(async (req, res, next) => {
   const { class_name, description } = req.body;
   // Start a transaction
   const transaction = await sequelize.transaction();
-
   try {
     const newClass = await Class.create(
       {
@@ -22,7 +21,7 @@ exports.addClass = catchAsync(async (req, res, next) => {
       { transaction }
     );
     await transaction.commit();
-
+    
     res.status(201).json({
       status: 'success',
       data: {
@@ -38,11 +37,11 @@ exports.addClass = catchAsync(async (req, res, next) => {
 // Read all classes
 exports.getAllClasses = catchAsync(async (req, res, next) => {
   try {
-    const classes = await Class.findAll();
+    const classes = await Class.findAll( {where: { active: true }} );
     res.status(200).json({
       status: 'success',
       data: {
-        classes,
+        class : classes
       },
     });
   } catch (error) {
@@ -52,16 +51,72 @@ exports.getAllClasses = catchAsync(async (req, res, next) => {
 
 
 // Read a single class
-exports.getClass = catchAsync(async(req, res, next) => {
+exports.getClass = catchAsync(async (req, res, next) => {
     try {
-        const classes = await Class.findbyPk(req.params.id);
+        const { id } = req.params;
+        const classId = await Class.findByPk(id);
+        if (!classId) {
+            return next(new AppError('Class not found', 404));
+        }
         res.status(200).json({
             status: 'success',
             data: {
-                classes
+                class: classId
             }
-        })
+        });
     } catch (error) {
         return next(new AppError('Failed to get class', 400));
     }
-})
+});
+
+
+// Update a class
+exports.updateClass = catchAsync(async (req, res, next) => {
+  try {
+    const id = req.params.id
+    const classToUpdate = await Class.findByPk(id);
+    if (!classToUpdate) {
+      return next(new AppError('Class not found', 404));
+    }
+    const updatedClass = await classToUpdate.update(req.body);
+    res.status(200).json({
+      status: 'success',
+      data: {
+        class: updatedClass,
+      },
+    });
+  } catch (error) {
+    return next(new AppError('Failed to update class', 400));
+  }
+});
+
+
+// // Delete a class
+// exports.deleteClass = catchAsync(async(req, res, next) => {
+//     try {
+//         const { id } = req.params;
+//         const classToDelete = await Class.findByPk(id);
+//     } catch (error) {
+//         return next(new AppError('Failed to delete class', 400));   
+//     }
+// })
+
+// Delete a class
+exports.deleteClass = catchAsync(async (req, res, next) => {
+    const classItem = await Class.findByPk(req.params.id);
+    if (!classItem) {
+        return next(new AppError('No class found with that ID', 404));
+    }
+    const transaction = await sequelize.transaction();
+    try {
+        await classItem.destroy({ transaction });
+        await transaction.commit();
+        res.status(204).json({
+            status: 'success',
+            data: null,
+        });
+    } catch (err) {
+        await transaction.rollback();
+        return next(new AppError('Failed to delete class', 400));
+    }
+});

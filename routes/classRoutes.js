@@ -17,5 +17,6 @@ router
 router
   .route('/:id')
   .get(classController.getClass)
-  
+  .patch(classController.updateClass)
+    
 module.exports = router;
