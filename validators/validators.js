@@ -66,4 +66,8 @@ module.exports = {
       msg: 'Period name must be between 3 and 50 characters',
     },
   },
+
+  isValidGuardianRelationship: {
+    notEmpty: { msg: 'Guardian relationship cannot be empty' },
+  },
 };

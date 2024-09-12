@@ -1,6 +1,7 @@
 const { Model } = require('sequelize');
 const { trimWhiteSpaces } = require('../utils/trimWhiteSpaces');
-const StudentValidators = require('../validators/studentValidator');
+const infoValidator = require('../validators/infoValidator');
+const validators = require('../validators/validators');
 
 module.exports = (sequelize, DataTypes) => {
   class Student extends Model {
@@ -17,22 +18,22 @@ module.exports = (sequelize, DataTypes) => {
       guardian_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: StudentValidators.isValidGuardianName,
+        validate: infoValidator.isValidGuardianName,
       },
       guardian_email: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: StudentValidators.isValidGuardianEmail,
+        validate: infoValidator.isValidGuardianEmail,
       },
       guardian_relationship: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: StudentValidators.isValidGuardianRelationship,
+        validate: validators.isValidGuardianRelationship,
       },
       guardian_phone_number: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: StudentValidators.isValidGuardianPhoneNumber,
+        validate: infoValidator.isValidPhoneNumber,
       },
       active: {
         type: DataTypes.BOOLEAN,
