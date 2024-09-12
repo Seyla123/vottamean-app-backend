@@ -1,92 +1,114 @@
+const validator = require('validator');
+
 module.exports = {
-  isValidName: {
-    notNull: { msg: 'Name is required' },
-    notEmpty: { msg: 'Name cannot be empty' },
-    len: {
-      args: [2, 50],
-      msg: 'Name must be between 2 and 50 characters',
-    },
-    is: {
-      args: /^[A-Za-z\s]+$/,
-      msg: 'Name can only contain letters and spaces',
-    },
+  // Validator for name field
+  isValidName: (value) => {
+    if (validator.isEmpty(value)) {
+      throw new Error('Name is required');
+    }
+    if (!validator.isLength(value, { min: 2, max: 50 })) {
+      throw new Error('Name must be between 2 and 50 characters');
+    }
+    if (!/^[A-Za-z\s]+$/.test(value)) {
+      throw new Error('Name can only contain letters and spaces');
+    }
+    return true;
   },
 
-  isValidGender: {
-    isIn: {
-      args: [['male', 'female', 'other']],
-      msg: 'Gender must be either male or female',
-    },
+  // Validator for gender field
+  isValidGender: (value) => {
+    const allowedGenders = ['male', 'female', 'other'];
+    if (!allowedGenders.includes(value)) {
+      throw new Error('Gender must be either male, female, or other');
+    }
+    return true;
   },
 
-  isValidPhoneNumber: {
-    is: {
-      args: /^[0-9]{10,15}$/,
-      msg: 'Phone number must be between 10 and 15 digits',
-    },
+  // Validator for phone number
+  isValidPhoneNumber: (value) => {
+    if (
+      !validator.isLength(value, { min: 10, max: 15 }) ||
+      !/^[0-9]{10,15}$/.test(value)
+    ) {
+      throw new Error('Phone number must be between 10 and 15 digits');
+    }
+    return true;
   },
 
-  isValidAddress: {
-    notNull: { msg: 'Address is required' },
-    notEmpty: { msg: 'Address cannot be empty' },
+  // Validator for address field
+  isValidAddress: (value) => {
+    if (validator.isEmpty(value)) {
+      throw new Error('Address is required');
+    }
+    return true;
   },
 
-  isValidDOB: {
-    notNull: { msg: 'Date of birth is required' },
-    isDate: { msg: 'Please provide a valid date of birth' },
-    isValidDOB(value) {
-      const date = new Date(value);
-      // Check if the date is valid and includes day, month, and year
-      if (isNaN(date.getTime())) {
-        throw new Error('Invalid date');
-      }
-      const day = date.getUTCDate();
-      const month = date.getUTCMonth() + 1;
-      const year = date.getUTCFullYear();
+  // Validator for Date of Birth (DOB) field
+  isValidDOB: (value) => {
+    if (validator.isEmpty(value)) {
+      throw new Error('Date of birth is required');
+    }
+    if (!validator.isDate(value)) {
+      throw new Error('Please provide a valid date of birth');
+    }
+    const date = new Date(value);
+    const day = date.getUTCDate();
+    const month = date.getUTCMonth() + 1;
+    const year = date.getUTCFullYear();
 
-      if (!day || !month || !year) {
-        throw new Error('Date of birth must include day, month, and year');
-      }
-    },
+    if (!day || !month || !year) {
+      throw new Error('Date of birth must include day, month, and year');
+    }
+    return true;
   },
 
   // Validator for email field
-  isValidEmail: {
-    notNull: { msg: 'An email is required' },
-    notEmpty: { msg: 'Email cannot be empty' },
-    isEmail: { msg: 'Please provide a valid email address' },
+  isValidEmail: (value) => {
+    if (validator.isEmpty(value)) {
+      throw new Error('An email is required');
+    }
+    if (!validator.isEmail(value)) {
+      throw new Error('Please provide a valid email address');
+    }
+    return true;
   },
 
   // Validator for password field
-  isValidPassword: {
-    notNull: { msg: 'A password is required' },
-    notEmpty: { msg: 'Password cannot be empty' },
-    len: {
-      args: [8],
-      msg: 'Password must be at least 8 characters long',
-    },
+  isValidPassword: (value) => {
+    if (validator.isEmpty(value)) {
+      throw new Error('A password is required');
+    }
+    if (!validator.isLength(value, { min: 8 })) {
+      throw new Error('Password must be at least 8 characters long');
+    }
+    return true;
   },
 
   // Validator for password confirmation
-  isPasswordConfirm: {
-    notEmpty: { msg: 'Password confirmation cannot be empty' },
-    isMatch(value, password) {
-      if (value !== password) {
-        throw new Error('Passwords do not match');
-      }
-    },
+  isPasswordConfirm: (value, password) => {
+    if (validator.isEmpty(value)) {
+      throw new Error('Password confirmation cannot be empty');
+    }
+    if (value !== password) {
+      throw new Error('Passwords do not match');
+    }
+    return true;
   },
 
   // Validator for role field
-  isValidRole: {
-    isIn: {
-      args: [['admin', 'teacher']],
-      msg: 'Invalid role',
-    },
+  isValidRole: (value) => {
+    const allowedRoles = ['admin', 'teacher'];
+    if (!allowedRoles.includes(value)) {
+      throw new Error('Invalid role');
+    }
+    return true;
   },
 
-  // Validator for date fields
-  isValidDate: {
-    isDate: { msg: 'Must be a valid date' },
+  // Generic date validation
+  isValidDate: (value) => {
+    if (!validator.isDate(value)) {
+      throw new Error('Must be a valid date');
+    }
+    return true;
   },
 };

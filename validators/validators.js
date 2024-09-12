@@ -1,73 +1,90 @@
+const validator = require('validator');
+
 module.exports = {
   // Function to validate that an end time is after a start time
   isAfterStartTime: (startTimeField, endTimeField) => {
     return function (value) {
-      if (this[startTimeField] && value <= this[startTimeField]) {
+      const startTime = this[startTimeField];
+      if (startTime && value <= startTime) {
         throw new Error(`${endTimeField} must be after ${startTimeField}`);
       }
     };
   },
 
   // Validator for date fields (Used in Period)
-  isValidDate: {
-    notNull: { msg: 'Date is required' },
-    isDate: { msg: 'Date must be a valid date' },
-    isAfter: {
-      args: [new Date().toISOString().split('T')[0]],
-      msg: 'Date must be today or in the future',
-    },
+  isValidDate: (value) => {
+    if (validator.isEmpty(value)) {
+      throw new Error('Date is required');
+    }
+    if (!validator.isDate(value)) {
+      throw new Error('Date must be a valid date');
+    }
+    if (!validator.isAfter(value, new Date().toISOString().split('T')[0])) {
+      throw new Error('Date must be today or in the future');
+    }
+    return true;
   },
 
   // Validator for subject
-  isValidSubject: {
-    notNull: { msg: 'Subject name is required' },
-    notEmpty: { msg: 'Subject name cannot be empty' },
-    len: {
-      args: [3, 50],
-      msg: 'Subject name must be between 3 and 50 characters',
-    },
+  isValidSubject: (value) => {
+    if (validator.isEmpty(value)) {
+      throw new Error('Subject name is required');
+    }
+    if (!validator.isLength(value, { min: 3, max: 50 })) {
+      throw new Error('Subject name must be between 3 and 50 characters');
+    }
+    return true;
   },
 
   // Validator for school name
-  isValidSchoolName: {
-    notNull: { msg: 'School name is required' },
-    notEmpty: { msg: 'School name cannot be empty' },
-    len: {
-      args: [3, 100],
-      msg: 'School name must be between 3 and 100 characters',
-    },
+  isValidSchoolName: (value) => {
+    if (validator.isEmpty(value)) {
+      throw new Error('School name is required');
+    }
+    if (!validator.isLength(value, { min: 3, max: 100 })) {
+      throw new Error('School name must be between 3 and 100 characters');
+    }
+    return true;
   },
 
   // Validator for class name
-  isValidClassName: {
-    notNull: { msg: 'Class name is required' },
-    notEmpty: { msg: 'Class name cannot be empty' },
-    len: {
-      args: [3, 50],
-      msg: 'Class name must be between 3 and 50 characters',
-    },
+  isValidClassName: (value) => {
+    if (validator.isEmpty(value)) {
+      throw new Error('Class name is required');
+    }
+    if (!validator.isLength(value, { min: 3, max: 50 })) {
+      throw new Error('Class name must be between 3 and 50 characters');
+    }
+    return true;
   },
 
   // Validator for description
-  isValidDescription: {
-    notEmpty: { msg: 'Description cannot be empty' },
-    len: {
-      args: [0, 255],
-      msg: 'Description cannot exceed 255 characters',
-    },
+  isValidDescription: (value) => {
+    if (validator.isEmpty(value)) {
+      throw new Error('Description cannot be empty');
+    }
+    if (!validator.isLength(value, { max: 255 })) {
+      throw new Error('Description cannot exceed 255 characters');
+    }
+    return true;
   },
 
   // Validator for period name
-  isValidPeriodName: {
-    notNull: { msg: 'Period name is required' },
-    notEmpty: { msg: 'Period name cannot be empty' },
-    len: {
-      args: [3, 50],
-      msg: 'Period name must be between 3 and 50 characters',
-    },
+  isValidPeriodName: (value) => {
+    if (validator.isEmpty(value)) {
+      throw new Error('Period name is required');
+    }
+    if (!validator.isLength(value, { min: 3, max: 50 })) {
+      throw new Error('Period name must be between 3 and 50 characters');
+    }
+    return true;
   },
 
-  isValidGuardianRelationship: {
-    notEmpty: { msg: 'Guardian relationship cannot be empty' },
+  // Validator for guardian relationship
+  isValidGuardianRelationship: (value) => {
+    if (validator.isEmpty(value)) {
+      throw new Error('Guardian relationship cannot be empty');
+    }
+    return true;
   },
 };
