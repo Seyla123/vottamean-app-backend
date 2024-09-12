@@ -1,5 +1,5 @@
 // Database models
-const { Student, Info, sequelize } = require('../models');
+const { Student, Info, Attendance, sequelize } = require('../models');
 
 // Error handler
 const catchAsync = require('../utils/catchAsync');
@@ -82,24 +82,27 @@ exports.getAllStudents = factory.getAll(Student, {}, [
 // Update student details and their attendance records
 exports.updateStudent = factory.updateOne(Student, 'student_id');
 
-// Delete student and their attendance records
+// Update student status to inactive
 exports.deleteStudent = catchAsync(async (req, res, next) => {
   const studentId = req.params.id;
 
-  // Delete the student's attendance records first
-  await Attendance.destroy({ where: { student_id: studentId } });
-
-  // Then delete the student
-  const deletedStudent = await Student.destroy({
-    where: { student_id: studentId },
-  });
-
-  if (!deletedStudent) {
+  // Check if student exists
+  const student = await Student.findOne({ where: { student_id: studentId } });
+  if (!student) {
     return next(new AppError('No student found with that ID', 404));
   }
 
-  res.status(204).json({
+  // Update the student's status to inactive
+  await Student.update({ active: false }, { where: { student_id: studentId } });
+
+  // handle attendance records
+  await Attendance.update(
+    { active: false },
+    { where: { student_id: studentId } }
+  );
+
+  res.status(200).json({
     status: 'success',
-    data: null,
+    message: 'Student status updated to inactive',
   });
 });
