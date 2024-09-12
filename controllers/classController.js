@@ -5,6 +5,7 @@ const { Class, sequelize } = require('../models');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 
+const factory = require('./handlerFactory');
 // Create a new class
 exports.addClass = catchAsync(async (req, res, next) => {
   // field to input
@@ -101,22 +102,24 @@ exports.updateClass = catchAsync(async (req, res, next) => {
 //     }
 // })
 
-// Delete a class
-exports.deleteClass = catchAsync(async (req, res, next) => {
-    const classItem = await Class.findByPk(req.params.id);
-    if (!classItem) {
-        return next(new AppError('No class found with that ID', 404));
-    }
-    const transaction = await sequelize.transaction();
-    try {
-        await classItem.destroy({ transaction });
-        await transaction.commit();
-        res.status(204).json({
-            status: 'success',
-            data: null,
-        });
-    } catch (err) {
-        await transaction.rollback();
-        return next(new AppError('Failed to delete class', 400));
-    }
-});
+// // Delete a class
+// exports.deleteClass = catchAsync(async (req, res, next) => {
+
+//     if (!classItem) {
+//         return next(new AppError('No class found with that ID', 404));
+//     }
+//     const transaction = await sequelize.transaction();
+//     try {
+//         await classItem.destroy({ transaction });
+//         await transaction.commit();
+//         res.status(204).json({
+//             status: 'success',
+//             data: null,
+//         });
+//     } catch (err) {
+//         await transaction.rollback();
+//         return next(new AppError('Failed to delete class', 400));
+//     }
+// });
+
+exports.deleteClass = factory.deleteOne(Class, 'class_id');
