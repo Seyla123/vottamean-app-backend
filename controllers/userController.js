@@ -1,8 +1,13 @@
+// Database Models
 const { User, Admin, Teacher, Student, Info } = require('../models');
+
+// Error Handlers
 const { filterObj } = require('../utils/filterObj');
-const factory = require('./handlerFactory');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+
+// Factory Handler
+const factory = require('./handlerFactory');
 
 // Middleware to get the current logged-in user
 exports.getMe = (req, res, next) => {

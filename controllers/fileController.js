@@ -1,5 +1,6 @@
 // For handling file uploads
 const multer = require('multer');
+
 // For image resizing
 const sharp = require('sharp');
 

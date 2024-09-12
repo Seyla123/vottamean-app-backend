@@ -1,4 +1,7 @@
+// Database Model
 const { Info } = require('../models');
+
+// Factory Handler
 const factory = require('./handlerFactory');
 
 // Get one Info

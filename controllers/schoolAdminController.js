@@ -1,10 +1,7 @@
-const {
-  SchoolAdmin,
-  Admin,
-  School,
-  Teacher,
-  Student,
-} = require('../models');
+// Database Models
+const { SchoolAdmin, Admin, School, Teacher, Student } = require('../models');
+
+// Factory Handler
 const factory = require('./handlerFactory');
 
 // Get one school admin by ID with related Admin, School, Teachers, and Students

@@ -16,6 +16,8 @@ const { Op } = require('sequelize');
 // Error Handlers
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+
+// Utils Middleware
 const Email = require('../utils/email');
 const {
   createVerificationToken,
@@ -54,10 +56,16 @@ exports.signup = catchAsync(async (req, res, next) => {
     return next(new AppError('Invalid date format for Date of Birth', 400));
   }
 
-  // 4. Generate a verification token and its hashed version.
+  // 4. Check if the email is already registered.
+  const existingUser = await User.findOne({ where: { email } });
+  if (existingUser) {
+    return next(new AppError('Email is already registered', 400));
+  }
+
+  // 5. Generate a verification token and its hashed version.
   const { token: verificationToken, hashedToken } = createVerificationToken();
 
-  // 5. Create a temporary JWT token with user data and the hashed verification token.
+  // 6. Create a temporary JWT token with user data and the hashed verification token.
   const tempToken = jwt.sign(
     {
       email,
@@ -77,13 +85,13 @@ exports.signup = catchAsync(async (req, res, next) => {
     { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
   );
 
-  // 6. Construct the verification URL and send it via email.
+  // 7. Construct the verification URL and send it via email.
   const verificationUrl = `${req.protocol}://${req.get(
     'host'
   )}/api/v1/auth/verifyEmail/${verificationToken}?token=${tempToken}`;
   await sendVerificationEmail(email, verificationUrl);
 
-  // 7. Respond with a success message and the temporary token.
+  // 8. Respond with a success message and the temporary token.
   res.status(200).json({
     status: 'success',
     message:
