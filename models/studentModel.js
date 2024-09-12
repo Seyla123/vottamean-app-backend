@@ -18,12 +18,12 @@ module.exports = (sequelize, DataTypes) => {
       guardian_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidGuardianName,
+        validate: infoValidator.isValidName,
       },
       guardian_email: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidGuardianEmail,
+        validate: infoValidator.isValidEmail,
       },
       guardian_relationship: {
         type: DataTypes.STRING,

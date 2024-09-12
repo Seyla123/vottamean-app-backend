@@ -43,6 +43,7 @@ exports.deleteTeacher = factory.deleteOne(Teacher, 'teacher_id');
 // SIGNUP FUNCTION FOR TEACHERS
 // ----------------------------
 exports.signupTeacher = catchAsync(async (req, res, next) => {
+  // 1. Extract necessary fields from the request body.
   const {
     email,
     password,

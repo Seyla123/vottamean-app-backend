@@ -104,6 +104,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 // VERIFY EMAIL FUNCTION
 // ----------------------------
 exports.verifyEmail = catchAsync(async (req, res, next) => {
+  // 1. Extract necessary fields from the request body.
   const hashedToken = crypto
     .createHash('sha256')
     .update(req.params.token)
@@ -113,10 +114,12 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
 
   const decoded = await jwt.verify(tempToken, process.env.JWT_SECRET);
 
+  // 2. Validate that the password and password confirmation match.
   if (decoded.emailVerificationToken !== hashedToken) {
     return next(new AppError('Token is invalid or has expired.', 400));
   }
 
+  // 3. Transaction of the data models
   const transaction = await sequelize.transaction();
   try {
     const {
@@ -133,13 +136,13 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
       school_phone_number,
     } = decoded;
 
-    // Create the user first
+    // 4. Create the user first
     const user = await User.create(
       { email, password, emailVerified: true },
       { transaction }
     );
 
-    // Create info record and get info_id
+    // 5. Create info record and get info_id
     const info = await Info.create(
       {
         first_name,
@@ -152,25 +155,25 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
       { transaction }
     );
 
-    // Create the school record
+    // 6. Create the school record
     const school = await School.create(
       { school_name, school_address, school_phone_number },
       { transaction }
     );
 
-    // Use the info_id from Info creation for Admin creation
+    // 7. Use the info_id from Info creation for Admin creation
     const admin = await Admin.create(
       { user_id: user.user_id, info_id: info.info_id },
       { transaction }
     );
 
-    // Create the SchoolAdmin record
+    // 8. Create the SchoolAdmin record
     await SchoolAdmin.create(
       { admin_id: admin.admin_id, school_id: school.school_id },
       { transaction }
     );
 
-    // Commit the transaction if all records are created successfully
+    // 9. Commit the transaction if all records are created successfully
     await transaction.commit();
 
     res.status(200).json({
