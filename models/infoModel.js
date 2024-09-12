@@ -17,12 +17,20 @@ module.exports = (sequelize, DataTypes) => {
       first_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidName,
+        validate: {
+          customValidator(value) {
+            infoValidator.isValidName(value);
+          },
+        },
       },
       last_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidName,
+        validate: {
+          customValidator(value) {
+            infoValidator.isValidName(value);
+          },
+        },
       },
       gender: {
         type: DataTypes.ENUM('male', 'female', 'other'),
@@ -48,7 +56,11 @@ module.exports = (sequelize, DataTypes) => {
       dob: {
         type: DataTypes.DATEONLY,
         allowNull: false,
-        validate: infoValidator.isValidDOB,
+        validate: {
+          customValidator(value) {
+            infoValidator.isValidDOB(value);
+          },
+        },
       },
       active: {
         type: DataTypes.BOOLEAN,

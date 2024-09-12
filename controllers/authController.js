@@ -13,6 +13,18 @@ const {
 } = require('../models');
 const { Op } = require('sequelize');
 
+// Validators
+const {
+  isValidEmail,
+  isValidPassword,
+  isPasswordConfirm,
+  isValidDOB,
+  isValidName,
+  isValidPhoneNumber,
+  isValidAddress,
+  isValidGender,
+} = require('../validators/infoValidator');
+
 // Error Handlers
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
@@ -45,33 +57,38 @@ exports.signup = catchAsync(async (req, res, next) => {
     school_phone_number,
   } = req.body;
 
-  // 2. Validate that the password and password confirmation match.
-  if (password !== passwordConfirm) {
-    return next(new AppError('Passwords do not match', 400));
+  // 2. Validate input fields using custom validators
+  try {
+    isValidEmail(email);
+    isValidPassword(password);
+    isPasswordConfirm(passwordConfirm, password);
+    isValidDOB(dob);
+    isValidName(first_name);
+    isValidName(last_name);
+    isValidPhoneNumber(phone_number);
+    isValidAddress(address);
+    // Validate gender if needed
+    if (gender) isValidGender(gender);
+  } catch (error) {
+    return next(new AppError(error.message, 400));
   }
 
-  // 3. Convert the date of birth to a Date object and validate its format.
-  const formattedDob = new Date(dob);
-  if (isNaN(formattedDob.getTime())) {
-    return next(new AppError('Invalid date format for Date of Birth', 400));
-  }
-
-  // 4. Check if the email is already registered.
+  // 3. Check if the email is already registered.
   const existingUser = await User.findOne({ where: { email } });
   if (existingUser) {
     return next(new AppError('Email is already registered', 400));
   }
 
-  // 5. Generate a verification token and its hashed version.
+  // 4. Generate a verification token and its hashed version.
   const { token: verificationToken, hashedToken } = createVerificationToken();
 
-  // 6. Create a temporary JWT token with user data and the hashed verification token.
+  // 5. Create a temporary JWT token with user data and the hashed verification token.
   const tempToken = jwt.sign(
     {
       email,
       password,
       address,
-      dob: formattedDob,
+      dob: new Date(dob),
       first_name,
       last_name,
       gender,
@@ -85,13 +102,18 @@ exports.signup = catchAsync(async (req, res, next) => {
     { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
   );
 
-  // 7. Construct the verification URL and send it via email.
+  // 6. Construct the verification URL and send it via email.
   const verificationUrl = `${req.protocol}://${req.get(
     'host'
   )}/api/v1/auth/verifyEmail/${verificationToken}?token=${tempToken}`;
-  await sendVerificationEmail(email, verificationUrl);
 
-  // 8. Respond with a success message and the temporary token.
+  try {
+    await sendVerificationEmail(email, verificationUrl);
+  } catch (error) {
+    return next(new AppError('Failed to send verification email', 500));
+  }
+
+  // 7. Respond with a success message and the temporary token.
   res.status(200).json({
     status: 'success',
     message:
