@@ -22,6 +22,7 @@ exports.addStudent = catchAsync(async (req, res, next) => {
     phone_number,
     address,
     dob,
+    school_admin_id,
   } = req.body;
 
   // Start a transaction
@@ -37,6 +38,7 @@ exports.addStudent = catchAsync(async (req, res, next) => {
         phone_number,
         address,
         dob,
+        school_admin_id,
       },
       { transaction }
     );
@@ -50,6 +52,7 @@ exports.addStudent = catchAsync(async (req, res, next) => {
         guardian_relationship,
         guardian_phone_number,
         info_id: newInfo.info_id,
+        school_admin_id,
       },
       { transaction }
     );
