@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const { Teacher, Info } = require('../models');
 
 // Email Handlers
-const { sendVerificationEmail } = require('../utils/authUtils');
+const { sendVerificationEmail, createVerificationToken } = require('../utils/authUtils');
 
 // Error Handlers
 const catchAsync = require('../utils/catchAsync');
