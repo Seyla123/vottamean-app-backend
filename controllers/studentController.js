@@ -1,6 +1,21 @@
 // Database models
 const { Student, Info, Attendance, sequelize } = require('../models');
 
+// Info Validators
+const {
+  isValidEmail,
+  isValidPassword,
+  isPasswordConfirm,
+  isValidDOB,
+  isValidName,
+  isValidPhoneNumber,
+  isValidAddress,
+  isValidGender,
+} = require('../validators/infoValidator');
+
+// General Validators
+const { isValidGuardianRelationship } = require('../validators/validators');
+
 // Error handler
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
@@ -10,6 +25,7 @@ const factory = require('./handlerFactory');
 
 // Add a new student and create default attendance
 exports.addStudent = catchAsync(async (req, res, next) => {
+  // 1. Extract fields from the request body
   const {
     class_id,
     guardian_name,
@@ -25,11 +41,26 @@ exports.addStudent = catchAsync(async (req, res, next) => {
     school_admin_id,
   } = req.body;
 
-  // Start a transaction
+  // 2. Validate input fields using custom validators
+  try {
+    isValidName(first_name);
+    isValidName(last_name);
+    isValidDOB(dob);
+    isValidPhoneNumber(phone_number);
+    isValidAddress(address);
+    isValidGender(gender);
+    isValidEmail(guardian_email);
+    isValidGuardianRelationship(guardian_relationship);
+    isValidPhoneNumber(guardian_phone_number);
+  } catch (error) {
+    return next(new AppError(error.message, 400));
+  }
+
+  // 3. Start a transaction
   const transaction = await sequelize.transaction();
 
   try {
-    // Create info record
+    // 4. Create info record
     const newInfo = await Info.create(
       {
         first_name,
@@ -43,7 +74,7 @@ exports.addStudent = catchAsync(async (req, res, next) => {
       { transaction }
     );
 
-    // Create Student record with associated Info
+    // 5. Create student record with associated info
     const newStudent = await Student.create(
       {
         class_id,
@@ -57,9 +88,10 @@ exports.addStudent = catchAsync(async (req, res, next) => {
       { transaction }
     );
 
-    // Commit the transaction
+    // 6. Commit the transaction
     await transaction.commit();
 
+    // 7. Respond with success message
     res.status(201).json({
       status: 'success',
       data: {
@@ -68,7 +100,7 @@ exports.addStudent = catchAsync(async (req, res, next) => {
       },
     });
   } catch (error) {
-    // Rollback the transaction in case of error
+    // 8. Rollback the transaction in case of an error
     await transaction.rollback();
     return next(new AppError('Error creating student', 500));
   }
