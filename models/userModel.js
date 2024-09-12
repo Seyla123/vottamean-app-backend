@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { Model } = require('sequelize');
+const infoValidator = require('../validators/infoValidator');
 
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
@@ -69,62 +70,40 @@ module.exports = (sequelize, DataTypes) => {
         unique: {
           msg: 'Email address already in use',
         },
-        validate: {
-          notNull: { msg: 'An email is required' },
-          notEmpty: { msg: 'Email cannot be empty' },
-          isEmail: {
-            msg: 'Please provide a valid email address',
-          },
-        },
+        validate: infoValidator.isValidEmail,
       },
       password: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: {
-          notNull: { msg: 'A password is required' },
-          notEmpty: { msg: 'Password cannot be empty' },
-          len: {
-            args: [8],
-            msg: 'Password must be at least 8 characters long',
-          },
-        },
+        validate: infoValidator.isValidPassword,
       },
       passwordConfirm: {
         type: DataTypes.VIRTUAL,
-        validate: {
-          notEmpty: { msg: 'Password confirmation cannot be empty' },
-          isMatch(value) {
-            if (value !== this.password) {
-              throw new Error('Passwords do not match');
-            }
-          },
-        },
+        validate: infoValidator.isPasswordConfirm,
       },
       role: {
         type: DataTypes.ENUM('admin', 'teacher'),
         allowNull: false,
         defaultValue: 'admin',
-        validate: {
-          isIn: {
-            args: [['admin', 'teacher']],
-            msg: 'Invalid role',
-          },
-        },
+        validate: infoValidator.isValidRole,
       },
       passwordChangedAt: {
         type: DataTypes.DATE,
+        validate: infoValidator.isValidDate,
       },
       passwordResetToken: {
         type: DataTypes.STRING,
       },
       passwordResetExpires: {
         type: DataTypes.DATE,
+        validate: infoValidator.isValidDate,
       },
       emailVerificationToken: {
         type: DataTypes.STRING,
       },
       emailVerificationExpires: {
         type: DataTypes.DATE,
+        validate: infoValidator.isValidDate,
       },
       emailVerified: {
         type: DataTypes.BOOLEAN,
@@ -183,12 +162,14 @@ module.exports = (sequelize, DataTypes) => {
 
   // Define associations
   User.associate = (models) => {
+    // User has one Admin
     User.hasOne(models.Admin, {
       foreignKey: 'user_id',
       as: 'AdminProfile',
       onDelete: 'CASCADE',
     });
 
+    // User has one Teacher
     User.hasOne(models.Teacher, {
       foreignKey: 'user_id',
       as: 'TeacherProfile',

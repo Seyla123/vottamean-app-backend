@@ -1,4 +1,5 @@
 const { Model } = require('sequelize');
+const validators = require('../validators/validators');
 
 module.exports = (sequelize, DataTypes) => {
   class Class extends Model {
@@ -15,10 +16,7 @@ module.exports = (sequelize, DataTypes) => {
       class_name: {
         type: DataTypes.STRING,
         allowNull: false,
-      },
-      grade: {
-        type: DataTypes.STRING,
-        allowNull: false,
+        validate: validators.isValidClassName,
       },
       active: {
         type: DataTypes.BOOLEAN,
@@ -35,17 +33,20 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   Class.associate = (models) => {
+    // Class belongs to a School Admin
     Class.belongsTo(models.SchoolAdmin, {
       foreignKey: 'school_admin_id',
       as: 'SchoolAdmin',
     });
 
+    // Class has many Students
     Class.hasMany(models.Student, {
       foreignKey: 'class_id',
       as: 'Students',
       onDelete: 'CASCADE',
     });
 
+    // Class has many Sessions
     Class.hasMany(models.Session, {
       foreignKey: 'class_id',
       as: 'Sessions',

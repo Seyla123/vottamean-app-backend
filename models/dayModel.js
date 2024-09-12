@@ -39,6 +39,7 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   DayOfWeek.associate = (models) => {
+    // DayOfWeek has many Sessions
     DayOfWeek.hasMany(models.Session, {
       foreignKey: 'day_id',
       as: 'Sessions',

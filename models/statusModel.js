@@ -37,6 +37,7 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   Status.associate = (models) => {
+    // Status belongs to a Session
     Status.hasMany(models.Session, {
       foreignKey: 'status_id',
       as: 'Sessions',

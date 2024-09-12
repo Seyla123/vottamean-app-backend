@@ -75,7 +75,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   // 6. Construct the verification URL and send it via email.
   const verificationUrl = `${req.protocol}://${req.get(
     'host'
-  )}/api/v1/auth/verifyEmail/${verificationToken}?token=${tempToken}`;
+  )}/api/v1/users/verifyEmail/${verificationToken}?token=${tempToken}`;
   await sendVerificationEmail(email, verificationUrl);
 
   // 7. Respond with a success message and the temporary token.
@@ -166,7 +166,7 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
     });
   } catch (err) {
     await transaction.rollback();
-    return next(new AppError('Failed to create user and school', 500));
+    return next(new AppError(`Failed to create user and school ${err}`, 500));
   }
 });
 

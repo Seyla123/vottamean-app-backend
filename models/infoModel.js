@@ -1,4 +1,6 @@
 const { Model } = require('sequelize');
+const { trimWhiteSpaces } = require('../utils/trimWhiteSpaces');
+const infoValidator = require('../validators/infoValidator');
 
 module.exports = (sequelize, DataTypes) => {
   class Info extends Model {
@@ -15,29 +17,38 @@ module.exports = (sequelize, DataTypes) => {
       first_name: {
         type: DataTypes.STRING,
         allowNull: false,
+        validate: infoValidator.isValidName,
       },
       last_name: {
         type: DataTypes.STRING,
         allowNull: false,
+        validate: infoValidator.isValidName,
       },
       gender: {
-        type: DataTypes.ENUM('Male', 'Female', 'Other'),
+        type: DataTypes.ENUM('male', 'female', 'other'),
         allowNull: false,
+        validate: infoValidator.isValidGender,
       },
       photo: {
         type: DataTypes.STRING,
         defaultValue: 'default.jpg',
+        validate: {
+          isUrl: { msg: 'Photo must be a valid URL' },
+        },
       },
       phone_number: {
         type: DataTypes.STRING,
+        validate: infoValidator.isValidPhoneNumber,
       },
       address: {
         type: DataTypes.STRING,
         allowNull: false,
+        validate: infoValidator.isValidAddress,
       },
       dob: {
         type: DataTypes.DATEONLY,
         allowNull: false,
+        validate: infoValidator.isValidDOB,
       },
       active: {
         type: DataTypes.BOOLEAN,
@@ -67,6 +78,12 @@ module.exports = (sequelize, DataTypes) => {
       as: 'Student',
     });
   };
+
+  // Using the reusable hook
+  Info.addHook(
+    'beforeValidate',
+    trimWhiteSpaces(['first_name', 'last_name', 'phone_number', 'address'])
+  );
 
   return Info;
 };

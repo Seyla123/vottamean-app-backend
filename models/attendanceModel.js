@@ -1,4 +1,5 @@
 const { Model } = require('sequelize');
+const validators = require('../validators/validators');
 
 module.exports = (sequelize, DataTypes) => {
   class Attendance extends Model {
@@ -15,6 +16,7 @@ module.exports = (sequelize, DataTypes) => {
       date: {
         type: DataTypes.DATEONLY,
         allowNull: false,
+        validate: validators.isValidDate,
       },
       active: {
         type: DataTypes.BOOLEAN,
@@ -31,18 +33,21 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   Attendance.associate = (models) => {
+    // Attendance belongs to a Student
     Attendance.belongsTo(models.Student, {
       foreignKey: 'student_id',
       as: 'Student',
       onDelete: 'CASCADE',
     });
 
+    // Attendance belongs to a Session and a Status
     Attendance.belongsTo(models.Session, {
       foreignKey: 'session_id',
       as: 'Sessions',
       onDelete: 'CASCADE',
     });
 
+    // Attendance belongs to a Status
     Attendance.belongsTo(models.Status, {
       foreignKey: 'status_id',
       as: 'Status',

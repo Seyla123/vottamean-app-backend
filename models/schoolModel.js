@@ -1,4 +1,6 @@
 const { Model } = require('sequelize');
+const validators = require('../validators/validators');
+const infoValidator = require('../validators/infoValidator');
 
 module.exports = (sequelize, DataTypes) => {
   class School extends Model {
@@ -15,14 +17,17 @@ module.exports = (sequelize, DataTypes) => {
       school_name: {
         type: DataTypes.STRING,
         allowNull: false,
+        validate: validators.isValidSchoolName,
       },
       school_phone_number: {
         type: DataTypes.STRING,
         allowNull: false,
+        validate: infoValidator.isValidPhoneNumber,
       },
       school_address: {
         type: DataTypes.STRING,
         allowNull: false,
+        validate: infoValidator.isValidAddress,
       },
       active: {
         type: DataTypes.BOOLEAN,
