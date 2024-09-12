@@ -4,8 +4,6 @@ const { Student, Info, Attendance, sequelize } = require('../models');
 // Info Validators
 const {
   isValidEmail,
-  isValidPassword,
-  isPasswordConfirm,
   isValidDOB,
   isValidName,
   isValidPhoneNumber,
