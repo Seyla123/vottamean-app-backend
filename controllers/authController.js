@@ -65,10 +65,9 @@ exports.signup = catchAsync(async (req, res, next) => {
     isValidDOB(dob);
     isValidName(first_name);
     isValidName(last_name);
+    isValidGender(gender);
     isValidPhoneNumber(phone_number);
     isValidAddress(address);
-    // Validate gender if needed
-    if (gender) isValidGender(gender);
   } catch (error) {
     return next(new AppError(error.message, 400));
   }

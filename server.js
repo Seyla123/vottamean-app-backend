@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 5001;
 // Connect to the database
 sequelize
   .sync({
-    // force: process.env.NODE_ENV === 'development', // True for development, false for production
+    force: process.env.NODE_ENV === 'development', // True for development, false for production
   })
   .then(() => {
     app.listen(PORT, () => {
