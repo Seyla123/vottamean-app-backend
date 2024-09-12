@@ -18,6 +18,10 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         validate: validators.isValidClassName,
       },
+      description: {
+        type: DataTypes.STRING,
+        validate: validators.isValidDescription,
+      },
       active: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
