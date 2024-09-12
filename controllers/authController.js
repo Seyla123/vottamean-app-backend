@@ -1,4 +1,8 @@
+// Encryption Library
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+
+// Database Models
 const {
   sequelize,
   User,
@@ -7,11 +11,12 @@ const {
   School,
   SchoolAdmin,
 } = require('../models');
-const jwt = require('jsonwebtoken');
+const { Op } = require('sequelize');
+
+// Error Handlers
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const Email = require('../utils/email');
-const { Op } = require('sequelize');
 const {
   createVerificationToken,
   sendVerificationEmail,
@@ -75,7 +80,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   // 6. Construct the verification URL and send it via email.
   const verificationUrl = `${req.protocol}://${req.get(
     'host'
-  )}/api/v1/users/verifyEmail/${verificationToken}?token=${tempToken}`;
+  )}/api/v1/auth/verifyEmail/${verificationToken}?token=${tempToken}`;
   await sendVerificationEmail(email, verificationUrl);
 
   // 7. Respond with a success message and the temporary token.

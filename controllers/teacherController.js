@@ -1,4 +1,4 @@
-// encryption Library
+// Encryption Library
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
@@ -10,8 +10,9 @@ const { sendVerificationEmail } = require('../utils/authUtils');
 
 // Error Handlers
 const catchAsync = require('../utils/catchAsync');
+const AppError = require('../utils/appError');
 
-// Factory ះandler
+// Factory Handler
 const factory = require('./handlerFactory');
 
 // Get one teacher

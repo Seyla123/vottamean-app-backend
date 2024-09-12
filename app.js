@@ -1,26 +1,16 @@
-// -------------------------
-// Frameworks and libraries:
-// -------------------------
+// Module and Libraries
 const express = require('express');
-const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 
-// ---------------
-// IMPORT ROUTES :
-// ---------------
+// Routes
+const routes = require('./routes');
 
-// Auth and User Routes
-const authRoutes = require('./routes/authRoutes');
-const adminRoutes = require('./routes/adminRoutes');
-const userRoutes = require('./routes/userRoutes');
-const teacherRoutes = require('./routes/teacherRoutes');
-const studentRoutes = require('./routes/studentRoutes');
-
-// Errorr Handler
+// Error Handler
 const globalErrorHandler = require('./controllers/errorController');
 
-// Middleware
+// App Middleware
 const app = express();
 
 // Cookie parser
@@ -36,22 +26,18 @@ app.use(
   })
 );
 
-// Body parser middleware for handling JSON payloads
+// Body parser
 app.use(bodyParser.json());
 
-// Root Router middleware
+// Home route (test endpoint)
 app.get('/', (req, res) => {
-  res.send('Welcome to the School API');
+  res.send('Welcome to the HexCode+ School API');
 });
 
-// User Routes Middleware
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/users', userRoutes);
-app.use('/api/v1/admins', adminRoutes);
-app.use('/api/v1/teachers', teacherRoutes);
-app.use('/api/v1/students', studentRoutes);
+// Use all the routes from the routes folder
+app.use('/api/v1', routes);
 
-// Global Error Handling Middleware
+// Global error handler
 app.use(globalErrorHandler);
 
 // Export app

@@ -67,11 +67,6 @@ exports.getUser = factory.getOne(User, 'user_id', [
     as: 'AdminProfile',
     include: [{ model: Info, as: 'Info' }],
   },
-  {
-    model: Teacher,
-    as: 'TeacherProfile',
-    include: [{ model: Info, as: 'Info' }],
-  },
 ]);
 
 // Get all Users
