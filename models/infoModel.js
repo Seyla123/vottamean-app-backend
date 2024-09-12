@@ -17,20 +17,12 @@ module.exports = (sequelize, DataTypes) => {
       first_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: {
-          customValidator(value) {
-            infoValidator.isValidName(value);
-          },
-        },
+        validate: infoValidator.isValidName,
       },
       last_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: {
-          customValidator(value) {
-            infoValidator.isValidName(value);
-          },
-        },
+        validate: infoValidator.isValidName,
       },
       gender: {
         type: DataTypes.ENUM('male', 'female', 'other'),
