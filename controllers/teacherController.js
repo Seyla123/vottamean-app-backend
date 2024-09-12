@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
 // Database Models
-const { Teacher, Info } = require('../models');
+const { Teacher, Info, sequelize, User} = require('../models');
 
 // Email Handlers
 const { sendVerificationEmail, createVerificationToken } = require('../utils/authUtils');
@@ -50,6 +50,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     passwordConfirm,
     address,
     dob,
+    gender,
     first_name,
     last_name,
     phone_number,
@@ -73,6 +74,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
       password,
       address,
       dob: formattedDob,
+      gender,
       first_name,
       last_name,
       phone_number,
@@ -86,9 +88,9 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
   const verificationUrl = `${req.protocol}://${req.get(
     'host'
   )}/api/v1/auth/verifyEmail/teacher/${verificationToken}?token=${tempToken}`;
+console.log(email , verificationToken);
 
   await sendVerificationEmail(email, verificationUrl);
-
   res.status(200).json({
     status: 'success',
     message:
@@ -123,6 +125,7 @@ exports.verifyTeacherEmail = catchAsync(async (req, res, next) => {
       password,
       address,
       dob,
+      gender,
       first_name,
       last_name,
       phone_number,
@@ -145,7 +148,7 @@ exports.verifyTeacherEmail = catchAsync(async (req, res, next) => {
 
       // Create the Info record
       const info = await Info.create(
-        { first_name, last_name, phone_number, address, dob },
+        { first_name, last_name, phone_number, address, dob ,gender},
         { transaction }
       );
 
