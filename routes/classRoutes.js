@@ -1,20 +1,21 @@
-// Express library
 const express = require('express');
-
-// Authentication and Student Controller
-const authController = require('../controllers/authController');
 const classController = require('../controllers/classController');
+const authController = require('../controllers/authController');
 
-// Define Express Router
-const router = express.Router();
+const router = express.Router()
 
-// Protect all routes after this middleware
-router.use(authController.protect);
+router.use(authController.protect)
 
 // Restrict all routes to admin only
 router.use(authController.restrictTo('admin'));
 
+router
+  .route('/')
+  .get(classController.getAllClasses)
+  .post(classController.addClass)
 
-// Student routes
-// router.route('/').get(classController.getA);
+router
+  .route('/:id')
+  .get(classController.getClass)
+  
 module.exports = router;
