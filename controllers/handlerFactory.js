@@ -131,7 +131,7 @@ exports.deleteOne = (Model, idField) =>
     });
   });
 
-// Delete All// Set active to false for all records instead of deleting them
+// Delete All Set active to false for all records instead of deleting them
 exports.deleteAll = (Model) =>
   catchAsync(async (req, res, next) => {
     console.log('Setting active to false for all records');
