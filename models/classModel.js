@@ -1,10 +1,9 @@
-const { Model } = require('sequelize');
+// In your Class model file
+const { Model, DataTypes } = require('sequelize');
 const validators = require('../validators/validators');
 
 module.exports = (sequelize, DataTypes) => {
-  class Class extends Model {
-    // instance or class methods here if needed
-  }
+  class Class extends Model {}
 
   Class.init(
     {

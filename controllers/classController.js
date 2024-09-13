@@ -7,30 +7,56 @@ const AppError = require('../utils/appError');
 
 const factory = require('./handlerFactory');
 // Create a new class
+
+// exports.addClass = catchAsync(async (req, res, next) => {
+//   const { class_name, description } = req.body;
+//   const school_admin_id = req.user.id; 
+//   try {
+//     const newClass = await Class.create({
+//       class_name,
+//       description,
+//       active: true,
+//       school_admin_id,
+//     });
+//     res.status(201).json({
+//       status: 'success',
+//       data: {
+//          newClass
+//       },
+//     });
+//   } catch (error) {
+//     console.error('Error creating class:', error);
+//     return next(new AppError('Failed to create class', 400));
+//   }
+// });
 exports.addClass = catchAsync(async (req, res, next) => {
-  // field to input
   const { class_name, description } = req.body;
-  // Start a transaction
-  const transaction = await sequelize.transaction();
+
   try {
-    const newClass = await Class.create(
-      {
-        class_name,
-        description,
-        active: true,
-      },
-      { transaction }
-    );
-    await transaction.commit();
-    
+    if (!class_name || !description) {
+      return next(new AppError('Missing required fields', 400));
+    }
+    const school_admin_id = req.user.id;
+    const schoolAdmin = await SchoolAdmin.findByPk(school_admin_id);
+    if (!schoolAdmin) {
+      return next(new AppError('School admin not found', 404));
+    }
+    const newClass = await Class.create({
+      class_name,
+      description,
+      active: true,
+      school_admin_id: school_admin_id 
+    });
+
+    console.log(`New class created: ${newClass.class_name}`);
     res.status(201).json({
       status: 'success',
       data: {
-        class: newClass,
+         newClass
       },
     });
-  } catch (err) {
-    await transaction.rollback();
+  } catch (error) {
+    console.error('Error creating class:', error);
     return next(new AppError('Failed to create class', 400));
   }
 });
@@ -91,35 +117,5 @@ exports.updateClass = catchAsync(async (req, res, next) => {
   }
 });
 
-
-// // Delete a class
-// exports.deleteClass = catchAsync(async(req, res, next) => {
-//     try {
-//         const { id } = req.params;
-//         const classToDelete = await Class.findByPk(id);
-//     } catch (error) {
-//         return next(new AppError('Failed to delete class', 400));   
-//     }
-// })
-
-// // Delete a class
-// exports.deleteClass = catchAsync(async (req, res, next) => {
-
-//     if (!classItem) {
-//         return next(new AppError('No class found with that ID', 404));
-//     }
-//     const transaction = await sequelize.transaction();
-//     try {
-//         await classItem.destroy({ transaction });
-//         await transaction.commit();
-//         res.status(204).json({
-//             status: 'success',
-//             data: null,
-//         });
-//     } catch (err) {
-//         await transaction.rollback();
-//         return next(new AppError('Failed to delete class', 400));
-//     }
-// });
-
+// Delete a class
 exports.deleteClass = factory.deleteOne(Class, 'class_id');

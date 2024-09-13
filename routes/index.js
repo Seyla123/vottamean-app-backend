@@ -16,6 +16,8 @@ const schoolAdminRoutes = require('./schoolAdminRoutes');
 
 // Features Routes
 const subjectRoutes = require('./subjectRoutes');
+// Features Route
+const classRoutes = require('./classRoutes');
 
 // Information Route
 const infoRoutes = require('./infoRoutes');
@@ -33,11 +35,8 @@ router.use('/subjects', subjectRoutes);
 router.use('/school-admin', schoolAdminRoutes);
 
 // Features Routes
-<<<<<<< HEAD
 router.use('/subjects', subjectRoutes);
-=======
 router.use('/classes', classRoutes);
->>>>>>> c65e14a (feature : create-class-api, add get all class and get one class)
 
 // Information Route
 router.use('/info', infoRoutes);
