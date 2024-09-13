@@ -1,54 +1,25 @@
 // Database models
-const { Class, sequelize } = require('../models');
+const { Class, SchoolAdmin, sequelize } = require('../models');
 
 // Error handler
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 
 const factory = require('./handlerFactory');
-// Create a new class
 
-// exports.addClass = catchAsync(async (req, res, next) => {
-//   const { class_name, description } = req.body;
-//   const school_admin_id = req.user.id; 
-//   try {
-//     const newClass = await Class.create({
-//       class_name,
-//       description,
-//       active: true,
-//       school_admin_id,
-//     });
-//     res.status(201).json({
-//       status: 'success',
-//       data: {
-//          newClass
-//       },
-//     });
-//   } catch (error) {
-//     console.error('Error creating class:', error);
-//     return next(new AppError('Failed to create class', 400));
-//   }
-// });
+
+// Create a new class
 exports.addClass = catchAsync(async (req, res, next) => {
   const { class_name, description } = req.body;
-
+  // const school_admin_id = req.user.id; 
+  const school_admin_id = 1
   try {
-    if (!class_name || !description) {
-      return next(new AppError('Missing required fields', 400));
-    }
-    const school_admin_id = req.user.id;
-    const schoolAdmin = await SchoolAdmin.findByPk(school_admin_id);
-    if (!schoolAdmin) {
-      return next(new AppError('School admin not found', 404));
-    }
     const newClass = await Class.create({
       class_name,
       description,
       active: true,
-      school_admin_id: school_admin_id 
+      school_admin_id,
     });
-
-    console.log(`New class created: ${newClass.class_name}`);
     res.status(201).json({
       status: 'success',
       data: {
@@ -60,6 +31,7 @@ exports.addClass = catchAsync(async (req, res, next) => {
     return next(new AppError('Failed to create class', 400));
   }
 });
+
 
 // Read all classes
 exports.getAllClasses = catchAsync(async (req, res, next) => {
