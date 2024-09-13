@@ -8,7 +8,7 @@ const userRoutes = require('./userRoutes');
 const adminRoutes = require('./adminRoutes');
 const teacherRoutes = require('./teacherRoutes');
 const studentRoutes = require('./studentRoutes');
-
+const attendanceRoutes = require('./attendanceRoutes');
 // School Routes
 const schoolAdminRoutes = require('./schoolAdminRoutes');
 
@@ -32,4 +32,6 @@ router.use('/school-admin', schoolAdminRoutes);
 // Information Route
 router.use('/info', infoRoutes);
 
+// Attendance Routes
+router.use('/attendance', attendanceRoutes);
 module.exports = router;
