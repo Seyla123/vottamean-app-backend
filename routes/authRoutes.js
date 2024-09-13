@@ -8,10 +8,6 @@ const authController = require('../controllers/authController');
 // File upload and resizing Controller
 const fileController = require('../controllers/fileController');
 
-// Teacher and Student Controller
-const teacherController = require('../controllers/teacherController');
-const studentController = require('../controllers/studentController');
-
 // Define Express Router
 const router = express.Router();
 
@@ -22,12 +18,9 @@ router.post('/login', authController.login);
 // Email verification route
 router.get('/verifyEmail/:token', authController.verifyEmail);
 
-// Teacher verify email
-router.get('/verifyEmail/teacher/:token', teacherController.verifyTeacherEmail);
-
 // Should be enable after email get verified
-router.post('/forgotPassword', authController.forgotPassword);
-router.patch('/resetPassword/:token', authController.resetPassword);
+router.post('/forgot-password', authController.forgotPassword);
+router.patch('/reset-password/:token', authController.resetPassword);
 
 // Protect all route after this middleware
 router.use(authController.protect);
@@ -38,11 +31,12 @@ router.use(authController.requireEmailVerification);
 // Get current user
 router.get('/me', userController.getMe, userController.getUser);
 
+// Logout current user
 router.post('/logout', authController.logout);
 
 // Update current user details
 router.patch(
-  '/updateMe',
+  '/update-me',
   fileController.uploadUserPhoto,
   fileController.resizeUserPhoto,
   userController.updateMe
@@ -51,14 +45,8 @@ router.patch(
 // Admin route
 router.use(authController.restrictTo('admin'));
 
-// Teacher signup route
-router.post('/signup/teacher', teacherController.signupTeacher);
-
-// Student route
-router.post('/', studentController.addStudent);
-
 // Password management route for admin
-router.patch('/updatePassword', authController.updatePassword);
+router.patch('/update-password', authController.updatePassword);
 
 // User management routes
 router.route('/').get(userController.getAllUsers);

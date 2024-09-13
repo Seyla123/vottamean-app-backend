@@ -16,12 +16,14 @@ router.use(authController.restrictTo('admin'));
 
 // Admin routes
 router
-  .get('/', adminController.getAllAdmins)
-  .post('/', adminController.addAdmin);
+  .route('/')
+  .get(adminController.getAllAdmins)
+  .post(adminController.addAdmin);
 
 router
-  .get('/:id', adminController.getAdmin)
-  .put('/:id', adminController.updateAdmin)
-  .delete('/:id', adminController.deleteAdmin);
+  .route('/:id')
+  .get(adminController.getAdmin)
+  .put(adminController.updateAdmin)
+  .delete(adminController.deleteAdmin);
 
 module.exports = router;

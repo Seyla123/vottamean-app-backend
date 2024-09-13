@@ -25,7 +25,7 @@ module.exports = {
 
   // Validator for gender field
   isValidGender: (value) => {
-    const allowedGenders = ['male', 'female', 'other'];
+    const allowedGenders = ['Male', 'Female', 'Other'];
     if (!allowedGenders.includes(value)) {
       throw new Error('Gender must be either male, female, or other');
     }
