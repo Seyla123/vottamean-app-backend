@@ -22,12 +22,14 @@ router.use(authController.restrictTo('admin'));
 
 // Teacher signup route
 router
-  .post('/', teacherController.signupTeacher)
-  .get('/', teacherController.getAllTeachers);
+  .route('/')
+  .post(teacherController.signupTeacher)
+  .get(teacherController.getAllTeachers);
 
 router
-  .get('/:id', teacherController.getTeacher)
-  .put('/:id', teacherController.updateTeacher)
-  .delete('/:id', teacherController.deleteTeacher);
+  .route('/:id')
+  .get(teacherController.getTeacher)
+  .put(teacherController.updateTeacher)
+  .delete(teacherController.deleteTeacher);
 
 module.exports = router;

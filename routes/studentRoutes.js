@@ -18,7 +18,7 @@ router.use(authController.restrictTo('admin'));
 router
   .route('/')
   .get(studentController.getAllStudents)
-  .post('/', studentController.addStudent);
+  .post(studentController.addStudent);
 
 router
   .route('/:id')
