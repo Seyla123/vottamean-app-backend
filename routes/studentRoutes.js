@@ -15,7 +15,10 @@ router.use(authController.protect);
 router.use(authController.restrictTo('admin'));
 
 // Student routes
-router.route('/').get(studentController.getAllStudents);
+router
+  .route('/')
+  .get(studentController.getAllStudents)
+  .post('/', studentController.addStudent);
 
 router
   .route('/:id')
