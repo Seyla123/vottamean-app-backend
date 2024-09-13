@@ -1,7 +1,5 @@
-// Import Sequelize Module
 const { Sequelize } = require('sequelize');
-
-// Create a new instance of Sequelize
+const AppError = require('../utils/appError');
 class APIFeatures {
   constructor(query, queryString) {
     this.query = query;
@@ -9,7 +7,6 @@ class APIFeatures {
     this.options = {};
   }
 
-  // Filter Object Function
   filter() {
     const queryObj = { ...this.queryString };
     const excludedFields = ['page', 'sort', 'limit', 'fields'];
@@ -25,28 +22,20 @@ class APIFeatures {
       }
     });
 
-    console.log('Filters:', filters);
     this.options.where = filters;
-
     return this;
   }
 
-  // Sort Object Function
   sort() {
     if (this.queryString.sort) {
-      const sortBy = this.queryString.sort
-        .split(',')
-        .map((el) => el.split(':'));
+      const sortBy = this.queryString.sort.split(',').map((el) => el.split(':'));
       this.options.order = sortBy;
     } else {
       this.options.order = [['createdAt', 'DESC']];
     }
-
-    console.log('Sort Order:', this.options.order);
     return this;
   }
 
-  // Limit Fields Function
   limitFields() {
     if (this.queryString.fields) {
       const fields = this.queryString.fields.split(',');
@@ -54,12 +43,9 @@ class APIFeatures {
     } else {
       this.options.attributes = { exclude: ['__v'] };
     }
-
-    console.log('Fields:', this.options.attributes);
     return this;
   }
 
-  // Pagination Function
   paginate() {
     const page = this.queryString.page * 1 || 1;
     const limit = this.queryString.limit * 1 || 100;
@@ -67,20 +53,23 @@ class APIFeatures {
 
     this.options.limit = limit;
     this.options.offset = offset;
-
-    console.log('Pagination:', { limit, offset });
     return this;
   }
 
-  // Execute the query
+  includeAssociations(associations) {
+    this.options.include = associations;
+    return this;
+  }
+
   async exec() {
     try {
       const result = await this.query.findAll(this.options);
-      console.log('Result:', result);
+      console.log('result :', result);
+      
       return result;
     } catch (err) {
-      console.error('Error executing query:', err);
-      throw err;
+      console.log('error :', err);
+      throw new Error(`Error executing query: ${err.message}`);
     }
   }
 }
