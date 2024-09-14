@@ -10,8 +10,15 @@ const AppError = require('../utils/appError');
 const factory = require('./handlerFactory');
 
 // Middleware to get the current logged-in user
-exports.getMe = (req, res, next) => {
+exports.getMe = async (req, res, next) => {
+  //get the current logged-in user
   req.params.id = req.user.user_id;
+  // and then use the user_id to get the school_admin_id
+  const admin = await SchoolAdmin.findOne({
+    include: [{ model: Admin,as: 'Admin', where: { user_id: req.user.user_id } }],
+  })
+  req.params.school_admin_id = admin.school_admin_id
+  
   next();
 };
 
