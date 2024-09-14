@@ -1,5 +1,5 @@
 // Database Models
-const { User, Admin, Teacher, Student, Info } = require('../models');
+const { User, Admin, Teacher, Student, Info ,SchoolAdmin} = require('../models');
 
 // Error Handlers
 const { filterObj } = require('../utils/filterObj');
@@ -18,7 +18,7 @@ exports.getMe = async (req, res, next) => {
     include: [{ model: Admin,as: 'Admin', where: { user_id: req.user.user_id } }],
   })
   req.params.school_admin_id = admin.school_admin_id
-  
+
   next();
 };
 
