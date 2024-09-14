@@ -14,7 +14,7 @@ router.use(authController.protect);
 router.use(authController.restrictTo('admin'));
 
 // Info routes
-router.get('/', attendanceController.getAllAttendances);
+router.get('/', attendanceController.getAllAttendances).post('/', attendanceController.createAttendance);
 
 
 module.exports = router;
