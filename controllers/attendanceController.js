@@ -3,33 +3,37 @@ const APIFeatures = require('../utils/apiFeatures');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const { checkIfExists } = require('../utils/checkIfExists');
+const { filterObj } = require('../utils/filterObj');
 
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
-  const { student_id } = req.query;
-  // get the current school admin id
   const school_admin_id = req.params.school_admin_id;
-  // Define associations
+  const { subject_id, student_first_name, class_name } = req.query;
+
+  if (!school_admin_id) {
+    return next(new AppError('School Admin ID is required', 400));
+  }
+
   const associations = [
     {
       model: Student,
       as: 'Student',
-      attributes: ['student_id'],
-      where: student_id ? { student_id: student_id } : {}, 
       include: [
         {
           model: Info,
           as: 'Info',
           attributes: ['first_name', 'last_name', 'gender', 'phone_number', 'address', 'dob', 'photo'],
+          where : student_first_name ? {first_name: student_first_name} : {},
         },
         {
           model: Class,
           as: 'Class',
+          where: class_name ? {class_name:class_name} : {},
           attributes: ['class_name'],
         },
         {
           model: SchoolAdmin,
           as: 'SchoolAdmin',
-          where:{school_admin_id : school_admin_id},
+          where: { school_admin_id: school_admin_id },
           include: [
             {
               model: School,
@@ -68,47 +72,45 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
         {
           model: DayOfWeek,
           as: 'DayOfWeek',
-          attributes: ['day'],
+          attributes: ['day_id', 'day'],
         },
         {
           model: Period,
           as: 'Period',
-          attributes: ['start_time', 'end_time'],
+          attributes: ["period_id", 'start_time', 'end_time'],
         },
         {
           model: Subject,
           as: 'Subject',
-          attributes: ['name'],
+          where: subject_id ? { subject_id: subject_id } : {},
+          attributes: ['subject_id', 'name'],
         },
       ],
     },
   ];
-
-  // Use APIFeatures and pass the associations
-  const features = new APIFeatures(Attendance, req.query)
-    .filter()
+  // Define allowed fields for filtering
+  const allowedFields = ['date','student_id','session_id','status_id','page', 'sort', 'limit', 'fields'];
+  const filteredQuery = filterObj(req.query, ...allowedFields);
+  const features = new APIFeatures(Attendance, filteredQuery)
+    .filter()  // Ensure correct filtering
     .sort()
     .limitFields()
     .paginate()
     .includeAssociations(associations);
 
   try {
-    // Execute the query and get the result
     const allAttendances = await features.exec();
     console.log('result all attendance : ', allAttendances.length);
-    
-    // Check if any data is found
-    if ( allAttendances.length == 0) {
-      console.log('No attendance found');
-      // Send the response with data
-    res.status(404).json({
-      status: 'erorr',
-      results: allAttendances.length,
-      data: allAttendances,
-    });
-      // return next(new AppError('No attendance found', 404));
+
+    if (allAttendances.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        results: 0,
+        data: [],
+        message: 'No attendance records found for the given criteria',
+      });
     }
-    // Send the response with data
+
     res.status(200).json({
       status: 'success',
       results: allAttendances.length,
@@ -118,6 +120,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
     return next(new AppError(`Invalid Query: ${error.message}`, 400));
   }
 });
+
 
 // Create new attendance
 exports.createAttendance = catchAsync(async (req, res, next) => {
@@ -132,7 +135,7 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
   ]);
   // Check if attendance already exists with the same date, student_id, and session_id
   const existingAttendance = await Attendance.findOne({
-    where: { student_id, session_id, date:new Date() },
+    where: { student_id, session_id, date: new Date() },
   });
 
   if (existingAttendance) {
