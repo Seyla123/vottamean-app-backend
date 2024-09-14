@@ -10,10 +10,13 @@ const router = express.Router();
 
 // Protect all routes after this middleware
 router.use(authController.protect);
-// Restrict all routes to admin only
-router.use(authController.restrictTo('admin'));
+// Restrict routes to admin only
+router.get('/',authController.restrictTo('admin'),userController.getMe, attendanceController.getAllAttendances);
+
+// Restrict routes to teacher only
+router.use(authController.restrictTo('teacher'));
+router.post('/',userController.getMe, attendanceController.createAttendance);
 // Info routes
-router.get('/',userController.getMe, attendanceController.getAllAttendances).post('/', attendanceController.createAttendance);
 
 
 module.exports = router;
