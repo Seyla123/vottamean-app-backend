@@ -7,7 +7,7 @@ const { filterObj } = require('../utils/filterObj');
 
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
   const school_admin_id = req.params.school_admin_id;
-  const { subject_id, student_first_name, class_name } = req.query;
+  const { subject_id, student_first_name, class_id } = req.query;
 
   if (!school_admin_id) {
     return next(new AppError('School Admin ID is required', 400));
@@ -17,6 +17,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
     {
       model: Student,
       as: 'Student',
+      where: class_id? {class_id:class_id} : {},
       include: [
         {
           model: Info,
@@ -27,7 +28,6 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
         {
           model: Class,
           as: 'Class',
-          where: class_name ? {class_name:class_name} : {},
           attributes: ['class_name'],
         },
         {
