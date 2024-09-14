@@ -6,7 +6,7 @@ const { checkIfExists } = require('../utils/checkIfExists');
 
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
   const { student_id } = req.query;
-
+  const school_admin_id = 2;
   // Define associations
   const associations = [
     {
@@ -28,6 +28,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
         {
           model: SchoolAdmin,
           as: 'SchoolAdmin',
+          where:{school_admin_id : school_admin_id},
           include: [
             {
               model: School,
