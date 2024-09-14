@@ -1,4 +1,4 @@
-const { Attendance, Student, Info, Class, SchoolAdmin, School, Admin, User, Status, Session, DayOfWeek, Period, Subject } = require('../models');
+const { Attendance, Student, Info, Class, SchoolAdmin, School, Admin, User, Status, Session, DayOfWeek, Period, Subject,Teacher } = require('../models');
 const APIFeatures = require('../utils/apiFeatures');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
@@ -126,7 +126,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
 exports.createAttendance = catchAsync(async (req, res, next) => {
 
   const { student_id, session_id, status_id } = req.body;
-
+  const teacher_id = req.params.teacher_id;
   // Validate student, session, and status IDs concurrently
   await Promise.all([
     checkIfExists(Student, student_id, 'Student'),
@@ -137,7 +137,21 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
   const existingAttendance = await Attendance.findOne({
     where: { student_id, session_id, date: new Date() },
   });
-
+  
+  // check if the teacher is assigned to the session
+  const teacher = await Session.findByPk(session_id, {
+    include: {
+      model: Teacher,
+      as: 'Teacher',
+      where: { teacher_id: teacher_id },
+      attributes: ['teacher_id'],
+  }
+  });
+  if (!teacher) {
+    return next(
+      new AppError('Only Assigned Teacher can create attendance in this session', 202)
+    );
+  }
   if (existingAttendance) {
     return next(new AppError('Attendance for this student, session, and date already exists', 400));
   }
