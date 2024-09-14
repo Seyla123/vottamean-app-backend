@@ -2,6 +2,7 @@ const { Attendance, Student, Info, Class, SchoolAdmin, School, Admin, User, Stat
 const APIFeatures = require('../utils/apiFeatures');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
+const { checkIfExists } = require('../utils/checkIfExists');
 
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
   const { student_id } = req.query;
@@ -114,4 +115,40 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
   } catch (error) {
     return next(new AppError(`Invalid Query: ${error.message}`, 400));
   }
+});
+
+// Create new attendance
+exports.createAttendance = catchAsync(async (req, res, next) => {
+
+  const { student_id, session_id, status_id } = req.body;
+
+  // Validate student, session, and status IDs concurrently
+  await Promise.all([
+    checkIfExists(Student, student_id, 'Student'),
+    checkIfExists(Session, session_id, 'Session'),
+    checkIfExists(Status, status_id, 'Status'),
+  ]);
+  // Check if attendance already exists with the same date, student_id, and session_id
+  const existingAttendance = await Attendance.findOne({
+    where: { student_id, session_id, date:new Date() },
+  });
+
+  if (existingAttendance) {
+    return next(new AppError('Attendance for this student, session, and date already exists', 400));
+  }
+  // Proceed to create new attendance
+  const newAttendance = await Attendance.create({
+    student_id,
+    session_id,
+    status_id,
+    date: new Date(), // Use current date
+  });
+
+  // Send the response
+  res.status(201).json({
+    status: 'success',
+    data: {
+      attendance: newAttendance,
+    },
+  });
 });
