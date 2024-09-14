@@ -6,7 +6,8 @@ const { checkIfExists } = require('../utils/checkIfExists');
 
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
   const { student_id } = req.query;
-  const school_admin_id = 2;
+  // get the current school admin id
+  const school_admin_id = req.params.school_admin_id;
   // Define associations
   const associations = [
     {
