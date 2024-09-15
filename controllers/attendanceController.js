@@ -4,10 +4,10 @@ const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const { checkIfExists } = require('../utils/checkIfExists');
 const { filterObj } = require('../utils/filterObj');
-
+const { Op } = require('sequelize');
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
   const school_admin_id = req.params.school_admin_id;
-  const { subject_id, student_first_name, class_id } = req.query;
+  const { subject_id, student_name, class_id } = req.query;
 
   if (!school_admin_id) {
     return next(new AppError('School Admin ID is required', 400));
@@ -23,7 +23,14 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
           model: Info,
           as: 'Info',
           attributes: ['first_name', 'last_name', 'gender', 'phone_number', 'address', 'dob', 'photo'],
-          where : student_first_name ? {first_name: student_first_name} : {},
+          where : {
+            ...(student_name && {
+              [Op.or]: [
+                { first_name: { [Op.like]: `%${student_name}%` } },  // Matches partial first name
+                { last_name: { [Op.like]: `%${student_name}%` } }     // Matches partial last name
+              ]
+            })
+          },
         },
         {
           model: Class,
@@ -68,6 +75,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
     {
       model: Session,
       as: 'Sessions',
+      required: true,
       include: [
         {
           model: DayOfWeek,
@@ -84,6 +92,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
           as: 'Subject',
           where: subject_id ? { subject_id: subject_id } : {},
           attributes: ['subject_id', 'name'],
+          required: !!subject_id, 
         },
       ],
     },
