@@ -7,7 +7,7 @@ const { filterObj } = require('../utils/filterObj');
 const { Op } = require('sequelize');
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
   const school_admin_id = req.params.school_admin_id;
-  const { subject_id, student_name, class_id } = req.query;
+  const { subject_id, search, class_id } = req.query;
 
   if (!school_admin_id) {
     return next(new AppError('School Admin ID is required', 400));
@@ -24,10 +24,10 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
           as: 'Info',
           attributes: ['first_name', 'last_name', 'gender', 'phone_number', 'address', 'dob', 'photo'],
           where : {
-            ...(student_name && {
+            ...(search && {
               [Op.or]: [
-                { first_name: { [Op.like]: `%${student_name}%` } },  // Matches partial first name
-                { last_name: { [Op.like]: `%${student_name}%` } }     // Matches partial last name
+                { first_name: { [Op.like]: `%${search}%` } },  // Matches partial first name
+                { last_name: { [Op.like]: `%${search}%` } }     // Matches partial last name
               ]
             })
           },
