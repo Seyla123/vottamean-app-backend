@@ -98,10 +98,11 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
     },
   ];
   // Define allowed fields for filtering
-  const allowedFields = ['date','student_id','session_id','status_id','page', 'sort', 'limit', 'fields'];
+  const allowedFields = ['search1','date','student_id','session_id','status_id','page', 'sort', 'limit', 'fields'];
   const filteredQuery = filterObj(req.query, ...allowedFields);
   const features = new APIFeatures(Attendance, filteredQuery)
     .filter()  // Ensure correct filtering
+    .search(['Student.guardian_name']) // Search across multiple fields
     .sort()
     .limitFields()
     .paginate()
@@ -109,8 +110,6 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
 
   try {
     const allAttendances = await features.exec();
-    console.log('result all attendance : ', allAttendances.length);
-
     if (allAttendances.length === 0) {
       return res.status(200).json({
         status: 'success',
