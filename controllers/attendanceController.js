@@ -133,43 +133,63 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
 
 // Create new attendance
 exports.createAttendance = catchAsync(async (req, res, next) => {
-
   const { student_id, session_id, status_id } = req.body;
   const teacher_id = req.params.teacher_id;
+
   // Validate student, session, and status IDs concurrently
   await Promise.all([
     checkIfExists(Student, student_id, 'Student'),
     checkIfExists(Session, session_id, 'Session'),
     checkIfExists(Status, status_id, 'Status'),
   ]);
+
   // Check if attendance already exists with the same date, student_id, and session_id
+  const today = new Date();
   const existingAttendance = await Attendance.findOne({
-    where: { student_id, session_id, date: new Date() },
+    where: { student_id, session_id, date: today },
   });
-  
-  // check if the teacher is assigned to the session
+
+  // Check if the teacher is assigned to the session
   const teacher = await Session.findByPk(session_id, {
     include: {
       model: Teacher,
       as: 'Teacher',
-      where: { teacher_id: teacher_id },
+      where: { teacher_id },
       attributes: ['teacher_id'],
-  }
+    },
   });
-  if (!teacher) {
-    return next(
-      new AppError('Only Assigned Teacher can create attendance in this session', 202)
-    );
+
+  // Check if the student is assigned to the class of the session
+  const student = await Student.findByPk(student_id, {
+    attributes: ['class_id'],
+  });
+  const studentSession = await Session.findByPk(session_id, {
+    include: {
+      model: Class,
+      as: 'Class',
+      where: { class_id: student.class_id },
+      attributes: ['class_id'],
+    },
+  });
+
+  if (!studentSession) {
+    return next(new AppError('Only Assigned Student can create attendance in this session', 403));
   }
+
+  if (!teacher) {
+    return next(new AppError('Only Assigned Teacher can create attendance in this session', 403));
+  }
+
   if (existingAttendance) {
     return next(new AppError('Attendance for this student, session, and date already exists', 400));
   }
+
   // Proceed to create new attendance
   const newAttendance = await Attendance.create({
     student_id,
     session_id,
     status_id,
-    date: new Date(), // Use current date
+    date: today, // Use current date
   });
 
   // Send the response
