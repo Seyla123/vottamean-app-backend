@@ -3,16 +3,18 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-
+const morgan = require('morgan');
 // Routes
 const routes = require('./routes');
-
 // Error Handler
 const globalErrorHandler = require('./controllers/errorController');
 
 // App Middleware
 const app = express();
 
+if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+  app.use(morgan('dev'));
+}
 // Cookie parser
 app.use(cookieParser());
 
