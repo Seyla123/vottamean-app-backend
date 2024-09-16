@@ -10,7 +10,7 @@ const {
   Admin,
   School,
   SchoolAdmin,
-  Teacher
+  Teacher,
 } = require('../models');
 const { Op } = require('sequelize');
 
@@ -105,7 +105,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   // 6. Construct the verification URL and send it via email.
   // const verificationUrl = `${req.protocol}://${req.get(
   //   'host'
-  // )}/api/v1/auth/verifyEmail/${verificationToken}?token=${tempToken}`;
+  // )}/api/v1/auth/verify-email/${verificationToken}?token=${tempToken}`;
   const verificationUrl = `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}`;
 
   try {
@@ -313,40 +313,57 @@ exports.protect = catchAsync(async (req, res, next) => {
 // ----------------------------
 exports.restrictTo =
   (...roles) =>
-  async(req, res, next) => {
+  async (req, res, next) => {
     // 1. Check if the user's role is included in the allowed roles.
     if (!roles.includes(req.user.role)) {
       return next(
         new AppError('You do not have permission to perform this action', 403)
       );
     }
-     // Check if the logged-in user is an admin
-  if (req.user.role === 'admin') {
-    const admin = await SchoolAdmin.findOne({
-      include: [{ model: Admin, as: 'Admin', where: { user_id: req.user.user_id } }],
-    });
+    // Check if the logged-in user is an admin
+    if (req.user.role === 'admin') {
+      const admin = await SchoolAdmin.findOne({
+        include: [
+          { model: Admin, as: 'Admin', where: { user_id: req.user.user_id } },
+        ],
+      });
 
-    if (!admin) {
-      return next(new AppError('No admin found with that user ID', 404));
+      if (!admin) {
+        return next(new AppError('No admin found with that user ID', 404));
+      }
+
+      // Set the school_admin_id param for admin routes
+      req.params.school_admin_id = admin.school_admin_id;
     }
 
+<<<<<<< HEAD
     // Set the school_admin_id param for admin routes
     req.school_admin_id = admin.school_admin_id;
   }
+=======
+    // Check if the logged-in user is a teacher
+    if (req.user.role === 'teacher') {
+      const teacher = await Teacher.findOne({
+        include: [
+          { model: User, as: 'User', where: { user_id: req.user.user_id } },
+        ],
+      });
+>>>>>>> 0d08d9a (feature : implement auth)
 
-  // Check if the logged-in user is a teacher
-  if (req.user.role === 'teacher') {
-    const teacher = await Teacher.findOne({
-      include: [{ model: User, as: 'User', where: { user_id: req.user.user_id } }],
-    });
+      if (!teacher) {
+        return next(new AppError('No teacher found with that user ID', 404));
+      }
 
-    if (!teacher) {
-      return next(new AppError('No teacher found with that user ID', 404));
+      // Set the teacher_id param for teacher routes
+      req.params.teacher_id = teacher.teacher_id;
     }
+<<<<<<< HEAD
 
     // Set the teacher_id param for teacher routes
     req.teacher_id = teacher.teacher_id;
   }
+=======
+>>>>>>> 0d08d9a (feature : implement auth)
     // 2. Proceed if user role is permitted.
     next();
   };
