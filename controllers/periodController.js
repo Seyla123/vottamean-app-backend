@@ -36,7 +36,12 @@ exports.getAllPeriod = catchAsync(async (req, res , next) => {
 })
 
 // get period
-exports.getPeriod = factory.getOne(Period, 'period_id');
+exports.getPeriod = catchAsync(async (req, res , next) => {
+  const id = req.params.id;
+  await checkIfBelongs(id, req.school_admin_id);
+
+  factory.getOne(Period, 'period_id')(req, res, next);
+})
 
 // update period
 exports.updatePeriod = catchAsync(async (req, res, next) => {
