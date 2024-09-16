@@ -1,5 +1,5 @@
 // Database models
-const { Student, Info, Attendance, sequelize } = require('../models');
+const { Student, Info, Attendance, sequelize,Class } = require('../models');
 
 // Info Validators
 const {
@@ -37,6 +37,7 @@ exports.addStudent = catchAsync(async (req, res, next) => {
     address,
     dob,
     school_admin_id,
+
   } = req.body;
 
   // 2. Validate input fields using custom validators
@@ -96,6 +97,7 @@ exports.addStudent = catchAsync(async (req, res, next) => {
       data: {
         student: newStudent,
         info: newInfo,
+        class:class_id,
       },
     });
   } catch (error) {
@@ -108,6 +110,7 @@ exports.addStudent = catchAsync(async (req, res, next) => {
 // Get Student By ID with additional info
 exports.getStudent = factory.getOne(Student, 'student_id', [
   { model: Info, as: 'Info' },
+  {include: Class, as: 'Class'},
 ]);
 
 // Get all students with their attendance records
