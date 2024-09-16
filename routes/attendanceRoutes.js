@@ -1,4 +1,3 @@
-// Express library
 const express = require('express');
 
 // Controllers
@@ -10,19 +9,20 @@ const userController = require('../controllers/userController');
 const router = express.Router();
 
 // Protect all routes after this middleware
-router.use(authController.protect);
+router.use(authController.protect); // Applied globally
 
 // Restrict routes to admin only
-router.get(
-  '/',
-  authController.restrictTo('admin'),
-  userController.getMe,
-  attendanceController.getAllAttendances
-);
+router
+  .route('/')
+  .get(authController.restrictTo('admin'), attendanceController.getAllAttendances);
+
+router
+  .route('/:id')
+  .put(authController.restrictTo('admin'), attendanceController.updateAttendance)
+  .delete(authController.restrictTo('admin'), attendanceController.deleteAttendance);
 
 // Restrict routes to teacher only
 router.use(authController.restrictTo('teacher'));
-router.post('/', userController.getMe, attendanceController.createAttendance);
-// Info routes
+router.post('/', attendanceController.createAttendance);
 
 module.exports = router;

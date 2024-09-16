@@ -120,14 +120,14 @@ exports.deleteOne = (Model, idField) =>
 
     // Check if the document exists and was updated
     if (doc[0] === 0) {
-      // Sequelize returns an array, first element is affected rows count
       console.error(`No document found with ${idField}: ${req.params.id}`);
       return next(new AppError(`No document found with that ${idField}`, 404));
     }
 
-    res.status(204).json({
+    // Respond with a success message
+    res.status(200).json({
       status: 'success',
-      data: null,
+      message: `Record with ${idField}: ${req.params.id} successfully marked as inactive`,
     });
   });
 
