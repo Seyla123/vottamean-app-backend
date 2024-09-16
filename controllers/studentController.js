@@ -97,6 +97,7 @@ exports.addStudent = catchAsync(async (req, res, next) => {
       data: {
         student: newStudent,
         info: newInfo,
+        class:class_id,
       },
     });
   } catch (error) {
