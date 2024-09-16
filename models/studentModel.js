@@ -62,7 +62,7 @@ module.exports = (sequelize, DataTypes) => {
     Student.belongsTo(models.Class, {
       foreignKey: 'class_id',
       as: 'Class',
-      onDelete: 'SET NULL',
+      onDelete: 'CASCADE',
     });
 
     // Student belongs to Info (personal details)
@@ -71,8 +71,7 @@ module.exports = (sequelize, DataTypes) => {
       as: 'Info',
       onDelete: 'CASCADE',
     });
-  };
-
+  }
   // Using the reusable hook
   Student.addHook(
     'beforeValidate',
