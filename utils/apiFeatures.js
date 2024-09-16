@@ -86,9 +86,13 @@ search(searchFields = []) {
   return this;
 }
   
-  async exec() {
+  async exec(additionalOptions = {}) {
+    const finalOptions = {
+      ...this.options,
+      ...additionalOptions, // external filters passed here
+    };
     try {
-      const result = await this.query.findAll(this.options);
+      const result = await this.query.findAll(finalOptions);
       console.log('result :', result);
       
       return result;
