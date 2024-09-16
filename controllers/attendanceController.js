@@ -1,69 +1,62 @@
-const { Attendance, Student, Info, Class, SchoolAdmin, School, Admin, User, Status, Session, DayOfWeek, Period, Subject,Teacher } = require('../models');
+const {
+  Attendance,
+  Student,
+  Info,
+  Class,
+  SchoolAdmin,
+  Status,
+  Session,
+  DayOfWeek,
+  Period,
+  Subject,
+  Teacher,
+} = require('../models');
 const APIFeatures = require('../utils/apiFeatures');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const { checkIfExists } = require('../utils/checkIfExists');
 const { filterObj } = require('../utils/filterObj');
 const { Op } = require('sequelize');
+
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
   const school_admin_id = req.params.school_admin_id;
   const { subject_id, search, class_id } = req.query;
-
-  if (!school_admin_id) {
-    return next(new AppError('School Admin ID is required', 400));
-  }
 
   const associations = [
     {
       model: Student,
       as: 'Student',
-      where: class_id? {class_id:class_id} : {},
+      where: { class_id },
       include: [
         {
           model: Info,
           as: 'Info',
-          attributes: ['first_name', 'last_name', 'gender', 'phone_number', 'address', 'dob', 'photo'],
-          where : {
-            ...(search && {
-              [Op.or]: [
-                { first_name: { [Op.like]: `%${search}%` } },  // Matches partial first name
-                { last_name: { [Op.like]: `%${search}%` } }     // Matches partial last name
-              ]
-            })
+          attributes: [
+            'info_id',
+            'first_name',
+            'last_name',
+            'gender',
+            'phone_number',
+            'address',
+            'dob',
+            'photo',
+          ],
+          where: {
+            [Op.or]: [
+              { first_name: { [Op.like]: `%${search}%` } },
+              { last_name: { [Op.like]: `%${search}%` } },
+            ],
           },
         },
         {
           model: Class,
           as: 'Class',
-          attributes: ['class_name'],
+          attributes: ['class_id', 'class_name'],
         },
         {
           model: SchoolAdmin,
           as: 'SchoolAdmin',
-          where: { school_admin_id: school_admin_id },
-          include: [
-            {
-              model: School,
-              as: 'School',
-              attributes: ['school_name'],
-            },
-            {
-              model: Admin,
-              as: 'Admin',
-              include: [
-                {
-                  model: User,
-                  as: 'User',
-                  attributes: ['user_id', 'email'],
-                },
-                {
-                  model: Info,
-                  as: 'Info',
-                  attributes: ['first_name', 'last_name'],
-                },
-              ],
-            },
-          ],
+          where: { school_admin_id },
         },
       ],
     },
@@ -85,23 +78,32 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
         {
           model: Period,
           as: 'Period',
-          attributes: ["period_id", 'start_time', 'end_time'],
+          attributes: ['period_id', 'start_time', 'end_time'],
         },
         {
           model: Subject,
           as: 'Subject',
-          where: subject_id ? { subject_id: subject_id } : {},
+          where: { subject_id },
           attributes: ['subject_id', 'name'],
-          required: !!subject_id, 
+          required: !!subject_id,
         },
       ],
     },
   ];
-  // Define allowed fields for filtering
-  const allowedFields = ['date','student_id','session_id','status_id','page', 'sort', 'limit', 'fields'];
+
+  const allowedFields = [
+    'date',
+    'student_id',
+    'session_id',
+    'status_id',
+    'page',
+    'sort',
+    'limit',
+    'fields',
+  ];
   const filteredQuery = filterObj(req.query, ...allowedFields);
   const features = new APIFeatures(Attendance, filteredQuery)
-    .filter()  // Ensure correct filterin
+    .filter()
     .sort()
     .limitFields()
     .paginate()
@@ -128,8 +130,6 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
   }
 });
 
-
-// Create new attendance
 exports.createAttendance = catchAsync(async (req, res, next) => {
   const { student_id, session_id, status_id } = req.body;
   const teacher_id = req.params.teacher_id;
@@ -171,15 +171,30 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
   });
 
   if (!studentSession) {
-    return next(new AppError('Only Assigned Student can create attendance in this session', 403));
+    return next(
+      new AppError(
+        'Only Assigned Student can create attendance in this session',
+        403
+      )
+    );
   }
 
   if (!teacher) {
-    return next(new AppError('Only Assigned Teacher can create attendance in this session', 403));
+    return next(
+      new AppError(
+        'Only Assigned Teacher can create attendance in this session',
+        403
+      )
+    );
   }
 
   if (existingAttendance) {
-    return next(new AppError('Attendance for this student, session, and date already exists', 400));
+    return next(
+      new AppError(
+        'Attendance for this student, session, and date already exists',
+        400
+      )
+    );
   }
 
   // Proceed to create new attendance
@@ -187,7 +202,7 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
     student_id,
     session_id,
     status_id,
-    date: today, // Use current date
+    date: today,
   });
 
   // Send the response
