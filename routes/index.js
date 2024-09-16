@@ -13,6 +13,7 @@ const attendanceRoutes = require('./attendanceRoutes');
 const schoolAdminRoutes = require('./schoolAdminRoutes');
 
 // Features Routes
+const subjectRoutes = require('./subjectRoutes');
 
 // Information Route
 const infoRoutes = require('./infoRoutes');
@@ -28,6 +29,7 @@ router.use('/students', studentRoutes);
 router.use('/school-admin', schoolAdminRoutes);
 
 // Features Routes
+router.use('/subjects', subjectRoutes);
 
 // Information Route
 router.use('/info', infoRoutes);
