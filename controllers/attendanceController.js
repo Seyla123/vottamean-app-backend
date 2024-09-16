@@ -17,7 +17,7 @@ const catchAsync = require('../utils/catchAsync');
 const { checkIfExists } = require('../utils/checkIfExists');
 const { filterObj } = require('../utils/filterObj');
 const { Op } = require('sequelize');
-
+const factory = require('./handlerFactory');
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
   const school_admin_id = req.params.school_admin_id;
   const { subject_id, search, class_id } = req.query;
@@ -26,7 +26,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
     {
       model: Student,
       as: 'Student',
-      where: { class_id },
+      where: class_id && { class_id },
       include: [
         {
           model: Info,
@@ -41,7 +41,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
             'dob',
             'photo',
           ],
-          where: {
+          where: search && {
             [Op.or]: [
               { first_name: { [Op.like]: `%${search}%` } },
               { last_name: { [Op.like]: `%${search}%` } },
@@ -83,7 +83,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
         {
           model: Subject,
           as: 'Subject',
-          where: { subject_id },
+          where: subject_id && { subject_id },
           attributes: ['subject_id', 'name'],
           required: !!subject_id,
         },
@@ -213,3 +213,45 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
     },
   });
 });
+// check attendance exists and belongs to the school admin ?
+const checkAttendanceExists = async (id, school_admin_id) => {
+  const attendance = await Attendance.findOne({
+    where: { attendance_id: id },
+    include: {
+      model: Student,
+      as: 'Student',
+      where: { school_admin_id },
+    },
+  });
+
+  if (!attendance) {
+    throw new AppError('No attendance record found or you do not have permission for this record', 404);
+  }
+
+  return attendance;
+};
+
+
+exports.deleteAttendance = catchAsync(async (req, res, next) => {
+  const { id, school_admin_id } = req.params;
+
+  // Check if the attendance record exists
+  await checkAttendanceExists(id, school_admin_id);
+
+  // Use factory to delete attendance
+  factory.deleteOne(Attendance, 'attendance_id')(req, res, next);
+});
+
+exports.updateAttendance = catchAsync(async (req, res, next) => {
+  const { id, school_admin_id } = req.params;
+
+  // Check if the attendance record exists
+  await checkAttendanceExists(id, school_admin_id);
+
+  // Filter out only allowed fields from req.body
+  req.body = filterObj(req.body, 'status_id');
+
+  // Use factory to update attendance
+  factory.updateOne(Attendance, 'attendance_id')(req, res, next);
+});
+

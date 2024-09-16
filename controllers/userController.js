@@ -17,36 +17,11 @@ const AppError = require('../utils/appError');
 const factory = require('./handlerFactory');
 
 // Middleware to get the current logged-in user
-exports.getMe = async (req, res, next) => {
-  //get the current logged-in user
+exports.getMe = catchAsync(async (req, res, next) => {
+  // Set user ID for all requests
   req.params.id = req.user.user_id;
-
-  if (req.user.role == 'admin') {
-    const admin = await SchoolAdmin.findOne({
-      include: [
-        { model: Admin, as: 'Admin', where: { user_id: req.user.user_id } },
-      ],
-    });
-    if (!admin) {
-      return next(new AppError('No admin found with that user ID', 404));
-    }
-    req.params.school_admin_id = admin.school_admin_id;
-  }
-
-  if (req.user.role == 'teacher') {
-    const teacher = await Teacher.findOne({
-      include: [
-        { model: User, as: 'User', where: { user_id: req.user.user_id } },
-      ],
-    });
-    if (!teacher) {
-      return next(new AppError('No teacher found with that user ID', 404));
-    }
-    req.params.teacher_id = teacher.teacher_id;
-  }
-
-  next();
-};
+  next(); // Proceed to the next middleware or route handler
+});
 
 // Update current user details (excluding password)
 exports.updateMe = catchAsync(async (req, res, next) => {
