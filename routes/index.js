@@ -1,4 +1,3 @@
-// routes/index.js
 const express = require('express');
 const router = express.Router();
 
@@ -16,6 +15,8 @@ const schoolAdminRoutes = require('./schoolAdminRoutes');
 
 // Features Routes
 const subjectRoutes = require('./subjectRoutes');
+// Features Route
+const classRoutes = require('./classRoutes');
 
 // Information Route
 const infoRoutes = require('./infoRoutes');
@@ -34,10 +35,12 @@ router.use('/school-admin', schoolAdminRoutes);
 
 // Features Routes
 router.use('/subjects', subjectRoutes);
+router.use('/classes', classRoutes);
 
 // Information Route
 router.use('/info', infoRoutes);
 
 // Attendance Routes
 router.use('/attendance', attendanceRoutes);
+
 module.exports = router;

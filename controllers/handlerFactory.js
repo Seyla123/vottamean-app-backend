@@ -131,26 +131,24 @@ exports.deleteOne = (Model, idField) =>
     });
   });
 
-// Delete All Set active to false for all records instead of deleting them
-exports.deleteAll = (Model) =>
-  catchAsync(async (req, res, next) => {
-    console.log('Setting active to false for all records');
 
-    // Update the active field to false for all records
-    const doc = await Model.update(
-      { active: false }, // Set active to false
-      { where: {} }
-    );
-
-    // Check if any documents were updated
-    if (doc[0] === 0) {
-      // Sequelize returns affected rows count as the first element
-      console.error('No documents found to update');
-      return next(new AppError('No documents found', 404));
+// Delete a class
+exports.deleteClass = catchAsync(async (req, res, next) => {
+  try {
+    const classToDelete = await Class.findByPk(req.params.id);
+    
+    if (!classToDelete) {
+      return next(new AppError('No class found with that ID', 404));
     }
-
-    res.status(204).json({
+    await classToDelete.destroy();
+    res.status(200).json({
       status: 'success',
-      data: null,
+      data: {
+        message: 'Class deleted successfully'
+      },
     });
-  });
+  } catch (error) {
+    console.error('Error deleting class:', error);
+    return next(new AppError('Failed to delete class', 400));
+  }
+});
