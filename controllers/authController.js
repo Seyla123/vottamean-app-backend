@@ -336,11 +336,6 @@ exports.restrictTo =
       req.params.school_admin_id = admin.school_admin_id;
     }
 
-<<<<<<< HEAD
-    // Set the school_admin_id param for admin routes
-    req.school_admin_id = admin.school_admin_id;
-  }
-=======
     // Check if the logged-in user is a teacher
     if (req.user.role === 'teacher') {
       const teacher = await Teacher.findOne({
@@ -348,7 +343,6 @@ exports.restrictTo =
           { model: User, as: 'User', where: { user_id: req.user.user_id } },
         ],
       });
->>>>>>> 0d08d9a (feature : implement auth)
 
       if (!teacher) {
         return next(new AppError('No teacher found with that user ID', 404));
@@ -357,13 +351,6 @@ exports.restrictTo =
       // Set the teacher_id param for teacher routes
       req.params.teacher_id = teacher.teacher_id;
     }
-<<<<<<< HEAD
-
-    // Set the teacher_id param for teacher routes
-    req.teacher_id = teacher.teacher_id;
-  }
-=======
->>>>>>> 0d08d9a (feature : implement auth)
     // 2. Proceed if user role is permitted.
     next();
   };
