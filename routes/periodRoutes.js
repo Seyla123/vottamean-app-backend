@@ -15,7 +15,6 @@ router
   .route('/')
   .get(periodController.getAllPeriod)
   .post(periodController.createPeriod)
-  .delete(periodController.deleteAllPeriods);
 router
   .route('/:id')
   .get(periodController.getPeriod)
