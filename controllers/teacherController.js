@@ -33,18 +33,16 @@ const factory = require('./handlerFactory');
 // Get one teacher
 exports.getTeacher = factory.getOne(Teacher, 'teacher_id', [
   {
-    model: Teacher,
-    as: 'TeacherProfile',
-    include: [{ model: Info, as: 'Info' }],
+    model: Info,
+    as: 'Info',
   },
 ]);
 
 // Get all teachers
 exports.getAllTeachers = factory.getAll(Teacher, {}, [
   {
-    model: Teacher,
-    as: 'TeacherProfile',
-    include: [{ model: Info, as: 'Info' }],
+    model: Info,
+    as: 'Info',
   },
 ]);
 
