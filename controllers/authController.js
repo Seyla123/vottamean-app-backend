@@ -333,7 +333,7 @@ exports.restrictTo =
       }
 
       // Set the school_admin_id param for admin routes
-      req.params.school_admin_id = admin.school_admin_id;
+      req.school_admin_id = admin.school_admin_id;
     }
 
     // Check if the logged-in user is a teacher
@@ -349,7 +349,7 @@ exports.restrictTo =
       }
 
       // Set the teacher_id param for teacher routes
-      req.params.teacher_id = teacher.teacher_id;
+      req.teacher_id = teacher.teacher_id;
     }
     // 2. Proceed if user role is permitted.
     next();
