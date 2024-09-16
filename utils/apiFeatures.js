@@ -81,14 +81,10 @@ search(searchFields = []) {
           );
         }
       });
-
-      // Log the query options to check the constructed SQL
-      console.log('Query options:', this.options);
     }
   }
   return this;
 }
-
   
   async exec() {
     try {
