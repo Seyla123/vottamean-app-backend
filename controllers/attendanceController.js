@@ -19,7 +19,7 @@ const { filterObj } = require('../utils/filterObj');
 const { Op } = require('sequelize');
 const factory = require('./handlerFactory');
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
-  const school_admin_id = req.params.school_admin_id;
+  const school_admin_id = req.school_admin_id;
   const { subject_id, search, class_id } = req.query;
 
   const associations = [
@@ -225,16 +225,18 @@ const checkAttendanceExists = async (id, school_admin_id) => {
   });
 
   if (!attendance) {
-    throw new AppError('No attendance record found or you do not have permission for this record', 404);
+    throw new AppError(
+      'No attendance record found or you do not have permission for this record',
+      404
+    );
   }
 
   return attendance;
 };
 
-
 exports.deleteAttendance = catchAsync(async (req, res, next) => {
-  const { id, school_admin_id } = req.params;
-
+  const id = req.params.id;
+  const school_admin_id = req.school_admin_id;
   // Check if the attendance record exists
   await checkAttendanceExists(id, school_admin_id);
 
@@ -243,7 +245,8 @@ exports.deleteAttendance = catchAsync(async (req, res, next) => {
 });
 
 exports.updateAttendance = catchAsync(async (req, res, next) => {
-  const { id, school_admin_id } = req.params;
+  const id = req.params.id;
+  const school_admin_id = req.school_admin_id;
 
   // Check if the attendance record exists
   await checkAttendanceExists(id, school_admin_id);
@@ -254,4 +257,3 @@ exports.updateAttendance = catchAsync(async (req, res, next) => {
   // Use factory to update attendance
   factory.updateOne(Attendance, 'attendance_id')(req, res, next);
 });
-
