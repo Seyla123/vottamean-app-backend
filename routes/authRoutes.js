@@ -16,7 +16,7 @@ router.post('/signup', authController.signup);
 router.post('/login', authController.login);
 
 // Email verification route
-router.get('/verifyEmail/:token', authController.verifyEmail);
+router.get('/verify-email/:token', authController.verifyEmail);
 
 // Should be enable after email get verified
 router.post('/forgot-password', authController.forgotPassword);

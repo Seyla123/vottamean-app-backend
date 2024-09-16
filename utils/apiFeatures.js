@@ -1,4 +1,4 @@
-const { Sequelize ,Op} = require('sequelize');
+const { Sequelize, Op } = require('sequelize');
 const AppError = require('../utils/appError');
 class APIFeatures {
   constructor(query, queryString) {
@@ -9,7 +9,7 @@ class APIFeatures {
 
   filter() {
     const queryObj = { ...this.queryString };
-    const excludedFields = ['page', 'sort', 'limit', 'fields','search'];
+    const excludedFields = ['page', 'sort', 'limit', 'fields', 'search'];
     excludedFields.forEach((el) => delete queryObj[el]);
 
     let filters = {};
@@ -28,7 +28,9 @@ class APIFeatures {
 
   sort() {
     if (this.queryString.sort) {
-      const sortBy = this.queryString.sort.split(',').map((el) => el.split(':'));
+      const sortBy = this.queryString.sort
+        .split(',')
+        .map((el) => el.split(':'));
       this.options.order = sortBy;
     } else {
       this.options.order = [['createdAt', 'DESC']];
@@ -60,41 +62,42 @@ class APIFeatures {
     this.options.include = associations;
     return this;
   }
-search(searchFields = []) {
-  if (this.queryString.search) {
-    const searchQuery = this.queryString.search;
+  search(searchFields = []) {
+    if (this.queryString.search) {
+      const searchQuery = this.queryString.search;
 
-    if (searchFields.length > 0) {
-      this.options.where = this.options.where || {};
+      if (searchFields.length > 0) {
+        this.options.where = this.options.where || {};
 
-      this.options.where[Op.or] = searchFields.map((field) => {
-        const fieldParts = field.split('.');
-        if (fieldParts.length === 1) {
-          return { [field]: { [Op.like]: `%${searchQuery}%` } };
-        } else {
-          const associationField = fieldParts.pop();
-          const associationPath = fieldParts.join('.');
+        this.options.where[Op.or] = searchFields.map((field) => {
+          const fieldParts = field.split('.');
+          if (fieldParts.length === 1) {
+            return { [field]: { [Op.like]: `%${searchQuery}%` } };
+          } else {
+            const associationField = fieldParts.pop();
+            const associationPath = fieldParts.join('.');
 
-          // Use Sequelize.literal to handle nested fields in the where clause
-          return Sequelize.literal(
-            `${associationPath}.${associationField} LIKE '%${searchQuery}%'`
-          );
-        }
-      });
+            // Use Sequelize.literal to handle nested fields in the where clause
+            return Sequelize.literal(
+              `${associationPath}.${associationField} LIKE '%${searchQuery}%'`
+            );
+          }
+        });
+      }
     }
+    return this;
   }
-  return this;
-}
-  
+
   async exec(additionalOptions = {}) {
     const finalOptions = {
       ...this.options,
       ...additionalOptions, // external filters passed here
     };
+
     try {
       const result = await this.query.findAll(finalOptions);
       console.log('result :', result);
-      
+
       return result;
     } catch (err) {
       console.log('error :', err);

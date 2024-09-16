@@ -1,4 +1,3 @@
-
 //Function to generate the date filter for a filter
 const generateDateFilter = (dateRange) => {
   const startDate = new Date();
@@ -11,12 +10,12 @@ const generateDateFilter = (dateRange) => {
       break;
     case 'lastWeek':
       startDate.setDate(startDate.getDate() - 7); // Start of last week
-      startDate.setHours(0, 0, 0, 0); 
+      startDate.setHours(0, 0, 0, 0);
       break;
     case 'lastMonth':
       startDate.setMonth(startDate.getMonth() - 1); // Go to last month
       startDate.setDate(1); // First day of last month
-      startDate.setHours(0, 0, 0, 0); 
+      startDate.setHours(0, 0, 0, 0);
 
       endDate.setMonth(endDate.getMonth() + 1); // Go to the next month
       endDate.setDate(0); // Last day of last month
@@ -37,4 +36,3 @@ const generateDateFilter = (dateRange) => {
 
   return { [Op.between]: [startDate, endDate] };
 };
-
