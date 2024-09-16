@@ -3,7 +3,7 @@ const { Period } = require('../models');
 
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
-
+const { filterObj } = require('../utils/filterObj');
 const factory = require('./handlerFactory');
 
 // comparation between start and end time
@@ -19,27 +19,15 @@ const compare_time = (start, end) => {
   return start, end;
 };
 
-// create period
-exports.createPeriod = catchAsync(async (req, res) => {
+// Create Period
+exports.createPeriod = catchAsync(async (req, res, next) => {
   const { start_time, end_time } = req.body;
-
-  // compare start time and end time
-  compare_time(start_time, end_time);
-
-  // create period
-  const period = await Period.create({
-    start_time,
-    end_time,
-  });
-  res.status(201).json({
-    message: 'success',
-    data: period,
-  });
-
-  if (!period) {
-    return next(new AppError('Fail to create period', 500));
-  }
-});
+  const school_admin_id  = req.school_admin_id;
+  // filter the request body
+  req.body = filterObj(req.body, 'start_time', 'end_time');
+  req.body.school_admin_id = school_admin_id;
+  factory.createOne(Period)(req, res, next);
+})
 
 // fetch all period
 exports.getAllPeriod = factory.getAll(Period);
