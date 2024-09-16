@@ -1,16 +1,23 @@
 // Database models
-const { Class, SchoolAdmin, sequelize } = require('../models');
+const { Class, SchoolAdmin } = require('../models');
 
 // Error handler
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
-
 const factory = require('./handlerFactory');
 
-
+// validators
+const { isValidClassName, isValidDescription } = require('../validators/validators');
 // Create a new class
-exports.addClass = catchAsync(async (req, res, next) => {
+exports.addClass = catchAsync(async (req, res, next) => {1
   const { class_name, description } = req.body;
+
+  try {
+    isValidClassName(class_name)
+    isValidDescription(description)
+  } catch (error) {
+    return next(new AppError(error.message, 400));
+  }
   // const school_admin_id = req.user.id; 
   const school_admin_id = 1
   try {
@@ -32,62 +39,61 @@ exports.addClass = catchAsync(async (req, res, next) => {
   }
 });
 
+// // Read all classes
+// exports.getAllClasses = factory.getAll(Class, 'class_id', { active: true }, [
+//   { model: SchoolAdmin, as: 'SchoolAdmin' },
+// ]);
+
+// //Read a single class
+// exports.getClass = factory.getOne(Class, 'class_id', [
+//   { model: SchoolAdmin, as: 'SchoolAdmin' },
+// ]);
 
 // Read all classes
+// Read all classes
 exports.getAllClasses = catchAsync(async (req, res, next) => {
-  try {
-    const classes = await Class.findAll( {where: { active: true }} );
-    res.status(200).json({
-      status: 'success',
-      data: {
-        class : classes
-      },
-    });
-  } catch (error) {
-    return next(new AppError('Failed to get all classes', 400));
-  }
+  const classes = await factory.getAll(Class, { active: true }, [
+    { model: SchoolAdmin, as: 'SchoolAdmin' },
+  ])(req, res, next)
+  res.status(200).json({
+    status: 'success',
+    data: classes,
+  });
 });
-
-
 // Read a single class
 exports.getClass = catchAsync(async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const classId = await Class.findByPk(id);
-        if (!classId) {
-            return next(new AppError('Class not found', 404));
-        }
-        res.status(200).json({
-            status: 'success',
-            data: {
-                class: classId
-            }
-        });
-    } catch (error) {
-        return next(new AppError('Failed to get class', 400));
-    }
+  const classToGet = await factory.getOne(Class, 'class_id', [
+    { model: SchoolAdmin, as: 'SchoolAdmin' },
+  ])(req, res, next);
+
+  // Check if the class is active
+  if (!classToGet || !classToGet.active) {
+    return next(new AppError('No active class found with that ID', 404));
+  }
+  res.status(200).json({
+    status: 'success',
+    data: classToGet,
+  });
 });
 
 
 // Update a class
-exports.updateClass = catchAsync(async (req, res, next) => {
-  try {
-    const id = req.params.id
-    const classToUpdate = await Class.findByPk(id);
-    if (!classToUpdate) {
-      return next(new AppError('Class not found', 404));
-    }
-    const updatedClass = await classToUpdate.update(req.body);
-    res.status(200).json({
-      status: 'success',
-      data: {
-        class: updatedClass,
-      },
-    });
-  } catch (error) {
-    return next(new AppError('Failed to update class', 400));
-  }
-});
+exports.updateClass = factory.updateOne(Class, 'class_id');
 
 // Delete a class
-exports.deleteClass = factory.deleteOne(Class, 'class_id');
+exports.deleteClass = catchAsync(async (req, res, next) => {
+  const classToDelete = await Class.findByPk(req.params.id);
+  if (!classToDelete) {
+    return next(new AppError('No class found with that ID', 404));
+  }
+  if (classToDelete[0] === 0) {
+    return next(new AppError('No class found with that ID', 404));
+  }
+  await classToDelete.update({ active: false });
+  res.status(200).json({
+    status: 'success',
+    data: {
+      message: 'Class deleted successfully',
+    }
+  });
+});
