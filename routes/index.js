@@ -15,6 +15,7 @@ const periodRoutes = require('./periodRoutes');
 const schoolAdminRoutes = require('./schoolAdminRoutes');
 
 // Features Routes
+const subjectRoutes = require('./subjectRoutes');
 
 // Information Route
 const infoRoutes = require('./infoRoutes');
@@ -31,6 +32,7 @@ router.use("/periods", periodRoutes);
 router.use('/school-admin', schoolAdminRoutes);
 
 // Features Routes
+router.use('/subjects', subjectRoutes);
 
 // Information Route
 router.use('/info', infoRoutes);
