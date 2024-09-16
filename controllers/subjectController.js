@@ -5,12 +5,6 @@ const { Subject } = require('../models');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 
-
-const {
-    isValidName,
-    isValidDescription,
-  } = require('../validators/validators');
-  
 // Factory handler
 const factory = require('./handlerFactory');
 
@@ -18,30 +12,21 @@ const factory = require('./handlerFactory');
 exports.createSubject = catchAsync(async (req, res, next) => {
   const { name, description } = req.body;
 
-   // 2. Validate input fields using custom validators
-   try {
-    isValidName(name);
-    isValidDescription(description);
-  } catch (error) {
-    return next(new AppError(error.message, 400));
+  const newSubject = await Subject.create({
+    name,
+    description,
+  });
+
+  if (!newSubject) {
+    return next(new AppError('Failed to create subject', 500));
   }
 
-
-  try {
-    const newSubject = await Subject.create({
-      name,
-      description,
-    });
-
-    res.status(200).json({
-      status: 'success',
-      data: {
-        subject: newSubject,
-      },
-    });
-  } catch (error) {
-    return next(new AppError('Error creating subject', 500));
-  }
+  res.status(200).json({
+    status: 'success',
+    data: {
+      subject: newSubject,
+    },
+  });
 });
 
 // Get all subjects

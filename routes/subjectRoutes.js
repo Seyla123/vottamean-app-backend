@@ -1,9 +1,12 @@
+// Expressions library
 const express = require('express');
-const router = express.Router();
 
-const subjectController = require('../controllers/subjectController');
+// Authentication and User Controller
 const authController = require('../controllers/authController');
+const subjectController = require('../controllers/subjectController');
 
+// Define Express Router
+const router = express.Router();
 
 router.use(authController.protect);
 
@@ -11,18 +14,16 @@ router.use(authController.protect);
 router.use(authController.restrictTo('admin'));
 
 // Route to create a new subject
-router.post('/', subjectController.createSubject);
-
-// Route to get all subjects
-router.get('/', subjectController.getAllSubjects);
+router
+  .route('/')
+  .post(subjectController.createSubject)
+  .get(subjectController.getAllSubjects);
 
 // Route to get a single subject by ID
-router.get('/:id', subjectController.getSubjectById);
-
-// Route to update a subject by ID
-router.put('/:id', subjectController.updateSubject);
-
-// Route to delete a subject by ID
-router.delete('/:id', subjectController.deleteSubject);
+router
+  .route('/:id')
+  .get(subjectController.getSubjectById)
+  .put(subjectController.updateSubject)
+  .delete(subjectController.deleteSubject);
 
 module.exports = router;

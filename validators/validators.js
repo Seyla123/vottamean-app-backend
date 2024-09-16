@@ -87,12 +87,4 @@ module.exports = {
     }
     return true;
   },
-  // Validator for name
-isValidName: (value) => {
-  if (validator.isEmpty(value)) {
-    throw new Error('Name for Subject can not be empty');
-  }
-  return true;
-  }
 };
-
