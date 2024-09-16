@@ -26,13 +26,13 @@ exports.createOne = (Model, popOptions = []) =>
   });
 
 // Get One
-exports.getOne = (Model, idField, popOptions = []) =>
+exports.getOne = (Model, idField, popOptions = [], additionalFilter={}) =>
   catchAsync(async (req, res, next) => {
     let options = {
       where: { [idField]: req.params.id },
       include: popOptions,
     };
-
+    options.where = {...options.where, ...additionalFilter};
     const doc = await Model.findOne(options);
 
     if (!doc) {

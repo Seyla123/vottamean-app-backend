@@ -1,5 +1,5 @@
 // Database models
-const { Student, Info, Attendance, sequelize } = require('../models');
+const { Student, Info, sequelize, Class } = require('../models');
 
 // Info Validators
 const {
@@ -21,8 +21,12 @@ const AppError = require('../utils/appError');
 // Factory handler
 const factory = require('./handlerFactory');
 
+// check is belongs to admin function
+const { isBelongsToAdmin } = require('../utils/isBelongsToAdmin');
+
 // Add a new student and create default attendance
 exports.addStudent = catchAsync(async (req, res, next) => {
+  const school_admin_id = req.school_admin_id;
   // 1. Extract fields from the request body
   const {
     class_id,
@@ -36,7 +40,6 @@ exports.addStudent = catchAsync(async (req, res, next) => {
     phone_number,
     address,
     dob,
-    school_admin_id,
   } = req.body;
 
   // 2. Validate input fields using custom validators
@@ -57,7 +60,6 @@ exports.addStudent = catchAsync(async (req, res, next) => {
 
   // 3. Start a transaction
   const transaction = await sequelize.transaction();
-
   try {
     // 4. Create info record
     const newInfo = await Info.create(
@@ -67,8 +69,7 @@ exports.addStudent = catchAsync(async (req, res, next) => {
         gender,
         phone_number,
         address,
-        dob,
-        school_admin_id,
+        dob
       },
       { transaction }
     );
@@ -106,39 +107,29 @@ exports.addStudent = catchAsync(async (req, res, next) => {
 });
 
 // Get Student By ID with additional info
-exports.getStudent = factory.getOne(Student, 'student_id', [
-  { model: Info, as: 'Info' },
-]);
+exports.getStudent = catchAsync(async(req,res,next)=>{
+  factory.getOne(Student, 'student_id', [
+    { model: Info, as: 'Info' },
+    { model: Class, as: 'Class' },
+  ], {active: true, school_admin_id:req.school_admin_id})(req, res,next);
+});
 
 // Get all students with their attendance records
-exports.getAllStudents = factory.getAll(Student, {}, [
-  { model: Info, as: 'Info' },
-]);
+exports.getAllStudents = catchAsync(async (req, res, next) => {
+  factory.getAll(Student, { school_admin_id: req.school_admin_id }, [
+    { model: Info, as: 'Info' },
+    { model: Class, as: 'Class' },
+  ])(req, res, next);
+});
 
 // Update student details and their attendance records
-exports.updateStudent = factory.updateOne(Student, 'student_id');
+exports.updateStudent = catchAsync(async (req, res, next) => {
+  await isBelongsToAdmin(req.params.id,'student_id' ,req.school_admin_id, Student);
+  factory.updateOne(Student, 'student_id')(req, res, next);
+});
 
 // Update student status to inactive
 exports.deleteStudent = catchAsync(async (req, res, next) => {
-  const studentId = req.params.id;
-
-  // Check if student exists
-  const student = await Student.findOne({ where: { student_id: studentId } });
-  if (!student) {
-    return next(new AppError('No student found with that ID', 404));
-  }
-
-  // Update the student's status to inactive
-  await Student.update({ active: false }, { where: { student_id: studentId } });
-
-  // handle attendance records
-  await Attendance.update(
-    { active: false },
-    { where: { student_id: studentId } }
-  );
-
-  res.status(200).json({
-    status: 'success',
-    message: 'Student status updated to inactive',
-  });
+  await isBelongsToAdmin(req.params.id,'student_id' ,req.school_admin_id, Student);
+  factory.deleteOne(Student,'student_id')(req, res, next);
 });

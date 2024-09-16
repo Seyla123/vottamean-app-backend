@@ -27,6 +27,7 @@ router.use('/admins', adminRoutes);
 router.use('/teachers', teacherRoutes);
 router.use('/students', studentRoutes);
 router.use("/periods", periodRoutes); 
+router.use('/subjects', subjectRoutes);
 
 // School Routes
 router.use('/school-admin', schoolAdminRoutes);
