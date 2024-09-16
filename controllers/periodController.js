@@ -21,7 +21,6 @@ const compare_time = (start, end) => {
 
 // Create Period
 exports.createPeriod = catchAsync(async (req, res, next) => {
-  const { start_time, end_time } = req.body;
   const school_admin_id  = req.school_admin_id;
   // filter the request body
   req.body = filterObj(req.body, 'start_time', 'end_time');
@@ -35,36 +34,31 @@ exports.getAllPeriod = factory.getAll(Period);
 // get period
 exports.getPeriod = factory.getOne(Period, 'period_id');
 
-// update period
-exports.updatePeriod = catchAsync(async (req, res) => {
-  const { start_time, end_time } = req.body;
-
-  // compare start time and end time
-  compare_time(start_time, end_time);
-
-  const periodId = req.params.id;
-
+const checkIfBelongs = async (id,school_admin_id) => {
   // Validate the ID
-  if (!periodId) {
-    return res.status(400).json({ message: 'No ID Founded ' });
-  }
-
-  // Update the period by the correct primary key name
-  const updatedCount = await Period.update(req.body, {
-    where: { period_id: periodId },
+  const period = await Period.findOne({
+    where: {
+      period_id: id, // Assuming 'id' is the primary key of the Period model
+      school_admin_id: school_admin_id
+    }
   });
-
-  if (updatedCount === 0) {
-    return res.status(404).json({ message: 'Period not found' });
+  if (!period) {
+    throw new AppError('No period record found or you do not have permission for this record', 404);
   }
+}
 
-  const updatePeriod = await Period.findOne({ where: { period_id: periodId } });
-  return res.status(200).json({
-    message: 'success',
-    data: updatePeriod,
-  });
+// update period
+exports.updatePeriod = catchAsync(async (req, res, next) => {
+  await checkIfBelongs(req.params.id, req.school_admin_id);
+
+  req.body = filterObj(req.body, 'start_time', 'end_time');
+  factory.updateOne(Period, 'period_id')(req, res, next);
 });
 
 // delete period
-exports.deletePeriod = factory.deleteOne(Period, 'period_id');
+exports.deletePeriod = catchAsync(async (req, res, next) => {
+  await checkIfBelongs(req.params.id, req.school_admin_id);
+  factory.deleteOne(Period, 'period_id')(req, res, next);
+})
+
  
