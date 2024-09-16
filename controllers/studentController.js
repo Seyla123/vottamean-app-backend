@@ -97,7 +97,6 @@ exports.addStudent = catchAsync(async (req, res, next) => {
       data: {
         student: newStudent,
         info: newInfo,
-        class:class_id,
       },
     });
   } catch (error) {
@@ -110,12 +109,13 @@ exports.addStudent = catchAsync(async (req, res, next) => {
 // Get Student By ID with additional info
 exports.getStudent = factory.getOne(Student, 'student_id', [
   { model: Info, as: 'Info' },
-  {include: Class, as: 'Class'},
+  { model: Class, as: 'Class'},
 ]);
 
 // Get all students with their attendance records
 exports.getAllStudents = factory.getAll(Student, {}, [
   { model: Info, as: 'Info' },
+  { include: Class, as: 'Class' },
 ]);
 
 // Update student details and their attendance records
