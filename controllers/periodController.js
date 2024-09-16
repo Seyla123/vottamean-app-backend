@@ -4,26 +4,35 @@ const { Period } = require('../models');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 
-const Sequelize = require('sequelize');
+const factory = require('./handlerFactory');
+
+// comparation between start and end time
+const compare_time = (start, end) => {
+  start = new Date(start);
+  end = new Date(end);
+
+  if (start > end) {
+    return res.status(400).json({
+      message: 'Cannot be Load! End time must be greater than start time.',
+    });
+  }
+  return start, end;
+};
 
 // create period
 exports.createPeriod = catchAsync(async (req, res) => {
   const { start_time, end_time } = req.body;
 
-  const [startHour, startMinute] = start_time.split(':').map(Number);
-  const [endHour, endMinute] = end_time.split(':').map(Number);
+  // compare start time and end time
+  compare_time(start_time, end_time);
 
-  const startTotalMinutes = startHour * 60 + startMinute;
-  const endTotalMinutes = endHour * 60 + endMinute;
-
-  if (endTotalMinutes <= startTotalMinutes) {
-    return res.status(400).json({
-      message: 'End time must be greater than start time.',
-    });
-  }
-  const period = await Period.create(req.body);
+  // create period
+  const period = await Period.create({
+    start_time,
+    end_time,
+  });
   res.status(201).json({
-    message: 'Period created successfully',
+    message: 'success',
     data: period,
   });
 
@@ -33,126 +42,41 @@ exports.createPeriod = catchAsync(async (req, res) => {
 });
 
 // fetch all period
-exports.getAllPeriod = catchAsync(async (req, res) => {
-  const periods = await Period.findAll({
-    attributes: [
-      'period_id',
-      [
-        Sequelize.fn(
-          'CONCAT',
-          Sequelize.col('start_time'),
-          '-',
-          Sequelize.col('end_time')
-        ),
-        'time',
-      ],
-    ],
-  });
-
-  if (!periods) {
-    return next(new AppError('Fail to load periods ', 500));
-  }
-  return res.status(200).json({
-    data: periods,
-  });
-});
+exports.getAllPeriod = factory.getAll(Period);
 
 // get period
-exports.getPeriod = catchAsync(async (req, res) => {
-  const period = await Period.findByPk(req.params.id, {
-    attributes: [
-      'period_id',
-      [
-        Sequelize.fn(
-          'CONCAT',
-          Sequelize.col('start_time'),
-          '-',
-          Sequelize.col('end_time')
-        ),
-        'time_range',
-      ],
-    ],
-  });
-  res.status(201).json({
-    data: period,
-  });
-  if (!period) {
-    return next(new AppError('Fail to find period', 500));
-  }
-});
+exports.getPeriod = factory.getOne(Period, 'period_id');
 
 // update period
 exports.updatePeriod = catchAsync(async (req, res) => {
   const { start_time, end_time } = req.body;
 
-  const [startHour, startMinute] = start_time.split(':').map(Number);
-  const [endHour, endMinute] = end_time.split(':').map(Number);
-
-  const startTotalMinutes = startHour * 60 + startMinute;
-  const endTotalMinutes = endHour * 60 + endMinute;
-
-  if (endTotalMinutes <= startTotalMinutes) {
-    return res.status(400).json({
-      message: 'End time must be greater than start time.',
-    });
-  }
+  // compare start time and end time
+  compare_time(start_time, end_time);
 
   const periodId = req.params.id;
+
   // Validate the ID
   if (!periodId) {
-    return res.status(400).json({ message: 'ID is required' });
+    return res.status(400).json({ message: 'No ID Founded ' });
   }
+
   // Update the period by the correct primary key name
   const updatedCount = await Period.update(req.body, {
     where: { period_id: periodId },
   });
+
   if (updatedCount === 0) {
     return res.status(404).json({ message: 'Period not found' });
   }
-  // Fetch the updated data
-  const updatedPeriod = await Period.findOne({
-    where: { period_id: periodId },
-    attributes: [
-      'period_id',
-      [
-        Sequelize.fn(
-          'CONCAT',
-          Sequelize.col('start_time'),
-          '-',
-          Sequelize.col('end_time')
-        ),
-        'time',
-      ],
-    ],
-  });
 
-  if (!updatedPeriod) {
-    return next(new AppError('Fail to find updated period', 500));
-  }
-
+  const updatePeriod = await Period.findOne({ where: { period_id: periodId } });
   return res.status(200).json({
-    data: updatedPeriod,
+    message: 'success',
+    data: updatePeriod,
   });
 });
 
 // delete period
-exports.deletePeriod = catchAsync(async (req, res) => {
-  const periodId = req.params.id;
-  // Validate the ID
-  if (!periodId) {
-    return res.status(400).json({ message: 'ID is required' });
-  }
-  // Delete the period by the correct primary key name
-  const deletedCount = await Period.destroy({
-    where: { period_id: periodId },
-  });
-
-  if (deletedCount === 0) {
-    return res.status(404).json({ message: 'Cannot delete period' });
-  }
-
-  res.status(204).json();
-  if (!deletedCount) {
-    return next(new AppError('Fail to find period', 500));
-  }
-});
+exports.deletePeriod = factory.deleteOne(Period, 'period_id');
+ 
