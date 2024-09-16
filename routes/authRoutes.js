@@ -37,6 +37,7 @@ router.post('/logout', authController.logout);
 // Update current user details
 router.patch(
   '/update-me',
+  userController.getMe,
   fileController.uploadUserPhoto,
   fileController.resizeUserPhoto,
   userController.updateMe

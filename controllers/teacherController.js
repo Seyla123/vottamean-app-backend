@@ -117,7 +117,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
   // 6. Construct the verification URL and send it via email.
   const verificationUrl = `${req.protocol}://${req.get(
     'host'
-  )}/api/v1/auth/verifyEmail/teacher/${verificationToken}?token=${tempToken}`;
+  )}/api/v1/teachers/verify-email/teacher/${verificationToken}?token=${tempToken}`;
 
   try {
     await sendVerificationEmail(email, verificationUrl);

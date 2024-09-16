@@ -1,5 +1,12 @@
 // Database Models
-const { User, Admin, Teacher, Student, Info ,SchoolAdmin} = require('../models');
+const {
+  User,
+  Admin,
+  Teacher,
+  Student,
+  Info,
+  SchoolAdmin,
+} = require('../models');
 
 // Error Handlers
 const { filterObj } = require('../utils/filterObj');
@@ -13,27 +20,31 @@ const factory = require('./handlerFactory');
 exports.getMe = async (req, res, next) => {
   //get the current logged-in user
   req.params.id = req.user.user_id;
-  
+
   if (req.user.role == 'admin') {
     const admin = await SchoolAdmin.findOne({
-      include: [{ model: Admin, as: 'Admin', where: { user_id: req.user.user_id } }],
-    })
-    if(!admin){
+      include: [
+        { model: Admin, as: 'Admin', where: { user_id: req.user.user_id } },
+      ],
+    });
+    if (!admin) {
       return next(new AppError('No admin found with that user ID', 404));
     }
-    req.params.school_admin_id = admin.school_admin_id
+    req.params.school_admin_id = admin.school_admin_id;
   }
-  
-  if(req.user.role == 'teacher') {
+
+  if (req.user.role == 'teacher') {
     const teacher = await Teacher.findOne({
-      include: [{ model: User, as: 'User', where: { user_id: req.user.user_id } }],
-    })
-    if(!teacher){
+      include: [
+        { model: User, as: 'User', where: { user_id: req.user.user_id } },
+      ],
+    });
+    if (!teacher) {
       return next(new AppError('No teacher found with that user ID', 404));
     }
-    req.params.teacher_id = teacher.teacher_id
+    req.params.teacher_id = teacher.teacher_id;
   }
-  
+
   next();
 };
 
