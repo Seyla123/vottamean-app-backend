@@ -9,6 +9,8 @@ const adminRoutes = require('./adminRoutes');
 const teacherRoutes = require('./teacherRoutes');
 const studentRoutes = require('./studentRoutes');
 const attendanceRoutes = require('./attendanceRoutes');
+const periodRoutes = require('./periodRoutes');
+
 // School Routes
 const schoolAdminRoutes = require('./schoolAdminRoutes');
 
@@ -23,6 +25,7 @@ router.use('/users', userRoutes);
 router.use('/admins', adminRoutes);
 router.use('/teachers', teacherRoutes);
 router.use('/students', studentRoutes);
+router.use("/periods", periodRoutes); 
 
 // School Routes
 router.use('/school-admin', schoolAdminRoutes);

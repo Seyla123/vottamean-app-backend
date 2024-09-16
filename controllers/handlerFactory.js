@@ -48,7 +48,7 @@ exports.getOne = (Model, idField, popOptions = []) =>
 // Get All Need to fix more flexible
 exports.getAll = (Model, additionalFilter = {}, popOptions = []) =>
   catchAsync(async (req, res, next) => {
-    let filter = { ...additionalFilter };
+    let filter = { ...additionalFilter , active:1 };
 
     if (req.params.id) filter = { ...filter, id: req.params.id };
 
