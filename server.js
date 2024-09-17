@@ -14,7 +14,7 @@ sequelize
   .sync({
     force: process.env.NODE_ENV === 'development', // True for development, false for production
   })
-  .then(async() => {
+  .then(async () => {
     await seedDatabase();
     app.listen(PORT, () => {
       console.log(`Database connected successfully`);
