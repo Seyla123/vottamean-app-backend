@@ -94,9 +94,19 @@ module.exports = {
     if (validator.isEmpty(value)) {
       throw new Error('A password is required');
     }
+
     if (!validator.isLength(value, { min: 8 })) {
       throw new Error('Password must be at least 8 characters long');
     }
+
+    if (!/[a-zA-Z]/.test(value)) {
+      throw new Error('Password must contain at least one letter');
+    }
+
+    if (!/[0-9]/.test(value)) {
+      throw new Error('Password must contain at least one number');
+    }
+
     return true;
   },
 

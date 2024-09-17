@@ -399,7 +399,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   await user.save({ validateBeforeSave: false });
 
   // 4. Construct the password reset URL.
-  const resetURL = `http://localhost:5173/verify-reset-password/${resetToken}`;
+  const resetURL = `http://localhost:5173/auth/verify-reset-password/${resetToken}`;
 
   // 5. Attempt to send the password reset email.
   try {

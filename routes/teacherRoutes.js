@@ -9,7 +9,10 @@ const authController = require('../controllers/authController');
 const router = express.Router();
 
 // Teacher verify email
-router.get('/verifyEmail/teacher/:token', teacherController.verifyTeacherEmail);
+router.get(
+  '/verify-email/teacher/:token',
+  teacherController.verifyTeacherEmail
+);
 
 // Protect all routes
 router.use(authController.protect);
