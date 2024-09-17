@@ -22,6 +22,8 @@ const factory = require('./handlerFactory');
 
 // check is belongs to admin function
 const { isBelongsToAdmin } = require('../utils/helper');
+const { isBelongsToAdmin } = require('../utils/isBelongsToAdmin');
+const infoValidator = require('../validators/infoValidator');
 
 // Add a new student and create default attendance
 exports.addStudent = catchAsync(async (req, res, next) => {
