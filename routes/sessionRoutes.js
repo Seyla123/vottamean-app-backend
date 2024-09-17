@@ -16,5 +16,6 @@ router.use(authController.restrictTo('admin'));
 router
   .route('/')
   .post(sessionController.createSession)
+  .get(sessionController.getAllSessions);
 
 module.exports = router;
