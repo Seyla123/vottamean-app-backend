@@ -173,13 +173,7 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
   }
 
   // Verify that the session belongs to the student's class
-  await isBelongsToAdmin(
-    session_id,
-    'session_id',
-    student.class_id,
-    Session,
-    'class_id'
-  );
+  await isBelongsToAdmin(session_id, 'session_id', student.class_id, Session, 'class_id', "Student");
 
   // If attendance already exists, return an error
   if (existingAttendance) {
