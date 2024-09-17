@@ -176,5 +176,5 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
 // Update student status to inactive
 exports.deleteStudent = catchAsync(async (req, res, next) => {
   await isBelongsToAdmin(req.params.id,'student_id' ,req.school_admin_id, Student);
-  factory.deleteOne(Student,'student_id')(req, res, next);0
+  factory.deleteOne(Student,'student_id')(req, res, next);
 });
