@@ -1,6 +1,5 @@
 // Database models
 const { Student, Info, sequelize, Class } = require('../models');
-
 // Info Validators
 const {
   isValidEmail,
@@ -23,6 +22,7 @@ const factory = require('./handlerFactory');
 
 // check is belongs to admin function
 const { isBelongsToAdmin } = require('../utils/isBelongsToAdmin');
+const infoValidator = require('../validators/infoValidator');
 
 // Add a new student and create default attendance
 exports.addStudent = catchAsync(async (req, res, next) => {
@@ -119,17 +119,37 @@ exports.getAllStudents = catchAsync(async (req, res, next) => {
   factory.getAll(Student, { school_admin_id: req.school_admin_id }, [
     { model: Info, as: 'Info' },
     { model: Class, as: 'Class' },
-  ])(req, res, next);
+  ],['Info.first_name', 'Info.last_name'])(req, res, next);
 });
 
-// Update student details and their attendance records
+//Update all students with their associated
 exports.updateStudent = catchAsync(async (req, res, next) => {
-  await isBelongsToAdmin(req.params.id,'student_id' ,req.school_admin_id, Student);
-  factory.updateOne(Student, 'student_id')(req, res, next);
-});
+  await isBelongsToAdmin(req.params.id, 'student_id', req.school_admin_id, Student);
+  const [studentUpdateCount] = await Student.update(req.body, {
+    where: { student_id: req.params.id }
+  });
+  if (studentUpdateCount === 0) {
+    return next(new AppError('No student found with that ID', 404));
+  }
+  if (req.body.Info) {
+    const { info_id } = req.body.Info;
+    if (!info_id) {
+      return next(new AppError('Info ID must be provided for updating Info record', 400));
+    }
+    const [infoUpdateCount] = await Info.update(req.body.Info, {where: { info_id }});
 
+    if (infoUpdateCount === 0) {
+      return next(new AppError('No info record found with that ID', 404));
+    }
+  }
+  res.status(200).json({
+    status: 'success',
+    message: 'Student with their associated have been updated successfully',
+  });
+});
+  
 // Update student status to inactive
 exports.deleteStudent = catchAsync(async (req, res, next) => {
   await isBelongsToAdmin(req.params.id,'student_id' ,req.school_admin_id, Student);
-  factory.deleteOne(Student,'student_id')(req, res, next);
+  factory.deleteOne(Student,'student_id')(req, res, next);0
 });
