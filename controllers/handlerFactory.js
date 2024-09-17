@@ -46,7 +46,7 @@ exports.getOne = (Model, idField, popOptions = [], additionalFilter={}) =>
   });
 
 // Get All Need to fix more flexible
-exports.getAll = (Model, additionalFilter = {}, popOptions = []) =>
+exports.getAll = (Model, additionalFilter = {}, popOptions = [],  search=[]) =>
   catchAsync(async (req, res, next) => {
     let filter = { ...additionalFilter , active:1 };
 
@@ -54,9 +54,11 @@ exports.getAll = (Model, additionalFilter = {}, popOptions = []) =>
 
     const features = new APIFeatures(Model, req.query)
       .filter()
+      .search(search)
       .sort()
       .limitFields()
-      .paginate();
+      .paginate()
+      .includeAssociations(popOptions);
 
     const doc = await features.exec({
       where: filter,
