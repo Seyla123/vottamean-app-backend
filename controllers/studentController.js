@@ -19,6 +19,7 @@ const AppError = require('../utils/appError');
 
 // Factory handler
 const factory = require('./handlerFactory');
+const { filterObj } = require('../utils/filterObj');
 
 // check is belongs to admin function
 const { isBelongsToAdmin } = require('../utils/helper');
@@ -40,6 +41,17 @@ exports.addStudent = catchAsync(async (req, res, next) => {
     address,
     dob,
   } = req.body;
+  req.body = filterObj(req.body,  'class_id',
+    'guardian_name',
+    'guardian_email',
+    'guardian_relationship',
+    'guardian_phone_number',
+    'first_name',
+    'last_name',
+    'gender',
+    'phone_number',
+    'address',
+    'dob',);
 
   // 2. Validate input fields using custom validators
   try {
@@ -123,6 +135,18 @@ exports.getAllStudents = catchAsync(async (req, res, next) => {
 
 //Update all students with their associated
 exports.updateStudent = catchAsync(async (req, res, next) => {
+
+  req.body = filterObj(req.body,  'class_id',
+    'guardian_name',
+    'guardian_email',
+    'guardian_relationship',
+    'guardian_phone_number',
+    'first_name',
+    'last_name',
+    'gender',
+    'phone_number',
+    'address',
+    'dob',);
   await isBelongsToAdmin(req.params.id, 'student_id', req.school_admin_id, Student);
   const [studentUpdateCount] = await Student.update(req.body, {
     where: { student_id: req.params.id }
