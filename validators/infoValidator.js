@@ -35,18 +35,10 @@ module.exports = {
   // Validator for phone number
   isValidPhoneNumber: (value) => {
     if (
-      !validator.isLength(value, { min: 10, max: 15 }) ||
-      !/^[0-9]{10,15}$/.test(value)
+      !validator.isLength(value, { min: 9, max: 15 }) ||
+      !/^[0-9]{9,15}$/.test(value)
     ) {
       throw new Error('Phone number must be between 10 and 15 digits');
-    }
-    return true;
-  },
-
-  // Validator for address field
-  isValidAddress: (value) => {
-    if (validator.isEmpty(value)) {
-      throw new Error('Address is required');
     }
     return true;
   },

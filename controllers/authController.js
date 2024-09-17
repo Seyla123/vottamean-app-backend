@@ -22,7 +22,6 @@ const {
   isValidDOB,
   isValidName,
   isValidPhoneNumber,
-  isValidAddress,
   isValidGender,
 } = require('../validators/infoValidator');
 
@@ -68,7 +67,6 @@ exports.signup = catchAsync(async (req, res, next) => {
     isValidName(last_name);
     isValidGender(gender);
     isValidPhoneNumber(phone_number);
-    isValidAddress(address);
   } catch (error) {
     return next(new AppError(error.message, 400));
   }
