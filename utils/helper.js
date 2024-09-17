@@ -7,8 +7,8 @@ exports.isBelongsToAdmin = async (id, field,school_admin_id,Model,field2) => {
     const isExists = await Model.findOne({
       where: {
         [field]: id, // Assuming 'id' is the primary key of the model
-        ...additional
-      },
+        ...additional,
+        active:true},
     });
     if (!isExists) {
       throw new AppError(
