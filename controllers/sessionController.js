@@ -105,3 +105,11 @@ exports.updateSession = catchAsync(async (req, res, next) => {
   // update session
   factory.updateOne(Session, 'session_id')(req, res, next);
 });
+
+// delete session
+exports.deleteSession = catchAsync(async (req, res, next) => {
+  // check if session belongs to the school
+  await isBelongsToAdmin(req.params.id, 'session_id', req.school_admin_id, Session);
+  // delete session
+  factory.deleteOne(Session, 'session_id')(req, res, next);
+});

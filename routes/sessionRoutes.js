@@ -18,4 +18,10 @@ router
   .post(sessionController.createSession)
   .get(sessionController.getAllSessions);
 
+router
+  .route('/:id')
+  .get(sessionController.getSession)
+  .patch(sessionController.updateSession)
+  .delete(sessionController.deleteSession);
+  
 module.exports = router;
