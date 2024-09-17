@@ -1,3 +1,4 @@
+// models
 const {
   Attendance,
   Student,
@@ -11,17 +12,21 @@ const {
   Subject,
   Teacher,
 } = require('../models');
+// utils
 const APIFeatures = require('../utils/apiFeatures');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
-const { checkIfExists } = require('../utils/checkIfExists');
 const { filterObj } = require('../utils/filterObj');
-const { Op } = require('sequelize');
 const factory = require('./handlerFactory');
+const { Op } = require('sequelize')
+const { isBelongsToAdmin } = require('../utils/helper');
+
+// Get all attendances
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
   const school_admin_id = req.school_admin_id;
   const { subject_id, search, class_id } = req.query;
 
+  // associations for attendance
   const associations = [
     {
       model: Student,
@@ -91,6 +96,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
     },
   ];
 
+  // filter allow fields
   const allowedFields = [
     'date',
     'student_id',
@@ -130,89 +136,49 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
   }
 });
 
+//Creates attendance for a student in a specific session.
 exports.createAttendance = catchAsync(async (req, res, next) => {
-  const { student_id, session_id, status_id } = req.body;
-  const teacher_id = req.params.teacher_id;
-
-  // Validate student, session, and status IDs concurrently
-  await Promise.all([
-    checkIfExists(Student, student_id, 'Student'),
-    checkIfExists(Session, session_id, 'Session'),
-    checkIfExists(Status, status_id, 'Status'),
-  ]);
-
-  // Check if attendance already exists with the same date, student_id, and session_id
+  // Get today's date for attendance record
   const today = new Date();
+
+  // filter fields
+  req.body = filterObj(req.body, 'student_id', 'session_id', 'status_id');
+  req.body.date = today;
+
+  const { student_id, session_id } = req.body;
+  const teacher_id = req.teacher_id;
+
+  // Check if attendance already exists for the same date, student_id, and session_id
   const existingAttendance = await Attendance.findOne({
     where: { student_id, session_id, date: today },
   });
 
-  // Check if the teacher is assigned to the session
-  const teacher = await Session.findByPk(session_id, {
-    include: {
-      model: Teacher,
-      as: 'Teacher',
-      where: { teacher_id },
-      attributes: ['teacher_id'],
-    },
-  });
+  // Verify that the session belongs to the teacher
+  await isBelongsToAdmin(session_id, 'session_id', teacher_id, Session, 'teacher_id');
 
-  // Check if the student is assigned to the class of the session
+  // Retrieve the student's class ID to ensure they are assigned to the correct class
   const student = await Student.findByPk(student_id, {
     attributes: ['class_id'],
   });
-  const studentSession = await Session.findByPk(session_id, {
-    include: {
-      model: Class,
-      as: 'Class',
-      where: { class_id: student.class_id },
-      attributes: ['class_id'],
-    },
-  });
 
-  if (!studentSession) {
-    return next(
-      new AppError(
-        'Only Assigned Student can create attendance in this session',
-        403
-      )
-    );
+  // Handle case where the student is not found
+  if (!student) {
+    return next(new AppError('Student not found', 404));
   }
 
-  if (!teacher) {
-    return next(
-      new AppError(
-        'Only Assigned Teacher can create attendance in this session',
-        403
-      )
-    );
-  }
+  // Verify that the session belongs to the student's class
+  await isBelongsToAdmin(session_id, 'session_id', student.class_id, Session, 'class_id');
 
+  // If attendance already exists, return an error
   if (existingAttendance) {
-    return next(
-      new AppError(
-        'Attendance for this student, session, and date already exists',
-        400
-      )
-    );
+    return next(new AppError('Attendance for this student, session, and date already exists', 400));
   }
 
-  // Proceed to create new attendance
-  const newAttendance = await Attendance.create({
-    student_id,
-    session_id,
-    status_id,
-    date: today,
-  });
+  // Use factory to create attendance
+  factory.createOne(Attendance)(req, res, next);
 
-  // Send the response
-  res.status(201).json({
-    status: 'success',
-    data: {
-      attendance: newAttendance,
-    },
-  });
 });
+
 // check attendance exists and belongs to the school admin ?
 const checkAttendanceExists = async (id, school_admin_id) => {
   const attendance = await Attendance.findOne({

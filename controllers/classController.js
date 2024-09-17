@@ -10,7 +10,7 @@ const factory = require('./handlerFactory');
 const { filterObj } = require('../utils/filterObj');
 
 //  Checking for belongs to admin id
-const { isBelongsToAdmin } = require('../utils/isBelongsToAdmin');
+const { isBelongsToAdmin } = require('../utils/helper');
 
 // Create a new class
 exports.addClass = catchAsync(async (req, res, next) => {
