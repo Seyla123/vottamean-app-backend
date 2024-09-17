@@ -1,5 +1,5 @@
 // Database models
-const { Session, Class, Period, Teacher, Subject,Info } = require('../models');
+const { Session, Class, Period, Teacher, Subject, Info } = require('../models');
 
 // Error handler
 const catchAsync = require('../utils/catchAsync');
@@ -76,6 +76,22 @@ exports.getAllSessions = catchAsync(async (req, res, next) => {
       { model: Period, as: 'Period' },
       { model: Teacher, as: 'Teacher', include: [{ model: Info, as: 'Info' }] },
       { model: Subject, as: 'Subject' },
-    ]
-  ,['Class.class_name'])(req, res, next);
+    ],
+    ['Class.class_name']
+  )(req, res, next);
+});
+
+// get a single session
+exports.getSession = catchAsync(async (req, res, next) => {
+  factory.getOne(
+    Session,
+    'session_id',
+    [
+      { model: Class, as: 'Class' },
+      { model: Period, as: 'Period' },
+      { model: Teacher, as: 'Teacher', include: [{ model: Info, as: 'Info' }] },
+      { model: Subject, as: 'Subject' },
+    ],
+    { active: true, school_admin_id: req.school_admin_id }
+  )(req, res, next);
 });
