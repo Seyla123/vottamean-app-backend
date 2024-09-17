@@ -15,9 +15,6 @@ module.exports = (sequelize, DataTypes) => {
       class_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: {
-          msg: 'Class name address already in use',
-        },
         validate: validators.isValidClassName,
       },
       description: {
