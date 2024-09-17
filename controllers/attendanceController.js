@@ -132,14 +132,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
 
 exports.createAttendance = catchAsync(async (req, res, next) => {
   const { student_id, session_id, status_id } = req.body;
-  const teacher_id = req.params.teacher_id;
-
-  // Validate student, session, and status IDs concurrently
-  await Promise.all([
-    checkIfExists(Student, student_id, 'Student'),
-    checkIfExists(Session, session_id, 'Session'),
-    checkIfExists(Status, status_id, 'Status'),
-  ]);
+  const teacher_id = req.teacher_id;
 
   // Check if attendance already exists with the same date, student_id, and session_id
   const today = new Date();

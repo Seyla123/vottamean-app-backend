@@ -1,0 +1,20 @@
+// Expressions library
+const express = require('express');
+
+// Authentication and session Controller
+const authController = require('../controllers/authController');
+const sessionController = require('../controllers/sessionController');
+// Define Express Router
+const router = express.Router();
+
+router.use(authController.protect);
+
+// Restrict all routes to admin only
+router.use(authController.restrictTo('admin'));
+
+// Route to create a new session
+router
+  .route('/')
+  .post(sessionController.createSession)
+
+module.exports = router;
