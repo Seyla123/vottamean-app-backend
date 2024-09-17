@@ -113,3 +113,21 @@ exports.deleteSession = catchAsync(async (req, res, next) => {
   // delete session
   factory.deleteOne(Session, 'session_id')(req, res, next);
 });
+
+// teacher site 
+// get all teacher session
+exports.getAllTeacherSessions = catchAsync(async (req, res, next) => {
+  factory.getAll(
+    Session,
+    {
+      teacher_id: req.teacher_id,
+      active: true,
+    },
+    [
+      { model: Class, as: 'Class' },
+      { model: Period, as: 'Period' },
+      { model: Subject, as: 'Subject' },
+    ],
+    ['Class.class_name']
+  )(req, res, next);
+});
