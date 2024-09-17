@@ -99,12 +99,9 @@ exports.getSession = catchAsync(async (req, res, next) => {
 // update session
 exports.updateSession = catchAsync(async (req, res, next) => {
   // check if session belongs to the school
-  console.log('-----------------');
-  console.log(req.params.id, req.school_admin_id);
-  
-  console.log('-----------------');
-  
   await isBelongsToAdmin(req.params.id, 'session_id', req.school_admin_id, Session);
+  //  filter the request body to only include 'class_id', 'subject_id','day_id','period_id','teacher_id'
   req.body = filterObj(req.body, 'class_id', 'subject_id', 'day_id', 'period_id', 'teacher_id');
+  // update session
   factory.updateOne(Session, 'session_id')(req, res, next);
 });
