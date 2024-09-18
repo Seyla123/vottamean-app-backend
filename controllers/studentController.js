@@ -44,6 +44,9 @@ exports.addStudent = catchAsync(async (req, res, next) => {
 
   // 2. Validate input fields using custom validators
   try {
+    if (!class_id) {
+      throw new Error('class_id is required');
+    }
     isValidName(first_name);
     isValidName(last_name);
     isValidDOB(dob);
@@ -77,7 +80,7 @@ exports.addStudent = catchAsync(async (req, res, next) => {
     // 5. Create student record with associated info
     const newStudent = await Student.create(
       {
-        class_id,
+         class_id,
         guardian_name,
         guardian_email,
         guardian_relationship,
