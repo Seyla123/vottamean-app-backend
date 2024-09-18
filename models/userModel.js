@@ -154,8 +154,10 @@ module.exports = (sequelize, DataTypes) => {
     if (user.changed('password')) {
       user.password = await bcrypt.hash(user.password, 12);
       user.passwordConfirm = undefined;
+
+      // Update passwordChangedAt only if the user is not new
       if (!user.isNewRecord) {
-        user.passwordChangedAt = new Date(Date.now() - 1000);
+        user.passwordChangedAt = new Date();
       }
     }
   });
