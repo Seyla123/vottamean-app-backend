@@ -116,7 +116,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
     .includeAssociations(associations);
 
   try {
-    const allAttendances = await features.exec();
+    const allAttendances = await features.exec({where:{active:1}});
     if (allAttendances.length === 0) {
       return res.status(200).json({
         status: 'success',
@@ -173,13 +173,7 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
   }
 
   // Verify that the session belongs to the student's class
-  await isBelongsToAdmin(
-    session_id,
-    'session_id',
-    student.class_id,
-    Session,
-    'class_id'
-  );
+  await isBelongsToAdmin(session_id, 'session_id', student.class_id, Session, 'class_id', "Student");
 
   // If attendance already exists, return an error
   if (existingAttendance) {
