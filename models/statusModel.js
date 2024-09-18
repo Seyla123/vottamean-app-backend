@@ -17,7 +17,7 @@ module.exports = (sequelize, DataTypes) => {
           'late',
           'present',
           'absent',
-          'absent_with_permission'
+          'permission'
         ),
         allowNull: false,
         defaultValue: 'absent',

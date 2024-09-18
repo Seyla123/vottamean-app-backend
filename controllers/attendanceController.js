@@ -116,7 +116,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
     .includeAssociations(associations);
 
   try {
-    const allAttendances = await features.exec();
+    const allAttendances = await features.exec({where:{active:1}});
     if (allAttendances.length === 0) {
       return res.status(200).json({
         status: 'success',
