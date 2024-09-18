@@ -15,7 +15,7 @@ router.use(authController.protect);
 router.use(authController.restrictTo('admin'));
 
 // Info routes
-router.route('/').get(infoController.getAllInfos).post(infoController.addInfo);
+router.route('/').get(infoController.getAllInfos)
 
 router
   .route('/:id')
