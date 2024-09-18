@@ -15,6 +15,9 @@ const router = express.Router();
 router.post('/signup', authController.signup);
 router.post('/login', authController.login);
 
+// Check email route
+router.get('/check-email', authController.checkEmail);
+
 // Email verification route
 router.get('/verify-email/:token', authController.verifyEmail);
 

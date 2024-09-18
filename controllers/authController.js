@@ -488,3 +488,23 @@ exports.changePassword = catchAsync(async (req, res, next) => {
   // 6. Generate and send JWT token to the client
   createSendToken(user, 200, req, res);
 });
+
+// ----------------------------
+// CHECK IF THE EMAIL IS AVAILABLE
+// ----------------------------
+exports.checkEmail = catchAsync(async (req, res, next) => {
+  const { email } = req.query;
+
+  const existingUser = await User.findOne({ where: { email } });
+  if (existingUser) {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'Email already exists',
+    });
+  }
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Email is available',
+  });
+});
