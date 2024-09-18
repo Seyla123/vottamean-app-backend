@@ -26,13 +26,13 @@ exports.createOne = (Model, popOptions = []) =>
   });
 
 // Get One
-exports.getOne = (Model, idField, popOptions = [], additionalFilter={}) =>
+exports.getOne = (Model, idField, popOptions = [], additionalFilter = {}) =>
   catchAsync(async (req, res, next) => {
     let options = {
       where: { [idField]: req.params.id },
       include: popOptions,
     };
-    options.where = {...options.where, ...additionalFilter};
+    options.where = { ...options.where, ...additionalFilter };
     const doc = await Model.findOne(options);
 
     if (!doc) {
@@ -46,9 +46,9 @@ exports.getOne = (Model, idField, popOptions = [], additionalFilter={}) =>
   });
 
 // Get All Need to fix more flexible
-exports.getAll = (Model, additionalFilter = {}, popOptions = [],  search=[]) =>
+exports.getAll = (Model, additionalFilter = {}, popOptions = [], search = []) =>
   catchAsync(async (req, res, next) => {
-    let filter = { ...additionalFilter , active:1 };
+    let filter = { ...additionalFilter, active: 1 };
 
     if (req.params.id) filter = { ...filter, id: req.params.id };
 
@@ -133,12 +133,11 @@ exports.deleteOne = (Model, idField) =>
     });
   });
 
-
 // Delete a class
 exports.deleteClass = catchAsync(async (req, res, next) => {
   try {
     const classToDelete = await Class.findByPk(req.params.id);
-    
+
     if (!classToDelete) {
       return next(new AppError('No class found with that ID', 404));
     }
@@ -146,7 +145,7 @@ exports.deleteClass = catchAsync(async (req, res, next) => {
     res.status(200).json({
       status: 'success',
       data: {
-        message: 'Class deleted successfully'
+        message: 'Class deleted successfully',
       },
     });
   } catch (error) {

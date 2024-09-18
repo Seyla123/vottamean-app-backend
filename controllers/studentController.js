@@ -23,8 +23,6 @@ const { filterObj } = require('../utils/filterObj');
 
 // check is belongs to admin function
 const { isBelongsToAdmin } = require('../utils/helper');
-const { isBelongsToAdmin } = require('../utils/isBelongsToAdmin');
-const infoValidator = require('../validators/infoValidator');
 
 // Add a new student and create default attendance
 exports.addStudent = catchAsync(async (req, res, next) => {
@@ -43,7 +41,9 @@ exports.addStudent = catchAsync(async (req, res, next) => {
     address,
     dob,
   } = req.body;
-  req.body = filterObj(req.body,  'class_id',
+  req.body = filterObj(
+    req.body,
+    'class_id',
     'guardian_name',
     'guardian_email',
     'guardian_relationship',
@@ -53,7 +53,8 @@ exports.addStudent = catchAsync(async (req, res, next) => {
     'gender',
     'phone_number',
     'address',
-    'dob',);
+    'dob'
+  );
 
   // 2. Validate input fields using custom validators
   try {
@@ -82,7 +83,7 @@ exports.addStudent = catchAsync(async (req, res, next) => {
         gender,
         phone_number,
         address,
-        dob
+        dob,
       },
       { transaction }
     );
@@ -120,25 +121,36 @@ exports.addStudent = catchAsync(async (req, res, next) => {
 });
 
 // Get Student By ID with additional info
-exports.getStudent = catchAsync(async(req,res,next)=>{
-  factory.getOne(Student, 'student_id', [
-    { model: Info, as: 'Info' },
-    { model: Class, as: 'Class' },
-  ], {active: true, school_admin_id:req.school_admin_id})(req, res,next);
+exports.getStudent = catchAsync(async (req, res, next) => {
+  factory.getOne(
+    Student,
+    'student_id',
+    [
+      { model: Info, as: 'Info' },
+      { model: Class, as: 'Class' },
+    ],
+    { active: true, school_admin_id: req.school_admin_id }
+  )(req, res, next);
 });
 
 // Get all students with their attendance records
 exports.getAllStudents = catchAsync(async (req, res, next) => {
-  factory.getAll(Student, { school_admin_id: req.school_admin_id }, [
-    { model: Info, as: 'Info' },
-    { model: Class, as: 'Class' },
-  ],['Info.first_name', 'Info.last_name'])(req, res, next);
+  factory.getAll(
+    Student,
+    { school_admin_id: req.school_admin_id },
+    [
+      { model: Info, as: 'Info' },
+      { model: Class, as: 'Class' },
+    ],
+    ['Info.first_name', 'Info.last_name']
+  )(req, res, next);
 });
 
 //Update all students with their associated
 exports.updateStudent = catchAsync(async (req, res, next) => {
-
-  req.body = filterObj(req.body,  'class_id',
+  req.body = filterObj(
+    req.body,
+    'class_id',
     'guardian_name',
     'guardian_email',
     'guardian_relationship',
@@ -148,10 +160,16 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
     'gender',
     'phone_number',
     'address',
-    'dob',);
-  await isBelongsToAdmin(req.params.id, 'student_id', req.school_admin_id, Student);
+    'dob'
+  );
+  await isBelongsToAdmin(
+    req.params.id,
+    'student_id',
+    req.school_admin_id,
+    Student
+  );
   const [studentUpdateCount] = await Student.update(req.body, {
-    where: { student_id: req.params.id }
+    where: { student_id: req.params.id },
   });
   if (studentUpdateCount === 0) {
     return next(new AppError('No student found with that ID', 404));
@@ -159,9 +177,13 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
   if (req.body.Info) {
     const { info_id } = req.body.Info;
     if (!info_id) {
-      return next(new AppError('Info ID must be provided for updating Info record', 400));
+      return next(
+        new AppError('Info ID must be provided for updating Info record', 400)
+      );
     }
-    const [infoUpdateCount] = await Info.update(req.body.Info, {where: { info_id }});
+    const [infoUpdateCount] = await Info.update(req.body.Info, {
+      where: { info_id },
+    });
 
     if (infoUpdateCount === 0) {
       return next(new AppError('No info record found with that ID', 404));
@@ -172,9 +194,14 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
     message: 'Student with their associated have been updated successfully',
   });
 });
-  
+
 // Update student status to inactive
 exports.deleteStudent = catchAsync(async (req, res, next) => {
-  await isBelongsToAdmin(req.params.id,'student_id' ,req.school_admin_id, Student);
-  factory.deleteOne(Student,'student_id')(req, res, next);
+  await isBelongsToAdmin(
+    req.params.id,
+    'student_id',
+    req.school_admin_id,
+    Student
+  );
+  factory.deleteOne(Student, 'student_id')(req, res, next);
 });

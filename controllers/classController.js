@@ -4,8 +4,10 @@ const { Class, SchoolAdmin } = require('../models');
 // Error handler
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+
 // Factory handler
 const factory = require('./handlerFactory');
+
 // Utils
 const { filterObj } = require('../utils/filterObj');
 
@@ -33,23 +35,27 @@ exports.addClass = catchAsync(async (req, res, next) => {
 
 // Get all active classes for the school
 exports.getAllClasses = catchAsync(async (req, res, next) => {
-  factory.getAll( Class,
+  factory.getAll(
+    Class,
     { school_admin_id: req.school_admin_id },
     [{ model: SchoolAdmin, as: 'SchoolAdmin' }],
-    ['class_name', 'class_id'])(req, res, next); // Search by class_name and class_id
+    ['class_name', 'class_id']
+  )(req, res, next); // Search by class_name and class_id
 });
 
 // Get a single class
 exports.getClass = catchAsync(async (req, res, next) => {
   factory.getOne(
-    Class, 'class_id',
+    Class,
+    'class_id',
     [{ model: SchoolAdmin, as: 'SchoolAdmin' }],
-    { active: true, school_admin_id: req.school_admin_id })(req, res, next);
+    { active: true, school_admin_id: req.school_admin_id }
+  )(req, res, next);
 });
 
 // Update a class
 exports.updateClass = catchAsync(async (req, res, next) => {
-  await isBelongsToAdmin(req.params.id, 'class_id', req.school_admin_id, Class);  // Check if belongs to admin
+  await isBelongsToAdmin(req.params.id, 'class_id', req.school_admin_id, Class); // Check if belongs to admin
   req.body = filterObj(req.body, 'class_name', 'description'); // Filter out only class_name and description
   factory.updateOne(Class, 'class_id')(req, res, next);
 });

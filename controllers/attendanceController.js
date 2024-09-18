@@ -18,7 +18,7 @@ const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const { filterObj } = require('../utils/filterObj');
 const factory = require('./handlerFactory');
-const { Op } = require('sequelize')
+const { Op } = require('sequelize');
 const { isBelongsToAdmin } = require('../utils/helper');
 
 // Get all attendances
@@ -154,7 +154,13 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
   });
 
   // Verify that the session belongs to the teacher
-  await isBelongsToAdmin(session_id, 'session_id', teacher_id, Session, 'teacher_id');
+  await isBelongsToAdmin(
+    session_id,
+    'session_id',
+    teacher_id,
+    Session,
+    'teacher_id'
+  );
 
   // Retrieve the student's class ID to ensure they are assigned to the correct class
   const student = await Student.findByPk(student_id, {
@@ -167,16 +173,26 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
   }
 
   // Verify that the session belongs to the student's class
-  await isBelongsToAdmin(session_id, 'session_id', student.class_id, Session, 'class_id');
+  await isBelongsToAdmin(
+    session_id,
+    'session_id',
+    student.class_id,
+    Session,
+    'class_id'
+  );
 
   // If attendance already exists, return an error
   if (existingAttendance) {
-    return next(new AppError('Attendance for this student, session, and date already exists', 400));
+    return next(
+      new AppError(
+        'Attendance for this student, session, and date already exists',
+        400
+      )
+    );
   }
 
   // Use factory to create attendance
   factory.createOne(Attendance)(req, res, next);
-
 });
 
 // check attendance exists and belongs to the school admin ?
