@@ -47,7 +47,7 @@ router.patch(
 router.use(authController.restrictTo('admin'));
 
 // Password management route for admin
-router.patch('/update-password', authController.updatePassword);
+router.patch('/change-password', authController.changePassword);
 
 // User management routes
 router.route('/').get(userController.getAllUsers);

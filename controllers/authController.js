@@ -455,21 +455,36 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 });
 
 // ----------------------------
-// UPDATE PASSWORD FUNCTION
+// CHANGE PASSWORD FUNCTION
 // ----------------------------
-exports.updatePassword = catchAsync(async (req, res, next) => {
-  // 1. Find the current user with their password.
+exports.changePassword = catchAsync(async (req, res, next) => {
+  // 1. Extract currentPassword and newPassword from the request body
+  const { currentPassword, newPassword } = req.body;
+
+  // 2. Validate input fields (optional but recommended)
+  if (!currentPassword || !newPassword) {
+    return next(
+      new AppError('Please provide both current and new passwords.', 400)
+    );
+  }
+
+  // 3. Find the current user with their password
   const user = await User.scope('withPassword').findByPk(req.user.user_id);
 
-  // 2. Verify that the current password provided is correct.
-  if (!(await user.correctPassword(req.body.passwordCurrent))) {
+  if (!user) {
+    return next(new AppError('User not found.', 404));
+  }
+
+  // 4. Verify that the current password provided is correct
+  const isPasswordCorrect = await user.correctPassword(currentPassword);
+  if (!isPasswordCorrect) {
     return next(new AppError('Your current password is incorrect.', 401));
   }
 
-  // 3. Update the password and save the user.
-  user.password = req.body.password;
+  // 5. Change the password and save the user
+  user.password = newPassword;
   await user.save();
 
-  // 4. Generate and send JWT token to the client.
+  // 6. Generate and send JWT token to the client
   createSendToken(user, 200, req, res);
 });
