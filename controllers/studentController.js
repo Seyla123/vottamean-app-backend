@@ -131,6 +131,7 @@ exports.getAllStudents = catchAsync(async (req, res, next) => {
     ['Info.first_name', 'Info.last_name']
   )(req, res, next);
 });
+
 // Update all students with their associated info
 exports.updateStudent = catchAsync(async (req, res, next) => {
   // filter allow fields
@@ -150,27 +151,34 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
   req.body = filterObj(req.body,...allowedFields);
 
   const school_admin_id = req.school_admin_id;
-
   const transaction = await sequelize.transaction();
+
   try {
+    //update student 
     await Student.update(req.body, {
       where: { student_id: req.params.id, school_admin_id },
       transaction,
     });
+    //find student after update
     const student = await Student.findOne({
       where: { student_id: req.params.id, school_admin_id },
       include: [{ model: Info, as: 'Info' }],
       transaction,
     });
+
+    //after find student update info 
     const info_id = student.Info.info_id;
     await Info.update(req.body, {
       where: { info_id },
       transaction,
     });
+
     // Commit the transaction
     await transaction.commit();
 
+    // respond with success message
     const updatedStudent = await Student.findOne({where: { student_id: req.params.id, school_admin_id },include:{model: Info, as:'Info'}})
+
     res.status(201).json({
       status: 'success',
       message: 'Update student anf their info successfully',
