@@ -1,6 +1,3 @@
-// Database Model
-const { User } = require('../models');
-
 // AWS S3
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 
@@ -68,24 +65,4 @@ exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
   req.file.location = `https://${uploadParams.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${uploadParams.Key}`;
 
   next();
-});
-
-// Example usage in the route handler with Sequelize
-exports.updateUserProfile = catchAsync(async (req, res, next) => {
-  // Now use req.file.location (S3 URL) to save to the user profile in the database using Sequelize
-  const updatedUser = await User.update(
-    { photo: req.file.location }, // Update the user's photo with the S3 image URL
-    { where: { id: req.user.user_id }, returning: true } // Ensure the update targets the right user and return the updated record
-  );
-
-  if (!updatedUser[0]) {
-    return next(new AppError('No user found with that ID', 404));
-  }
-
-  res.status(200).json({
-    status: 'success',
-    data: {
-      user: updatedUser[1][0], // Return the updated user
-    },
-  });
 });
