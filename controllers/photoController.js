@@ -43,7 +43,7 @@ exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
   if (!req.file) return next();
 
   // Create a custom filename for the image
-  req.file.filename = `user-${req.user.id}-${Date.now()}.jpeg`;
+  req.file.filename = `user-${req.user.user_id}-${Date.now()}.jpeg`;
 
   // Resize image in memory
   const resizedImageBuffer = await sharp(req.file.buffer)
