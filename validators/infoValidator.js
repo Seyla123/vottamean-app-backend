@@ -43,6 +43,13 @@ module.exports = {
     return true;
   },
 
+  isValidAddress: (value) => {
+    if (!validator.isLength(value, { max: 225 })) {
+      throw new Error('Address cannot be longer than 225 characters');
+    }
+    return true;
+  },
+
   // Validator for Date of Birth (DOB) field
   isValidDOB: (value) => {
     // Check if the value is empty
