@@ -37,8 +37,9 @@ module.exports = (sequelize, DataTypes) => {
     // SchoolAdmin has many Class
     SchoolAdmin.hasMany(models.Class, {
       foreignKey: 'school_admin_id',
-      as: 'Classes'
+      as: 'Classes',
     });
+
     // SchoolAdmin has many Teachers
     SchoolAdmin.hasMany(models.Teacher, {
       foreignKey: 'school_admin_id',
