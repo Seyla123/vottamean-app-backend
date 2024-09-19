@@ -40,7 +40,6 @@ router.patch(
   userController.getMe,
   photoController.uploadUserPhoto,
   photoController.resizeUserPhoto,
-  photoController.updateUserProfile,
   userController.updateMe
 );
 

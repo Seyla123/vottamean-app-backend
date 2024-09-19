@@ -4,6 +4,7 @@ const express = require('express');
 // Authentication and User Controller
 const authController = require('../controllers/authController');
 const userController = require('../controllers/userController');
+const photoController = require('../controllers/photoController');
 
 // Define Express Router
 const router = express.Router();
@@ -11,8 +12,23 @@ const router = express.Router();
 // Protect all route after this middleware
 router.use(authController.protect);
 
+// Require email verification for the following route
+router.use(authController.requireEmailVerification);
+
 // Restrict all routes to admin
-router.use(authController.restrictTo('admin'));
+router.use(authController.restrictTo('admin', 'teacher'));
+
+// Get current user
+router.get('/me', userController.getMe, userController.getUser);
+
+// Update current user details
+router.patch(
+  '/update-me',
+  userController.getMe,
+  photoController.uploadUserPhoto,
+  photoController.resizeUserPhoto,
+  userController.updateMe
+);
 
 // User management routes
 router.route('/').get(userController.getAllUsers);
