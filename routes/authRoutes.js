@@ -6,7 +6,7 @@ const userController = require('../controllers/userController');
 const authController = require('../controllers/authController');
 
 // File upload and resizing Controller
-const fileController = require('../controllers/fileController');
+const photoController = require('../controllers/photoController');
 
 // Define Express Router
 const router = express.Router();
@@ -38,8 +38,9 @@ router.post('/logout', authController.logout);
 router.patch(
   '/update-me',
   userController.getMe,
-  fileController.uploadUserPhoto,
-  fileController.resizeUserPhoto,
+  photoController.uploadUserPhoto,
+  photoController.resizeUserPhoto,
+  photoController.updateUserProfile,
   userController.updateMe
 );
 
