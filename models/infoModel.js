@@ -32,9 +32,7 @@ module.exports = (sequelize, DataTypes) => {
       photo: {
         type: DataTypes.STRING,
         defaultValue: 'default.jpg',
-        validate: {
-          isUrl: { msg: 'Photo must be a valid URL' },
-        },
+        validate: infoValidator.isValidPhoto,
       },
       phone_number: {
         type: DataTypes.STRING,

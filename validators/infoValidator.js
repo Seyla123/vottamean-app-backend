@@ -129,6 +129,15 @@ module.exports = {
     return true;
   },
 
+  // Validator for photo field
+  isValidPhoto: (value) => {
+    const defaultPhoto = 'default.jpg';
+    if (value !== defaultPhoto && !validator.isURL(value)) {
+      throw new Error('Photo must be a valid URL or the default image');
+    }
+    return true;
+  },
+
   // Generic date validation
   isValidDate: (value) => {
     if (!validator.isDate(value)) {
