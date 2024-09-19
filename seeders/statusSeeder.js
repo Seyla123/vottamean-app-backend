@@ -5,7 +5,7 @@ const insertStatuses = async () => {
     { status: 'present', active: true },
     { status: 'late', active: true },
     { status: 'absent', active: true },
-    { status: 'absent_with_permission', active: true },
+    { status: 'permission', active: true },
   ];
 
   for (const statusObj of statuses) {

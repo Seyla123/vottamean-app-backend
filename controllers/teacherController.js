@@ -56,6 +56,7 @@ exports.deleteTeacher = factory.deleteOne(Teacher, 'teacher_id');
 // SIGNUP FUNCTION FOR TEACHERS
 // ----------------------------
 exports.signupTeacher = catchAsync(async (req, res, next) => {
+  const school_admin_id = req.school_admin_id;
   // 1. Extract necessary fields from the request body.
   const {
     email,
@@ -67,7 +68,6 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     last_name,
     gender,
     phone_number,
-    school_admin_id,
   } = req.body;
 
   // 2. Validate input fields using custom validators
@@ -116,7 +116,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
   // const verificationUrl = `${req.protocol}://${req.get(
   //   'host'
   // )}/api/v1/teachers/verify-email/teacher/${verificationToken}?token=${tempToken}`;
-  const verificationUrl = `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}`;
+  const verificationUrl = `http://localhost:5173/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
 
   try {
     await sendVerificationEmail(email, verificationUrl);
@@ -165,11 +165,6 @@ exports.verifyTeacherEmail = catchAsync(async (req, res, next) => {
       phone_number,
       school_admin_id,
     } = decoded;
-
-    // Validate the necessary fields are present
-    if (!email || !password || !first_name || !last_name || !school_admin_id) {
-      return next(new AppError('Missing required user information.', 400));
-    }
 
     const transaction = await sequelize.transaction();
 
