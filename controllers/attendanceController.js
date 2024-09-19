@@ -98,7 +98,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
 
   // filter allow fields
   const allowedFields = [
-    'date',
+    'filter',
     'student_id',
     'session_id',
     'status_id',
