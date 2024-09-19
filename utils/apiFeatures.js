@@ -1,11 +1,40 @@
 const { Sequelize, Op } = require('sequelize');
 const AppError = require('../utils/appError');
+const dayjs = require('dayjs');
 class APIFeatures {
   constructor(query, queryString) {
     this.query = query;
     this.queryString = queryString;
     this.options = {};
   }
+  static getDateFilters(dateRange) {
+    const now = dayjs();
+    
+    switch (dateRange) {
+        case 'today':
+            return {
+                [Op.gte]: now.startOf('day').toDate(),
+                [Op.lt]: now.endOf('day').toDate(),
+            };
+        case 'lastWeek':
+            return {
+                [Op.gte]: now.subtract(7, 'day').startOf('day').toDate(),
+                [Op.lt]: now.startOf('day').toDate(),
+            };
+        case 'lastMonth':
+            return {
+                [Op.gte]: now.subtract(1, 'month').startOf('month').toDate(),
+                [Op.lt]: now.startOf('month').toDate(),
+            };
+        case 'lastYear':
+            return {
+                [Op.gte]: now.subtract(1, 'year').startOf('year').toDate(),
+                [Op.lt]: now.startOf('year').toDate(),
+            };
+        default:
+            return null;
+    }
+}
 
   filter() {
     const queryObj = { ...this.queryString };
@@ -17,7 +46,13 @@ class APIFeatures {
       if (/\b(gte|gt|lte|lt)\b/.test(key)) {
         const [field, operator] = key.split('_');
         filters[field] = { [Op[operator]]: queryObj[key] };
-      } else {
+      }if (key === "filter") {
+        const dateRange = queryObj[key];
+        if(APIFeatures.getDateFilters(dateRange)!== null){
+          filters.created_at = APIFeatures.getDateFilters(dateRange);
+        }
+    }
+      else {
         filters[key] = queryObj[key];
       }
     });
@@ -25,7 +60,6 @@ class APIFeatures {
     this.options.where = filters;
     return this;
   }
-
   sort() {
     if (this.queryString.sort) {
       const sortBy = this.queryString.sort
