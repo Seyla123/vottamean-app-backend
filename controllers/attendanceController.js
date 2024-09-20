@@ -233,3 +233,53 @@ exports.updateAttendance = catchAsync(async (req, res, next) => {
   // Use factory to update attendance
   factory.updateOne(Attendance, 'attendance_id')(req, res, next);
 });
+
+exports.getAttendance = catchAsync(async (req, res, next) => {
+  const id = req.params.id;
+  const school_admin_id = req.school_admin_id;
+  // Check if the attendance record exists
+  await checkAttendanceExists(id, school_admin_id);
+  // Use factory to get attendance
+  const associations = [
+    {
+      model: Student,
+      as: 'Student',
+      where: { school_admin_id },
+      include: [
+        {
+          model: Info,
+          as: 'Info',
+        }]
+    },
+    {
+      model: Status,
+      as: 'Status',
+    },
+    {
+      model: Session,
+      as: 'Sessions',
+      required: true,
+      include: [
+        {
+          model: DayOfWeek,
+          as: 'DayOfWeek'
+        },
+        {
+          model: Period,
+          as: 'Period',
+        },
+        {
+          model: Subject,
+          as: 'Subject',
+          required: true,
+        },
+        {
+          model: Teacher,
+          as: 'Teacher',
+          required: true,
+        }
+      ],
+    },
+  ]
+  factory.getOne(Attendance, 'attendance_id',associations)(req, res, next);
+});
