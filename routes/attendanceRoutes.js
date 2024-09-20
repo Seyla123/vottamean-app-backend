@@ -19,8 +19,8 @@ router
 router
   .route('/:id')
   .put(authController.restrictTo('admin'), attendanceController.updateAttendance)
-  .delete(authController.restrictTo('admin'), attendanceController.deleteAttendance);
-
+  .delete(authController.restrictTo('admin'), attendanceController.deleteAttendance)
+  .get(authController.restrictTo('admin'), attendanceController.getAttendance);
 // Restrict routes to teacher only
 router.use(authController.restrictTo('teacher'));
 router.post('/', attendanceController.createAttendance);
