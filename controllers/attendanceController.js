@@ -57,12 +57,8 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
           model: Class,
           as: 'Class',
           attributes: ['class_id', 'class_name'],
-        },
-        {
-          model: SchoolAdmin,
-          as: 'SchoolAdmin',
-          where: { school_admin_id },
-        },
+        }
+       
       ],
     },
     {
@@ -91,6 +87,12 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
           where: subject_id && { subject_id },
           attributes: ['subject_id', 'name'],
           required: !!subject_id,
+        },
+        {
+          model: SchoolAdmin,
+          as: 'SchoolAdmin',
+          where: { school_admin_id },
+          required: !!school_admin_id
         },
       ],
     },
