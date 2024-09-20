@@ -23,45 +23,6 @@ exports.getMe = catchAsync(async (req, res, next) => {
   next(); // Proceed to the next middleware or route handler
 });
 
-// Update current user details (excluding password)
-exports.updateMe = catchAsync(async (req, res, next) => {
-  // 1) Create error if user POSTs password data
-  if (req.body.password || req.body.passwordConfirm) {
-    return next(
-      new AppError(
-        'This route is not for password updates. Please use /change-password.',
-        400
-      )
-    );
-  }
-
-  // 2) Filter out unwanted fields names that are not allowed to be updated
-  const filteredBody = filterObj(req.body, 'name', 'email');
-
-  // 3) Handle photo upload if it exists
-  if (req.file && req.file.location) {
-    filteredBody.photo = req.file.location;
-  }
-
-  // 4) Update user record
-  const [numAffectedRows, updatedUser] = await User.update(filteredBody, {
-    where: { user_id: req.user.id },
-    returning: true,
-    plain: true,
-  });
-
-  if (numAffectedRows === 0) {
-    return next(new AppError('No user found with that ID', 404));
-  }
-
-  res.status(200).json({
-    status: 'success',
-    data: {
-      user: updatedUser,
-    },
-  });
-});
-
 // Get one User
 exports.getUser = catchAsync(async (req, res, next) => {
   // Fetch user with related profiles and school data
@@ -130,8 +91,25 @@ exports.getAllUsers = factory.getAll(User, {}, [
   },
 ]);
 
+// Update current user details (excluding password)
+exports.updateMe = catchAsync(async (req, res, next) => {
+  // // Handle photo upload
+  // if (req.file && req.file.location) {
+  //   filteredBody.photo = req.file.location;
+  // }
+  const user = await Admin.findOne({ where: { user_id: req.user.user_id } });
+  if (!user) {
+    return new AppError('No user found with that ID', 404);
+  }
+  req.params.id = user.info_id;
+  factory.updateOne(Info, 'info_id')(req, res, next);
+});
+
 // Update user details (excluding password)
 exports.updateUser = factory.updateOne(User, 'user_id');
 
 // Delete user
 exports.deleteUser = factory.deleteOne(User, 'user_id');
+
+// Restore user
+exports.restoreUser = factory.restoreOne(User, 'user_id');

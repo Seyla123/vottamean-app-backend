@@ -172,28 +172,29 @@ exports.deleteOne = (Model, idField) =>
     });
   });
 
-/**
- * Middleware for deleting a class record.
- * Responds with a success message or an error if not found.
- *
- * @returns {Function} Middleware function for class deletion.
- */
-exports.deleteClass = catchAsync(async (req, res, next) => {
-  try {
-    const classToDelete = await Class.findByPk(req.params.id);
+// Restore Data
+exports.restoreOne = (Model, idField) =>
+  catchAsync(async (req, res, next) => {
+    console.log(
+      `Attempting to restore record with ${idField}: ${req.params.id}`
+    );
 
-    if (!classToDelete) {
-      return next(new AppError('No class found with that ID', 404));
+    // Update the active field to true instead of deleting the record
+    const doc = await Model.update(
+      { active: true }, // Set active to true
+      { where: { [idField]: req.params.id } }
+    );
+
+    // Check if the document exists and was updated
+    if (doc[0] === 0) {
+      console.error(`No document found with ${idField}: ${req.params.id}`);
+      return next(new AppError(`No document found with that ${idField}`, 404));
     }
-    await classToDelete.destroy();
+
+    // Respond with a success message
     res.status(200).json({
       status: 'success',
-      data: {
-        message: 'Class deleted successfully',
-      },
+      message: `Record with ${idField},
+        ${req.params.id} successfully marked as active`,
     });
-  } catch (error) {
-    console.error('Error deleting class:', error);
-    return next(new AppError('Failed to delete class', 400));
-  }
-});
+  });

@@ -25,10 +25,13 @@ router.get('/me', userController.getMe, userController.getUser);
 router.patch(
   '/update-me',
   userController.getMe,
-  photoController.uploadUserPhoto,
-  photoController.resizeUserPhoto,
   userController.updateMe
+  // photoController.uploadUserPhoto,
+  // photoController.resizeUserPhoto
 );
+
+// Restore user
+router.post('/restore-user/:id', userController.restoreUser);
 
 // User management routes
 router.route('/').get(userController.getAllUsers);
