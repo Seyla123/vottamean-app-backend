@@ -13,7 +13,6 @@ const {
   Teacher,
 } = require('../models');
 // utils
-const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const { filterObj } = require('../utils/filterObj');
 const factory = require('./handlerFactory');
@@ -123,44 +122,12 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
   factory.createOne(Attendance)(req, res, next);
 });
 
-// check attendance exists and belongs to the school admin ?
-const checkAttendanceExists = async (id, school_admin_id) => {
-  const attendance = await Attendance.findOne({
-    where: { attendance_id: id },
-    include: {
-      model: Student,
-      as: 'Student',
-      where: { school_admin_id },
-    },
-  });
-
-  if (!attendance) {
-    throw new AppError(
-      'No attendance record found or you do not have permission for this record',
-      404
-    );
-  }
-
-  return attendance;
-};
-
 exports.deleteAttendance = catchAsync(async (req, res, next) => {
-  const id = req.params.id;
-  const school_admin_id = req.school_admin_id;
-  // Check if the attendance record exists
-  await checkAttendanceExists(id, school_admin_id);
-
   // Use factory to delete attendance
   factory.deleteOne(Attendance, 'attendance_id')(req, res, next);
 });
 
 exports.updateAttendance = catchAsync(async (req, res, next) => {
-  const id = req.params.id;
-  const school_admin_id = req.school_admin_id;
-
-  // Check if the attendance record exists
-  await checkAttendanceExists(id, school_admin_id);
-
   // Filter out only allowed fields from req.body
   req.body = filterObj(req.body, 'status_id');
 
@@ -169,10 +136,6 @@ exports.updateAttendance = catchAsync(async (req, res, next) => {
 });
 
 exports.getAttendance = catchAsync(async (req, res, next) => {
-  const id = req.params.id;
-  const school_admin_id = req.school_admin_id;
-  // Check if the attendance record exists
-  await checkAttendanceExists(id, school_admin_id);
   // Use factory to get attendance
   const associations = [
     {

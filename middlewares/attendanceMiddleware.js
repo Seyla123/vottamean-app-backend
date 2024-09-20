@@ -4,7 +4,7 @@ const AppError = require('../utils/appError');
 const { isBelongsToAdmin } = require('../utils/helper');
 
 // Check if attendance already exists for the same student, session, and date
-exports.isAttendanceExists = async (req, res, next) => {
+exports.isAttendanceMarked = async (req, res, next) => {
   const { student_id, session_id } = req.body;
   const today = new Date().toISOString().split('T')[0]; // Format date to YYYY-MM-DD
 
@@ -19,6 +19,25 @@ exports.isAttendanceExists = async (req, res, next) => {
   next();
 };
 
+// check attendance exists and belongs to the school admin ?
+exports.checkAttendanceExists = async (req, res, next) => {
+    const id = req.params.id;
+    const school_admin_id = req.school_admin_id;
+    const attendance = await Attendance.findOne({
+      where: { attendance_id: id },
+      include: {
+        model: Student,
+        as: 'Student',
+        where: { school_admin_id },
+      },
+    });
+  
+    if (!attendance) {
+      return next(new AppError('No attendance record found!', 404));
+    }
+  
+    return next();
+  };
 // Verify if the session belongs to the teacher
 exports.verifySessionBelongsToTeacher = async (req, res, next) => {
   const { session_id } = req.body;
