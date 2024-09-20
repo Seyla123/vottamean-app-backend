@@ -13,13 +13,11 @@ const {
   Teacher,
 } = require('../models');
 // utils
-const APIFeatures = require('../utils/apiFeatures');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const { filterObj } = require('../utils/filterObj');
 const factory = require('./handlerFactory');
 const { Op } = require('sequelize');
-const { isBelongsToAdmin } = require('../utils/helper');
 
 // Get all attendances
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
@@ -58,11 +56,6 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
           as: 'Class',
           attributes: ['class_id', 'class_name'],
         },
-        {
-          model: SchoolAdmin,
-          as: 'SchoolAdmin',
-          where: { school_admin_id },
-        },
       ],
     },
     {
@@ -92,6 +85,12 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
           attributes: ['subject_id', 'name'],
           required: !!subject_id,
         },
+        {
+          model: SchoolAdmin,
+          as: 'SchoolAdmin',
+          where: { school_admin_id },
+          required: !!school_admin_id,
+        },
       ],
     },
   ];
@@ -107,35 +106,10 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
     'limit',
     'fields',
   ];
-  const filteredQuery = filterObj(req.query, ...allowedFields);
-  const features = new APIFeatures(Attendance, filteredQuery)
-    .filter()
-    .sort()
-    .limitFields()
-    .paginate()
-    .includeAssociations(associations);
+  req.query = filterObj(req.query, ...allowedFields);
 
-  try {
-    const allAttendances = await features.exec({where:{active:1}});
-    if (allAttendances.length === 0) {
-      return res.status(200).json({
-        status: 'success',
-        results: 0,
-        data: [],
-        message: 'No attendance records found for the given criteria',
-      });
-    }
-
-    res.status(200).json({
-      status: 'success',
-      results: allAttendances.length,
-      data: allAttendances,
-    });
-  } catch (error) {
-    return next(new AppError(`Invalid Query: ${error.message}`, 400));
-  }
+  factory.getAll(Attendance, {}, associations, [])(req, res, next); 
 });
-
 //Creates attendance for a student in a specific session.
 exports.createAttendance = catchAsync(async (req, res, next) => {
   // Get today's date for attendance record
@@ -144,46 +118,6 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
   // filter fields
   req.body = filterObj(req.body, 'student_id', 'session_id', 'status_id');
   req.body.date = today;
-
-  const { student_id, session_id } = req.body;
-  const teacher_id = req.teacher_id;
-
-  // Check if attendance already exists for the same date, student_id, and session_id
-  const existingAttendance = await Attendance.findOne({
-    where: { student_id, session_id, date: today },
-  });
-
-  // Verify that the session belongs to the teacher
-  await isBelongsToAdmin(
-    session_id,
-    'session_id',
-    teacher_id,
-    Session,
-    'teacher_id'
-  );
-
-  // Retrieve the student's class ID to ensure they are assigned to the correct class
-  const student = await Student.findByPk(student_id, {
-    attributes: ['class_id'],
-  });
-
-  // Handle case where the student is not found
-  if (!student) {
-    return next(new AppError('Student not found', 404));
-  }
-
-  // Verify that the session belongs to the student's class
-  await isBelongsToAdmin(session_id, 'session_id', student.class_id, Session, 'class_id', "Student");
-
-  // If attendance already exists, return an error
-  if (existingAttendance) {
-    return next(
-      new AppError(
-        'Attendance for this student, session, and date already exists',
-        400
-      )
-    );
-  }
 
   // Use factory to create attendance
   factory.createOne(Attendance)(req, res, next);
@@ -232,4 +166,55 @@ exports.updateAttendance = catchAsync(async (req, res, next) => {
 
   // Use factory to update attendance
   factory.updateOne(Attendance, 'attendance_id')(req, res, next);
+});
+
+exports.getAttendance = catchAsync(async (req, res, next) => {
+  const id = req.params.id;
+  const school_admin_id = req.school_admin_id;
+  // Check if the attendance record exists
+  await checkAttendanceExists(id, school_admin_id);
+  // Use factory to get attendance
+  const associations = [
+    {
+      model: Student,
+      as: 'Student',
+      where: { school_admin_id },
+      include: [
+        {
+          model: Info,
+          as: 'Info',
+        },
+      ],
+    },
+    {
+      model: Status,
+      as: 'Status',
+    },
+    {
+      model: Session,
+      as: 'Sessions',
+      required: true,
+      include: [
+        {
+          model: DayOfWeek,
+          as: 'DayOfWeek',
+        },
+        {
+          model: Period,
+          as: 'Period',
+        },
+        {
+          model: Subject,
+          as: 'Subject',
+          required: true,
+        },
+        {
+          model: Teacher,
+          as: 'Teacher',
+          required: true,
+        },
+      ],
+    },
+  ];
+  factory.getOne(Attendance, 'attendance_id', associations)(req, res, next);
 });
