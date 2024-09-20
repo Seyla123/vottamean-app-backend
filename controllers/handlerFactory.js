@@ -12,7 +12,14 @@ const APIFeatures = require('../utils/apiFeatures');
 // Reusable middleware functions for all routes.
 // --------------------------------------------
 
-// Create One
+/**
+ * Middleware for creating a new document in a specified model.
+ * Takes the request body to create a document and responds with the created document.
+ *
+ * @param {Model} Model - The model to create a document in.
+ * @param {Array} [popOptions=[]] - Array of options to include related models.
+ * @returns {Function} Middleware function for document creation.
+ */
 exports.createOne = (Model, popOptions = []) =>
   catchAsync(async (req, res, next) => {
     const doc = await Model.create(req.body, { include: popOptions });
@@ -25,7 +32,16 @@ exports.createOne = (Model, popOptions = []) =>
     });
   });
 
-// Get One
+/**
+ * Middleware for retrieving a single document by its ID.
+ * Responds with the document if found; otherwise, passes an error to the next middleware.
+ *
+ * @param {Model} Model - The model to find the document in.
+ * @param {string} idField - The field used to identify the document.
+ * @param {Array} [popOptions=[]] - Array of options to include related models.
+ * @param {Object} [additionalFilter={}] - Additional filters to apply.
+ * @returns {Function} Middleware function for document retrieval.
+ */
 exports.getOne = (Model, idField, popOptions = [], additionalFilter = {}) =>
   catchAsync(async (req, res, next) => {
     let options = {
@@ -45,7 +61,16 @@ exports.getOne = (Model, idField, popOptions = [], additionalFilter = {}) =>
     });
   });
 
-// Get All Need to fix more flexible
+/**
+ * Middleware for retrieving all documents with filtering and pagination.
+ * Responds with the documents found, or an error if none are found.
+ *
+ * @param {Model} Model - The model to retrieve documents from.
+ * @param {Object} [additionalFilter={}] - Additional filters to apply.
+ * @param {Array} [popOptions=[]] - Array of options to include related models.
+ * @param {Array} [search=[]] - Fields to search within.
+ * @returns {Function} Middleware function for retrieving all documents.
+ */
 exports.getAll = (Model, additionalFilter = {}, popOptions = [], search = []) =>
   catchAsync(async (req, res, next) => {
     let filter = { ...additionalFilter, active: 1 };
@@ -76,7 +101,14 @@ exports.getAll = (Model, additionalFilter = {}, popOptions = [], search = []) =>
     });
   });
 
-// Update One
+/**
+ * Middleware for updating a document by its ID.
+ * Responds with the updated document or an error if not found.
+ *
+ * @param {Model} Model - The model to update the document in.
+ * @param {string} idField - The field used to identify the document.
+ * @returns {Function} Middleware function for document update.
+ */
 exports.updateOne = (Model, idField) =>
   catchAsync(async (req, res, next) => {
     try {
@@ -107,7 +139,14 @@ exports.updateOne = (Model, idField) =>
     }
   });
 
-// Set active to false instead of deleting one record
+/**
+ * Middleware for marking a document as inactive instead of deleting it.
+ * Responds with a success message or an error if not found.
+ *
+ * @param {Model} Model - The model to mark the document in.
+ * @param {string} idField - The field used to identify the document.
+ * @returns {Function} Middleware function for marking document inactive.
+ */
 exports.deleteOne = (Model, idField) =>
   catchAsync(async (req, res, next) => {
     console.log(
@@ -133,7 +172,12 @@ exports.deleteOne = (Model, idField) =>
     });
   });
 
-// Delete a class
+/**
+ * Middleware for deleting a class record.
+ * Responds with a success message or an error if not found.
+ *
+ * @returns {Function} Middleware function for class deletion.
+ */
 exports.deleteClass = catchAsync(async (req, res, next) => {
   try {
     const classToDelete = await Class.findByPk(req.params.id);
