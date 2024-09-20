@@ -18,7 +18,6 @@ const catchAsync = require('../utils/catchAsync');
 const { filterObj } = require('../utils/filterObj');
 const factory = require('./handlerFactory');
 const { Op } = require('sequelize');
-const { isBelongsToAdmin } = require('../utils/helper');
 
 // Get all attendances
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
