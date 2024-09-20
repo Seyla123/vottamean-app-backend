@@ -34,15 +34,6 @@ router.get('/me', userController.getMe, userController.getUser);
 // Logout current user
 router.post('/logout', authController.logout);
 
-// Update current user details
-router.patch(
-  '/update-me',
-  userController.getMe,
-  photoController.uploadUserPhoto,
-  photoController.resizeUserPhoto,
-  userController.updateMe
-);
-
 // Admin route
 router.use(authController.restrictTo('admin'));
 

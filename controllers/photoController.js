@@ -38,30 +38,31 @@ exports.uploadUserPhoto = multer({
 // Resize uploaded photo
 exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
   if (!req.file) return next();
+  console.log('File received:', req.file);
 
-  // Create a custom filename for the image
   req.file.filename = `user-${req.user.user_id}-${Date.now()}.jpeg`;
 
-  // Resize image in memory
   const resizedImageBuffer = await sharp(req.file.buffer)
-    .resize(500, 500) // Resize image to 500x500 pixels
+    .resize(500, 500)
     .toFormat('jpeg')
     .jpeg({ quality: 90 })
     .toBuffer();
 
-  // Upload to AWS S3 using the v3 SDK
   const uploadParams = {
-    Bucket: process.env.AWS_S3_BUCKET_NAME, // S3 bucket name
-    Key: `users/${req.file.filename}`, // S3 object key (file path in the bucket)
-    Body: resizedImageBuffer, // File content
-    ContentType: 'image/jpeg', // MIME type
-    ACL: 'public-read', // File access permissions
+    Bucket: process.env.AWS_S3_BUCKET_NAME,
+    Key: `users/${req.file.filename}`,
+    Body: resizedImageBuffer,
+    ContentType: 'image/jpeg',
+    ACL: 'public-read',
   };
 
-  const command = new PutObjectCommand(uploadParams);
-  const data = await s3.send(command);
+  console.log('Uploading to S3 with params:', uploadParams);
 
-  // Attach the uploaded file URL to the request object (to save to the database later)
+  const command = new PutObjectCommand(uploadParams);
+  await s3.send(command);
+
+  console.log('Upload successful');
+
   req.file.location = `https://${uploadParams.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${uploadParams.Key}`;
 
   next();

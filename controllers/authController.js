@@ -461,7 +461,7 @@ exports.changePassword = catchAsync(async (req, res, next) => {
   // 1. Extract currentPassword and newPassword from the request body
   const { currentPassword, newPassword } = req.body;
 
-  // 2. Validate input fields (optional but recommended)
+  // 2. Validate input fields
   if (!currentPassword || !newPassword) {
     return next(
       new AppError('Please provide both current and new passwords.', 400)
