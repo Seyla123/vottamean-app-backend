@@ -13,7 +13,6 @@ const {
   Teacher,
 } = require('../models');
 // utils
-const APIFeatures = require('../utils/apiFeatures');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const { filterObj } = require('../utils/filterObj');
@@ -109,33 +108,15 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
     'limit',
     'fields',
   ];
-  const filteredQuery = filterObj(req.query, ...allowedFields);
-  const features = new APIFeatures(Attendance, filteredQuery)
-    .filter()
-    .sort()
-    .limitFields()
-    .paginate()
-    .includeAssociations(associations);
+  req.query = filterObj(req.query, ...allowedFields);
 
-  try {
-    const allAttendances = await features.exec({where:{active:1}});
-    if (allAttendances.length === 0) {
-      return res.status(200).json({
-        status: 'success',
-        results: 0,
-        data: [],
-        message: 'No attendance records found for the given criteria',
-      });
-    }
 
-    res.status(200).json({
-      status: 'success',
-      results: allAttendances.length,
-      data: allAttendances,
-    });
-  } catch (error) {
-    return next(new AppError(`Invalid Query: ${error.message}`, 400));
-  }
+  factory.getAll(
+    Attendance,
+    { },
+    associations,
+    []
+  )(req, res, next); // Search by class_name and class_id
 });
 
 //Creates attendance for a student in a specific session.
