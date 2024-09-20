@@ -18,16 +18,25 @@ router
 
 router
   .route('/:id')
-  .put(authController.restrictTo('admin'), attendanceController.updateAttendance)
-  .delete(authController.restrictTo('admin'), attendanceController.deleteAttendance)
-  .get(authController.restrictTo('admin'), attendanceController.getAttendance);
+  .put(
+    authController.restrictTo('admin'),
+    attendanceMiddleware.checkAttendanceExists, 
+    attendanceController.updateAttendance)
+  .delete(
+    authController.restrictTo('admin'),
+    attendanceMiddleware.checkAttendanceExists, 
+    attendanceController.deleteAttendance)
+  .get(
+    authController.restrictTo('admin'),
+    attendanceMiddleware.checkAttendanceExists, 
+    attendanceController.getAttendance);
 
 // Restrict routes to teacher only
 router.use(authController.restrictTo('teacher'));
 
 // create attendance routes
 router.post('/',
-  attendanceMiddleware.isAttendanceExists,
+  attendanceMiddleware.isAttendanceMarked,
   attendanceMiddleware.verifySessionBelongsToTeacher,
   attendanceMiddleware.verifySessionBelongsToClass,
   attendanceController.createAttendance);
