@@ -3,7 +3,7 @@ const express = require('express');
 // Controllers
 const attendanceController = require('../controllers/attendanceController');
 const authController = require('../controllers/authController');
-const userController = require('../controllers/userController');
+const attendanceMiddleware = require('../middlewares/attendanceMiddleware');
 
 // Define Express Router
 const router = express.Router();
@@ -21,8 +21,15 @@ router
   .put(authController.restrictTo('admin'), attendanceController.updateAttendance)
   .delete(authController.restrictTo('admin'), attendanceController.deleteAttendance)
   .get(authController.restrictTo('admin'), attendanceController.getAttendance);
+
 // Restrict routes to teacher only
 router.use(authController.restrictTo('teacher'));
-router.post('/', attendanceController.createAttendance);
+
+// create attendance routes
+router.post('/',
+  attendanceMiddleware.isAttendanceExists,
+  attendanceMiddleware.verifySessionBelongsToTeacher,
+  attendanceMiddleware.verifySessionBelongsToClass,
+  attendanceController.createAttendance);
 
 module.exports = router;

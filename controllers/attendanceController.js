@@ -56,8 +56,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
           model: Class,
           as: 'Class',
           attributes: ['class_id', 'class_name'],
-        }
-       
+        },
       ],
     },
     {
@@ -91,7 +90,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
           model: SchoolAdmin,
           as: 'SchoolAdmin',
           where: { school_admin_id },
-          required: !!school_admin_id
+          required: !!school_admin_id,
         },
       ],
     },
@@ -110,15 +109,8 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
   ];
   req.query = filterObj(req.query, ...allowedFields);
 
-
-  factory.getAll(
-    Attendance,
-    { },
-    associations,
-    []
-  )(req, res, next); // Search by class_name and class_id
+  factory.getAll(Attendance, {}, associations, [])(req, res, next); 
 });
-
 //Creates attendance for a student in a specific session.
 exports.createAttendance = catchAsync(async (req, res, next) => {
   // Get today's date for attendance record
@@ -127,46 +119,6 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
   // filter fields
   req.body = filterObj(req.body, 'student_id', 'session_id', 'status_id');
   req.body.date = today;
-
-  const { student_id, session_id } = req.body;
-  const teacher_id = req.teacher_id;
-
-  // Check if attendance already exists for the same date, student_id, and session_id
-  const existingAttendance = await Attendance.findOne({
-    where: { student_id, session_id, date: today },
-  });
-
-  // Verify that the session belongs to the teacher
-  await isBelongsToAdmin(
-    session_id,
-    'session_id',
-    teacher_id,
-    Session,
-    'teacher_id'
-  );
-
-  // Retrieve the student's class ID to ensure they are assigned to the correct class
-  const student = await Student.findByPk(student_id, {
-    attributes: ['class_id'],
-  });
-
-  // Handle case where the student is not found
-  if (!student) {
-    return next(new AppError('Student not found', 404));
-  }
-
-  // Verify that the session belongs to the student's class
-  await isBelongsToAdmin(session_id, 'session_id', student.class_id, Session, 'class_id', "Student");
-
-  // If attendance already exists, return an error
-  if (existingAttendance) {
-    return next(
-      new AppError(
-        'Attendance for this student, session, and date already exists',
-        400
-      )
-    );
-  }
 
   // Use factory to create attendance
   factory.createOne(Attendance)(req, res, next);
@@ -232,7 +184,8 @@ exports.getAttendance = catchAsync(async (req, res, next) => {
         {
           model: Info,
           as: 'Info',
-        }]
+        },
+      ],
     },
     {
       model: Status,
@@ -245,7 +198,7 @@ exports.getAttendance = catchAsync(async (req, res, next) => {
       include: [
         {
           model: DayOfWeek,
-          as: 'DayOfWeek'
+          as: 'DayOfWeek',
         },
         {
           model: Period,
@@ -260,9 +213,9 @@ exports.getAttendance = catchAsync(async (req, res, next) => {
           model: Teacher,
           as: 'Teacher',
           required: true,
-        }
+        },
       ],
     },
-  ]
-  factory.getOne(Attendance, 'attendance_id',associations)(req, res, next);
+  ];
+  factory.getOne(Attendance, 'attendance_id', associations)(req, res, next);
 });
