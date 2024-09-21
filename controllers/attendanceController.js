@@ -11,6 +11,7 @@ const {
   Period,
   Subject,
   Teacher,
+  User
 } = require('../models');
 // utils
 const catchAsync = require('../utils/catchAsync');
@@ -141,7 +142,7 @@ exports.getAttendance = catchAsync(async (req, res, next) => {
     {
       model: Student,
       as: 'Student',
-      where: { school_admin_id },
+      where: { school_admin_id: req.school_admin_id },
       include: [
         {
           model: Info,
@@ -175,6 +176,16 @@ exports.getAttendance = catchAsync(async (req, res, next) => {
           model: Teacher,
           as: 'Teacher',
           required: true,
+          include: [
+            {
+              model: Info,
+              as: 'Info',
+            },
+            {
+              model: User,
+              as: 'User',
+            }
+          ]
         },
       ],
     },
