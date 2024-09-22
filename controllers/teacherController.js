@@ -1,7 +1,7 @@
 // Encryption Library
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-
+const {Op} = require('sequelize')
 // Database Models
 const { Teacher, Info, sequelize, User } = require('../models');
 
@@ -39,12 +39,31 @@ exports.getTeacher = factory.getOne(Teacher, 'teacher_id', [
 ]);
 
 // Get all teachers
-exports.getAllTeachers = factory.getAll(Teacher, {}, [
+exports.getAllTeachers = catchAsync(async (req, res, next) => {
+  const search = req.query.search;
+  const associated = [{
+    model: User,
+    as: 'User',
+  },
   {
     model: Info,
     as: 'Info',
-  },
-]);
+    where: search && {
+      [Op.or]: [
+        { first_name: { [Op.like]: `%${search}%` } },
+        { last_name: { [Op.like]: `%${search}%` } },
+      ],
+    },
+  }
+]
+
+  factory.getAll(
+    Teacher,
+    { school_admin_id: req.school_admin_id },
+    associated,
+    []
+  )(req, res, next); 
+});
 
 // Update teacher
 exports.updateTeacher = factory.updateOne(Teacher, 'teacher_id');
