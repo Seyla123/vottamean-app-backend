@@ -160,6 +160,10 @@ exports.getAttendance = catchAsync(async (req, res, next) => {
       required: true,
       include: [
         {
+          model:Class,
+          as:'Class'
+        },
+        {
           model: DayOfWeek,
           as: 'DayOfWeek',
         },
