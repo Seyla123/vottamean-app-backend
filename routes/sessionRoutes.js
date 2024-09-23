@@ -9,10 +9,11 @@ const router = express.Router();
 
 router.use(authController.protect);
 
-router.get('/sessions',authController.restrictTo('teacher'), sessionController.getAllTeacherSessions);
+//router.get('/', sessionController.getAllTeacherSessions);
 
 // Restrict all routes to admin only
 router.use(authController.restrictTo('admin'));
+
 // Route to create a new session
 router
   .route('/')
@@ -24,5 +25,5 @@ router
   .get(sessionController.getSession)
   .patch(sessionController.updateSession)
   .delete(sessionController.deleteSession);
-  
+
 module.exports = router;

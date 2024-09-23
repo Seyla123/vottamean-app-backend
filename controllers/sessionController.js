@@ -1,5 +1,13 @@
 // Database models
-const { Session, Class, Period, Teacher, Subject, Info } = require('../models');
+const {
+  Session,
+  Class,
+  Period,
+  Teacher,
+  Subject,
+  Info,
+  DayOfWeek,
+} = require('../models');
 
 // Error handler
 const catchAsync = require('../utils/catchAsync');
@@ -72,12 +80,13 @@ exports.getAllSessions = catchAsync(async (req, res, next) => {
       school_admin_id: req.school_admin_id,
     },
     [
+      { model: DayOfWeek, as: 'DayOfWeek' },
       { model: Class, as: 'Class' },
       { model: Period, as: 'Period' },
       { model: Teacher, as: 'Teacher', include: [{ model: Info, as: 'Info' }] },
       { model: Subject, as: 'Subject' },
     ],
-    ['Class.class_name']
+    ['']
   )(req, res, next);
 });
 
@@ -87,6 +96,7 @@ exports.getSession = catchAsync(async (req, res, next) => {
     Session,
     'session_id',
     [
+      { model: DayOfWeek, as: 'DayOfWeek' },
       { model: Class, as: 'Class' },
       { model: Period, as: 'Period' },
       { model: Teacher, as: 'Teacher', include: [{ model: Info, as: 'Info' }] },
@@ -99,9 +109,21 @@ exports.getSession = catchAsync(async (req, res, next) => {
 // update session
 exports.updateSession = catchAsync(async (req, res, next) => {
   // check if session belongs to the school
-  await isBelongsToAdmin(req.params.id, 'session_id', req.school_admin_id, Session);
+  await isBelongsToAdmin(
+    req.params.id,
+    'session_id',
+    req.school_admin_id,
+    Session
+  );
   //  filter the request body to only include 'class_id', 'subject_id','day_id','period_id','teacher_id'
-  req.body = filterObj(req.body, 'class_id', 'subject_id', 'day_id', 'period_id', 'teacher_id');
+  req.body = filterObj(
+    req.body,
+    'class_id',
+    'subject_id',
+    'day_id',
+    'period_id',
+    'teacher_id'
+  );
   // update session
   factory.updateOne(Session, 'session_id')(req, res, next);
 });
@@ -109,12 +131,17 @@ exports.updateSession = catchAsync(async (req, res, next) => {
 // delete session
 exports.deleteSession = catchAsync(async (req, res, next) => {
   // check if session belongs to the school
-  await isBelongsToAdmin(req.params.id, 'session_id', req.school_admin_id, Session);
+  await isBelongsToAdmin(
+    req.params.id,
+    'session_id',
+    req.school_admin_id,
+    Session
+  );
   // delete session
   factory.deleteOne(Session, 'session_id')(req, res, next);
 });
 
-// teacher site 
+// teacher site
 // get all teacher session
 exports.getAllTeacherSessions = catchAsync(async (req, res, next) => {
   factory.getAll(
