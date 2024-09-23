@@ -9,8 +9,6 @@ const router = express.Router();
 
 router.use(authController.protect);
 
-//router.get('/', sessionController.getAllTeacherSessions);
-
 // Restrict all routes to admin only
 router.use(authController.restrictTo('admin'));
 

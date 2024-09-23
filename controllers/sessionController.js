@@ -20,6 +20,11 @@ const factory = require('./handlerFactory');
 const { filterObj } = require('../utils/filterObj');
 const { isBelongsToAdmin } = require('../utils/helper');
 
+// day js 
+const dayjs = require('dayjs');
+const isoWeek = require('dayjs/plugin/isoWeek');
+dayjs.extend(isoWeek);;
+
 // create session
 exports.createSession = catchAsync(async (req, res, next) => {
   // check if session already exists in the school
@@ -144,15 +149,20 @@ exports.deleteSession = catchAsync(async (req, res, next) => {
 // teacher site
 // get all teacher session
 exports.getAllTeacherSessions = catchAsync(async (req, res, next) => {
+  const filter = req.query.filter;
+  // Get current day of the week (Monday = 1, Tuesday = 2, ..., Sunday = 7)
+  const currentDay = dayjs().isoWeekday();
+  // get all sessions for the teacher in the all day or today (if filter is 'today')
   factory.getAll(
     Session,
     {
       teacher_id: req.teacher_id,
       active: true,
+      ...(filter === 'today' && { day_id: currentDay }),
     },
     [
       { model: Class, as: 'Class' },
-      { model: Period, as: 'Period' },
+      { model: Period, as: 'Period'},
       { model: Subject, as: 'Subject' },
     ],
     ['Class.class_name']
