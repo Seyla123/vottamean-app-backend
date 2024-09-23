@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const {Op} = require('sequelize')
 // Database Models
 const { Teacher, Info, sequelize, User } = require('../models');
-
+const { isBelongsToAdmin } = require('../utils/helper');
 // Validators
 const {
   isValidEmail,
@@ -29,6 +29,7 @@ const AppError = require('../utils/appError');
 
 // Factory Handler
 const factory = require('./handlerFactory');
+const { filterObj } = require('../utils/filterObj');
 
 // Get one teacher
 exports.getTeacher = factory.getOne(Teacher, 'teacher_id', [
@@ -66,8 +67,26 @@ exports.getAllTeachers = catchAsync(async (req, res, next) => {
 });
 
 // Update teacher
-exports.updateTeacher = factory.updateOne(Teacher, 'teacher_id');
+exports.updateTeacher = catchAsync(async (req, res, next) => {
+await isBelongsToAdmin(req.params.id, 'teacher_id', req.school_admin_id, Teacher);
+  // 1. find  info id in teacher
+const teacher = await Teacher.findByPk(req.params.id)
+if(!teacher){
+  return next(new AppError('Teacher not found', 404));
+}
+console.log('teacher : ', teacher);
+ // 2. Update the teacher's info.
+  const info = await Info.findByPk(teacher.info_id);
+  console.log('this info :', info);
+  req.body = filterObj(req.body,"first_name","last_name", "gender", "phone_number", "dob", "address");
+  req.params.id = info.info_id;
+  console.log('this is param id now :', req.params.id);
+  await Info.update(req.body, {
+    where: { info_id: teacher.info_id },
+  });
 
+  res.status(200).json(info);
+});
 // Delete teacher
 exports.deleteTeacher = factory.deleteOne(Teacher, 'teacher_id');
 
