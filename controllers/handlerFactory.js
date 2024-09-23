@@ -114,12 +114,9 @@ exports.updateOne = (Model, idField) =>
     try {
       const { id } = req.params;
       const updates = req.body;
-      console.log('params : ', id);
-      console.log('boday update : ', updates);
-      
-      
+
       // Update the record
-      const [affectedRows] = await Model.update(req.body, {
+      const [affectedRows] = await Model.update(updates, {
         where: { [idField]: id },
       });
 
