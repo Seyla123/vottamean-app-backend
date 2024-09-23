@@ -105,6 +105,67 @@ exports.updateMe = catchAsync(async (req, res, next) => {
   factory.updateOne(Info, 'info_id')(req, res, next);
 });
 
+// exports.updateMe = catchAsync(async (req, res, next) => {
+//   const filteredBody = filterObj(
+//     req.body,
+//     'first_name',
+//     'last_name',
+//     'dob',
+//     'gender',
+//     'phone_number',
+//     'address'
+//   );
+
+//   // Find the user based on the logged-in user ID
+//   const user = await User.findOne({
+//     where: { user_id: req.user.user_id },
+//     include: [
+//       {
+//         model: Admin,
+//         as: 'AdminProfile',
+//         include: [{ model: Info, as: 'Info' }],
+//       },
+//       {
+//         model: Teacher,
+//         as: 'TeacherProfile',
+//         include: [{ model: Info, as: 'Info' }],
+//       },
+//     ],
+//   });
+
+//   if (!user) {
+//     return next(new AppError('No user found with that ID', 404));
+//   }
+
+//   // Update the `Info` table data (for both Admin and Teacher profiles)
+//   let updatedInfo;
+//   if (user.AdminProfile) {
+//     updatedInfo = await Info.update(filteredBody, {
+//       where: { info_id: user.AdminProfile.info_id },
+//     });
+//   } else if (user.TeacherProfile) {
+//     updatedInfo = await Info.update(filteredBody, {
+//       where: { info_id: user.TeacherProfile.info_id },
+//     });
+//   }
+
+//   // If you need to update the `User` model (email, etc.), you can update it here
+//   if (req.body.email) {
+//     await User.update(
+//       { email: req.body.email },
+//       { where: { user_id: req.user.user_id } }
+//     );
+//   }
+
+//   res.status(200).json({
+//     status: 'success',
+//     data: {
+//       user,
+//       updatedInfo,
+//     },
+//   });
+// });
+
 exports.deleteMe = catchAsync(async (req, res, next) => {
   // Get the currently logged-in user ID from the token
   const user_id = req.user.user_id;
