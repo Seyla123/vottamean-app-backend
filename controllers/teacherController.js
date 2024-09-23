@@ -85,7 +85,11 @@ console.log('teacher : ', teacher);
     where: { info_id: teacher.info_id },
   });
 
-  res.status(200).json(info);
+  res.status(200).json({
+    status:'success',
+    message: 'Teacher info updated successfully',
+    data: info
+  });
 });
 // Delete teacher
 exports.deleteTeacher = factory.deleteOne(Teacher, 'teacher_id');
