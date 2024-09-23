@@ -179,13 +179,23 @@ exports.restoreOne = (Model, idField) =>
       `Attempting to restore record with ${idField}: ${req.params.id}`
     );
 
-    // Update the active field to true instead of deleting the record
+    // Check if the user exists, even if inactive
+    const user = await Model.findOne({
+      where: { [idField]: req.params.id, active: false }, // Check for inactive users
+    });
+
+    if (!user) {
+      console.error(`No document found with ${idField}: ${req.params.id}`);
+      return next(new AppError(`No document found with that ${idField}`, 404));
+    }
+
+    // Update the active field to true
     const doc = await Model.update(
-      { active: true }, // Set active to true
+      { active: true },
       { where: { [idField]: req.params.id } }
     );
 
-    // Check if the document exists and was updated
+    // Check if the document was updated
     if (doc[0] === 0) {
       console.error(`No document found with ${idField}: ${req.params.id}`);
       return next(new AppError(`No document found with that ${idField}`, 404));
@@ -194,7 +204,6 @@ exports.restoreOne = (Model, idField) =>
     // Respond with a success message
     res.status(200).json({
       status: 'success',
-      message: `Record with ${idField},
-        ${req.params.id} successfully marked as active`,
+      message: `Record with ${idField} ${req.params.id} successfully marked as active`,
     });
   });

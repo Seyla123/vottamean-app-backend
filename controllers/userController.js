@@ -105,11 +105,34 @@ exports.updateMe = catchAsync(async (req, res, next) => {
   factory.updateOne(Info, 'info_id')(req, res, next);
 });
 
+exports.deleteMe = catchAsync(async (req, res, next) => {
+  // Get the currently logged-in user ID from the token
+  const user_id = req.user.user_id;
+
+  // Use the factory deleteOne method but pass the user ID from the token
+  req.params.id = user_id;
+
+  // Call the factory deleteOne function
+  factory.deleteOne(User, 'user_id')(req, res, next);
+});
+
 // Update user details (excluding password)
 exports.updateUser = factory.updateOne(User, 'user_id');
 
 // Delete user
 exports.deleteUser = factory.deleteOne(User, 'user_id');
 
-// Restore user
-exports.restoreUser = factory.restoreOne(User, 'user_id');
+// Restore user by user ID
+exports.restoreUser = catchAsync(async (req, res, next) => {
+  // Get the user ID from the request parameters
+  const user_id = req.params.id;
+
+  // Log the operation
+  console.log(`Attempting to restore user with user_id: ${user_id}`);
+
+  // Use the factory restoreOne method
+  req.params.id = user_id;
+
+  // Call the factory restoreOne function
+  factory.restoreOne(User, 'user_id')(req, res, next);
+});

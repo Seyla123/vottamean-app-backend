@@ -9,6 +9,9 @@ const photoController = require('../controllers/photoController');
 // Define Express Router
 const router = express.Router();
 
+// Restore user
+router.post('/restore-user/:id', userController.restoreUser);
+
 // Protect all route after this middleware
 router.use(authController.protect);
 
@@ -25,13 +28,13 @@ router.get('/me', userController.getMe, userController.getUser);
 router.patch(
   '/update-me',
   userController.getMe,
-  userController.updateMe
-  // photoController.uploadUserPhoto,
-  // photoController.resizeUserPhoto
+  userController.updateMe,
+  photoController.uploadUserPhoto,
+  photoController.resizeUserPhoto
 );
 
-// Restore user
-router.post('/restore-user/:id', userController.restoreUser);
+// Delete the current user
+router.delete('/delete-me', userController.deleteMe);
 
 // User management routes
 router.route('/').get(userController.getAllUsers);
