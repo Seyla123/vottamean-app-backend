@@ -90,7 +90,7 @@ exports.getAll = (Model, additionalFilter = {}, popOptions = [], search = []) =>
       include: popOptions,
     });
 
-    if (!doc || doc.length === 0) {
+    if (!doc) {
       return next(new AppError('No documents found', 404));
     }
 
@@ -114,9 +114,12 @@ exports.updateOne = (Model, idField) =>
     try {
       const { id } = req.params;
       const updates = req.body;
-
+      console.log('params : ', id);
+      console.log('boday update : ', updates);
+      
+      
       // Update the record
-      const [affectedRows] = await Model.update(updates, {
+      const [affectedRows] = await Model.update(req.body, {
         where: { [idField]: id },
       });
 
@@ -135,6 +138,8 @@ exports.updateOne = (Model, idField) =>
       });
     } catch (err) {
       // Return a JSON error response
+      console.log('this is error :', err);
+      
       next(new AppError('Server error, please try again later.', 500));
     }
   });
@@ -179,23 +184,13 @@ exports.restoreOne = (Model, idField) =>
       `Attempting to restore record with ${idField}: ${req.params.id}`
     );
 
-    // Check if the user exists, even if inactive
-    const user = await Model.findOne({
-      where: { [idField]: req.params.id, active: false }, // Check for inactive users
-    });
-
-    if (!user) {
-      console.error(`No document found with ${idField}: ${req.params.id}`);
-      return next(new AppError(`No document found with that ${idField}`, 404));
-    }
-
-    // Update the active field to true
+    // Update the active field to true instead of deleting the record
     const doc = await Model.update(
-      { active: true },
+      { active: true }, // Set active to true
       { where: { [idField]: req.params.id } }
     );
 
-    // Check if the document was updated
+    // Check if the document exists and was updated
     if (doc[0] === 0) {
       console.error(`No document found with ${idField}: ${req.params.id}`);
       return next(new AppError(`No document found with that ${idField}`, 404));
@@ -204,6 +199,7 @@ exports.restoreOne = (Model, idField) =>
     // Respond with a success message
     res.status(200).json({
       status: 'success',
-      message: `Record with ${idField} ${req.params.id} successfully marked as active`,
+      message: `Record with ${idField},
+        ${req.params.id} successfully marked as active`,
     });
   });
