@@ -1,7 +1,7 @@
 // Encryption Library
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const {Op} = require('sequelize')
+const { Op } = require('sequelize');
 // Database Models
 const { Teacher, Info, sequelize, User } = require('../models');
 const { isBelongsToAdmin } = require('../utils/helper');
@@ -42,55 +42,76 @@ exports.getTeacher = factory.getOne(Teacher, 'teacher_id', [
 // Get all teachers
 exports.getAllTeachers = catchAsync(async (req, res, next) => {
   const search = req.query.search;
-  const associated = [{
-    model: User,
-    as: 'User',
-  },
-  {
-    model: Info,
-    as: 'Info',
-    where: search && {
-      [Op.or]: [
-        { first_name: { [Op.like]: `%${search}%` } },
-        { last_name: { [Op.like]: `%${search}%` } },
-      ],
+  const associated = [
+    {
+      model: User,
+      as: 'User',
     },
-  }
-]
+    {
+      model: Info,
+      as: 'Info',
+      where: search && {
+        [Op.or]: [
+          { first_name: { [Op.like]: `%${search}%` } },
+          { last_name: { [Op.like]: `%${search}%` } },
+        ],
+      },
+    },
+  ];
 
   factory.getAll(
     Teacher,
     { school_admin_id: req.school_admin_id },
     associated,
     []
-  )(req, res, next); 
+  )(req, res, next);
 });
 
 // Update teacher
 exports.updateTeacher = catchAsync(async (req, res, next) => {
-await isBelongsToAdmin(req.params.id, 'teacher_id', req.school_admin_id, Teacher);
-  // 1. find  info id in teacher
-const teacher = await Teacher.findByPk(req.params.id)
-if(!teacher){
-  return next(new AppError('Teacher not found', 404));
-}
-console.log('teacher : ', teacher);
- // 2. Update the teacher's info.
+  // 1. Check if the teacher belongs to the admin
+  await isBelongsToAdmin(
+    req.params.id,
+    'teacher_id',
+    req.school_admin_id,
+    Teacher
+  );
+  // 2. Find the teacher by primary key
+  const teacher = await Teacher.findByPk(req.params.id);
+  if (!teacher) {
+    return next(new AppError('Teacher not found', 404));
+  }
+  // 3. Find the Info record related to the teacher
   const info = await Info.findByPk(teacher.info_id);
-  console.log('this info :', info);
-  req.body = filterObj(req.body,"first_name","last_name", "gender", "phone_number", "dob", "address");
-  req.params.id = info.info_id;
-  console.log('this is param id now :', req.params.id);
-  await Info.update(req.body, {
+  if (!info) {
+    return next(new AppError('Teacher info not found', 404));
+  }
+  // 4. Filter out allowed fields from the request body
+  const updatedFields = filterObj(
+    req.body,
+    'first_name',
+    'last_name',
+    'gender',
+    'phone_number',
+    'dob',
+    'address'
+  );
+  // 5. Update the Info record
+  await Info.update(updatedFields, {
     where: { info_id: teacher.info_id },
   });
-
+  // 6. Retrieve the updated Info record
+   // After updating, fetch the updated data
+  const updatedInfo = await Info.findByPk(teacher.info_id);
   res.status(200).json({
-    status:'success',
-    message: 'Teacher info updated successfully',
-    data: info
+      status: 'success',
+      message: 'Teacher info updated successfully',
+      data: {
+          info: updatedInfo,
+      },
   });
 });
+
 // Delete teacher
 exports.deleteTeacher = factory.deleteOne(Teacher, 'teacher_id');
 
