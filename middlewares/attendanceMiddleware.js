@@ -52,12 +52,13 @@ exports.verifySessionBelongsToClass = catchAsync(async (req, res, next) => {
 
   // extract student id from attendance array
   const studentIds = attendance.map(a => a.student_id);
-  const session = await Session.findByPk(session_id);
+  const sessions = await Session.findByPk(session_id);
 
+  //find student with same class as session class
   const students = await Student.findAll({
     where:{
       student_id: studentIds,
-      class_id: session.class_id
+      class_id: sessions.class_id
     },
     attributes: ['student_id', 'class_id']
   })
