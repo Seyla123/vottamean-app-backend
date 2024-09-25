@@ -4,6 +4,7 @@ const { htmlToText } = require('html-to-text');
 
 // Import HTML template function
 const { generateEmailTemplate } = require('./emailTemplate');
+const { attendanceStatusEmailTemplate } = require('../emails/attendanceStatusEmailTemaple');
 
 // Email Service
 class Email {
@@ -76,6 +77,39 @@ class Email {
 
   async sendPasswordReset() {
     await this.send('passwordReset', 'Password Reset Token');
+  }
+  // New Method to Send Attendance Notification
+  async sendAttendanceNotification(data, status_id) {
+    const statusMap = {
+      1: { text: 'Present', className: 'present' },
+      2: { text: 'Late', className: 'late' },
+      3: { text: 'Absent', className: 'absent' },
+      4: { text: 'Absent with Permission', className: 'absent-permission' },
+    };
+    
+    const statusInfo = statusMap[status_id] || { text: 'Unknown Status', className: '' };
+    
+    
+    const subject = `${statusInfo.text} : Attendance Alert for ${data.studentName}`;
+    const html = attendanceStatusEmailTemplate(data, statusInfo.text);
+    //const message = `Dear Guardian,\n\nThis is to inform you that your child, ${studentName}, is marked as ${statusText} in today's session.\n\nBest regards,\nSchool Administration`;
+    const message = htmlToText(html);
+    // Prepare mail options
+    const mailOptions = {
+      from: this.from,
+      to: this.to,
+      subject,
+      text: message,
+      html:html
+    };
+
+    try {
+      await this.newTransport().sendMail(mailOptions);
+      console.log(`Attendance email sent successfully to ${this.to}`);
+    } catch (error) {
+      console.error(`Error sending attendance email to ${this.to}:`, error);
+      throw new Error('Attendance email sending failed :', error);
+    }
   }
 }
 

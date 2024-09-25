@@ -11,13 +11,14 @@ const {
   Period,
   Subject,
   Teacher,
+  User,
 } = require('../models');
 // utils
 const catchAsync = require('../utils/catchAsync');
 const { filterObj } = require('../utils/filterObj');
 const factory = require('./handlerFactory');
 const { Op } = require('sequelize');
-
+const { formatDataSessionfForAttendance, sendAttendanceEmail, formattedStudentAttendance } = require('../utils/attendanceUtils');
 // Get all attendances
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
   const school_admin_id = req.school_admin_id;
@@ -107,19 +108,62 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
   ];
   req.query = filterObj(req.query, ...allowedFields);
 
-  factory.getAll(Attendance, {}, associations, [])(req, res, next); 
+  factory.getAll(Attendance, {}, associations, [])(req, res, next);
 });
 //Creates attendance for a student in a specific session.
 exports.createAttendance = catchAsync(async (req, res, next) => {
   // Get today's date for attendance record
+  const { session_id, attendance } = req.body;
   const today = new Date();
 
-  // filter fields
-  req.body = filterObj(req.body, 'student_id', 'session_id', 'status_id');
-  req.body.date = today;
+  // get session data formatted for sending attendance status email notification
+  const sessionData = await formatDataSessionfForAttendance(session_id);
+  
+  // Fetch existing attendance for the session and today
+  const existingAttendance = await Attendance.findAll({
+    where: {
+      session_id,
+      date: today
+    }
+  })
+  
+  // Create a map for quick lookup
+  const existingRecordsMap = {};
+  existingAttendance.forEach(record => {
+    existingRecordsMap[record.student_id] = record;
+  });
 
-  // Use factory to create attendance
-  factory.createOne(Attendance)(req, res, next);
+  // Process attendance records
+  const promises = attendance.map(async ({ student_id, status_id }) => {
+
+    // get formatted student attendance data for sending notification email to their gardian
+   const data = await formattedStudentAttendance(student_id, sessionData)
+
+    // send email notification to student's gardian
+    await sendAttendanceEmail(data, status_id);
+
+    if (existingRecordsMap[student_id]) {
+      // Update existing record
+      return Attendance.update({ status_id }, {
+        where: {
+          student_id,
+          session_id,
+          date: today
+        }
+      });
+    } else {
+      // Create a new attendance record
+      return Attendance.create({ student_id, session_id, status_id, date: today });
+    }
+  });
+
+  // resovle all promises
+  await Promise.all(promises);
+
+  return res.status(200).json({
+    status: 'success',
+    message: 'Attendance has been marked/updated successfully.'
+  });
 });
 
 exports.deleteAttendance = catchAsync(async (req, res, next) => {
@@ -141,7 +185,7 @@ exports.getAttendance = catchAsync(async (req, res, next) => {
     {
       model: Student,
       as: 'Student',
-      where: { school_admin_id },
+      where: { school_admin_id: req.school_admin_id },
       include: [
         {
           model: Info,
@@ -159,6 +203,10 @@ exports.getAttendance = catchAsync(async (req, res, next) => {
       required: true,
       include: [
         {
+          model: Class,
+          as: 'Class'
+        },
+        {
           model: DayOfWeek,
           as: 'DayOfWeek',
         },
@@ -175,6 +223,16 @@ exports.getAttendance = catchAsync(async (req, res, next) => {
           model: Teacher,
           as: 'Teacher',
           required: true,
+          include: [
+            {
+              model: Info,
+              as: 'Info',
+            },
+            {
+              model: User,
+              as: 'User',
+            }
+          ]
         },
       ],
     },

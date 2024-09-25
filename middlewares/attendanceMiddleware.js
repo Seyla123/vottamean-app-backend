@@ -2,7 +2,7 @@
 const { Attendance, Student, Session } = require('../models');
 const AppError = require('../utils/appError');
 const { isBelongsToAdmin } = require('../utils/helper');
-
+const catchAsync = require('../utils/catchAsync');
 // Check if attendance already exists for the same student, session, and date
 exports.isAttendanceMarked = async (req, res, next) => {
   const { student_id, session_id } = req.body;
@@ -13,7 +13,7 @@ exports.isAttendanceMarked = async (req, res, next) => {
   });
 
   if (existingAttendance) {
-    return next(new AppError('Attendance for this student, session, and date already exists', 400));
+    return next(new AppError('Attendance already marked for today', 400));
   }
 
   next();
@@ -39,34 +39,42 @@ exports.checkAttendanceExists = async (req, res, next) => {
     return next();
   };
 // Verify if the session belongs to the teacher
-exports.verifySessionBelongsToTeacher = async (req, res, next) => {
+exports.verifySessionBelongsToTeacher = catchAsync(async (req, res, next) => {
   const { session_id } = req.body;
   const teacher_id = req.teacher_id;
-
-  try {
     await isBelongsToAdmin(session_id, 'session_id', teacher_id, Session, 'teacher_id');
     next();
-  } catch (error) {
-    return next(new AppError('You do not have permission to access this session', 403));
-  }
-};
+});
 
 // Verify if the session belongs to the student's class
-exports.verifySessionBelongsToClass = async (req, res, next) => {
-  const { student_id, session_id } = req.body;
+exports.verifySessionBelongsToClass = catchAsync(async (req, res, next) => {
+  const { session_id, attendance } = req.body;
 
-  const student = await Student.findByPk(student_id, {
-    attributes: ['class_id'],
+  // extract student id from attendance array
+  const studentIds = attendance.map(a => a.student_id);
+  const sessions = await Session.findByPk(session_id);
+
+  //find student with same class as session class
+  const students = await Student.findAll({
+    where:{
+      student_id: studentIds,
+      class_id: sessions.class_id
+    },
+    attributes: ['student_id', 'class_id']
+  })
+  // Create a map of found students' class_ids by student_id
+  const studentClassMap = {};
+  students.forEach(student => {
+    studentClassMap[student.student_id] = student.class_id;
   });
 
-  if (!student) {
-    return next(new AppError('Student not found', 404));
+  // Find missing students
+  const missingStudents = studentIds.filter(student_id => !studentClassMap[student_id]);
+  
+  // If any students are missing or not enrolled in this class, return their IDs in the response
+  if (missingStudents.length > 0) {
+    return next(new AppError(`The following students IDs were not found or are not part of this class:  ${missingStudents.join(', ')}`, 404));
   }
 
-  try {
-    await isBelongsToAdmin(session_id, 'session_id', student.class_id, Session, 'class_id', 'Student');
-    next();
-  } catch (error) {
-    return next(new AppError('This session does not belong to the student\'s class', 403));
-  }
-};
+  next();
+});

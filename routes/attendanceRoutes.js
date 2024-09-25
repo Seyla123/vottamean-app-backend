@@ -36,9 +36,9 @@ router.use(authController.restrictTo('teacher'));
 
 // create attendance routes
 router.post('/',
-  attendanceMiddleware.isAttendanceMarked,
   attendanceMiddleware.verifySessionBelongsToTeacher,
   attendanceMiddleware.verifySessionBelongsToClass,
   attendanceController.createAttendance);
+
 
 module.exports = router;
