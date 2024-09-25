@@ -1,4 +1,4 @@
-const { DayOfWeek } = require('../models/dayModel');
+const {DayOfWeek} = require('../models');
 
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
