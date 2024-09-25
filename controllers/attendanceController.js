@@ -154,13 +154,6 @@ return res.status(200).json({
   status: 'success',
   message: 'Attendance has been marked/updated successfully.'
 });
-
-  // // filter fields
-  // req.body = filterObj(req.body, 'student_id', 'session_id', 'status_id');
-  // req.body.date = today;
-
-  // // Use factory to create attendance
-  // factory.createOne(Attendance)(req, res, next);
 });
 
 exports.deleteAttendance = catchAsync(async (req, res, next) => {
