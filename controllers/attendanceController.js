@@ -18,6 +18,7 @@ const catchAsync = require('../utils/catchAsync');
 const { filterObj } = require('../utils/filterObj');
 const factory = require('./handlerFactory');
 const { Op } = require('sequelize');
+const dayjs = require('dayjs');
 
 // Get all attendances
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
@@ -108,19 +109,58 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
   ];
   req.query = filterObj(req.query, ...allowedFields);
 
-  factory.getAll(Attendance, {}, associations, [])(req, res, next); 
+  factory.getAll(Attendance, {}, associations, [])(req, res, next);
 });
 //Creates attendance for a student in a specific session.
 exports.createAttendance = catchAsync(async (req, res, next) => {
   // Get today's date for attendance record
+  const { session_id, attendance } = req.body;
   const today = new Date();
 
-  // filter fields
-  req.body = filterObj(req.body, 'student_id', 'session_id', 'status_id');
-  req.body.date = today;
+  // Fetch existing attendance for the session and today
+  const existingAttendance = await Attendance.findAll({
+    where: {
+      session_id,
+      date: today
+    }
+  })
 
-  // Use factory to create attendance
-  factory.createOne(Attendance)(req, res, next);
+  // Create a map for quick lookup
+  const existingRecordsMap = {};
+  existingAttendance.forEach(record => {
+    existingRecordsMap[record.student_id] = record;
+  });
+
+// Process attendance records
+const promises = attendance.map(async ({ student_id, status_id }) => {
+  if (existingRecordsMap[student_id]) {
+    // Update existing record
+    return Attendance.update({ status_id }, {
+      where: {
+        student_id,
+        session_id,
+        date: today
+      }
+    });
+  } else {
+    // Create a new attendance record
+    return Attendance.create({ student_id, session_id, status_id, date: today });
+  }
+});
+
+await Promise.all(promises);
+
+return res.status(200).json({
+  status: 'success',
+  message: 'Attendance has been marked/updated successfully.'
+});
+
+  // // filter fields
+  // req.body = filterObj(req.body, 'student_id', 'session_id', 'status_id');
+  // req.body.date = today;
+
+  // // Use factory to create attendance
+  // factory.createOne(Attendance)(req, res, next);
 });
 
 exports.deleteAttendance = catchAsync(async (req, res, next) => {
@@ -160,8 +200,8 @@ exports.getAttendance = catchAsync(async (req, res, next) => {
       required: true,
       include: [
         {
-          model:Class,
-          as:'Class'
+          model: Class,
+          as: 'Class'
         },
         {
           model: DayOfWeek,
