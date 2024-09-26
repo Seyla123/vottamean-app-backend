@@ -6,12 +6,16 @@ const {
   School,
   SchoolAdmin,
   Info,
+  Sequelize,
 } = require('../models');
 
 // Error Handlers
 const { filterObj } = require('../utils/filterObj');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+
+// Moment library
+const moment = require('moment');
 
 // Factory Handler
 const factory = require('./handlerFactory');
@@ -23,7 +27,7 @@ exports.getMe = catchAsync(async (req, res, next) => {
   next(); // Proceed to the next middleware or route handler
 });
 
-// Get one User
+// Get user
 exports.getUser = catchAsync(async (req, res, next) => {
   // Fetch user with related profiles and school data
   const user = await User.findOne({
@@ -34,14 +38,37 @@ exports.getUser = catchAsync(async (req, res, next) => {
         as: 'AdminProfile',
         include: [
           { model: Info, as: 'Info' },
-          { model: School, as: 'Schools', through: { model: SchoolAdmin } },
+          {
+            model: School,
+            as: 'Schools',
+            through: { model: SchoolAdmin },
+            required: false,
+          },
         ],
         required: false,
       },
       {
         model: Teacher,
         as: 'TeacherProfile',
-        include: [{ model: Info, as: 'Info' }],
+        include: [
+          { model: Info, as: 'Info' },
+          {
+            model: SchoolAdmin,
+            as: 'SchoolAdmin',
+            include: [
+              {
+                model: School,
+                as: 'School',
+                required: true,
+              },
+            ],
+            // Filter based on school_admin_id
+            where: {
+              school_admin_id: Sequelize.col('TeacherProfile.school_admin_id'),
+            },
+            required: false,
+          },
+        ],
         required: false,
       },
     ],
@@ -52,25 +79,32 @@ exports.getUser = catchAsync(async (req, res, next) => {
     return next(new AppError('No user found with that ID', 404));
   }
 
-  // Avoid circular reference and structure data
+  // Extract user data
   const { user_id, email, role, AdminProfile, TeacherProfile } = user.toJSON();
 
-  // Structure response based on role
+  // Extract school directly from the teacher's SchoolAdmin relation
+  const school = TeacherProfile?.SchoolAdmin?.School || null;
+
+  // Structure the response with minimal data and no duplication
   const userProfile = {
     id: user_id,
     email,
     role,
-    adminProfile:
-      role === 'admin' && AdminProfile
+    adminProfile: role === 'admin' && AdminProfile ? { ...AdminProfile } : null,
+    teacherProfile:
+      role === 'teacher' && TeacherProfile
         ? {
-            ...AdminProfile,
-            schools: AdminProfile.Schools || null,
+            teacher_id: TeacherProfile.teacher_id,
+            active: TeacherProfile.active,
+            createdAt: TeacherProfile.createdAt,
+            updatedAt: TeacherProfile.updatedAt,
+            info: TeacherProfile.Info,
+            school: school,
           }
         : null,
-    teacherProfile: (role === 'teacher' && TeacherProfile) || null,
   };
 
-  // Send response
+  // Send the structured response
   res.status(200).json({
     status: 'success',
     data: userProfile,
@@ -91,20 +125,110 @@ exports.getAllUsers = factory.getAll(User, {}, [
   },
 ]);
 
-// Update current user details (excluding password)
+// Update current logged-in user
 exports.updateMe = catchAsync(async (req, res, next) => {
-  // // Handle photo upload
-  // if (req.file && req.file.location) {
-  //   filteredBody.photo = req.file.location;
-  // }
-  const user = await Admin.findOne({ where: { user_id: req.user.user_id } });
-  if (!user) {
-    return new AppError('No user found with that ID', 404);
+  let user;
+
+  // Check if the user is an Admin or Teacher
+  if (req.user.role === 'admin') {
+    user = await Admin.findOne({
+      where: { user_id: req.user.user_id },
+      include: [
+        { model: School, as: 'Schools', through: { model: SchoolAdmin } },
+      ],
+    });
+  } else if (req.user.role === 'teacher') {
+    user = await Teacher.findOne({
+      where: { user_id: req.user.user_id },
+      include: [{ model: Info, as: 'Info' }],
+    });
+  } else {
+    return next(new AppError('Invalid user role', 403));
   }
-  req.params.id = user.info_id;
-  factory.updateOne(Info, 'info_id')(req, res, next);
+
+  if (!user) {
+    return next(new AppError('No user found with that ID', 404));
+  }
+
+  // Get the info ID for the user
+  const infoId = user.info_id || (user.Info && user.Info.info_id);
+  if (!infoId) {
+    return next(new AppError('No user information found for this ID', 404));
+  }
+
+  // Allowed fields for personal information update
+  const allowedFields = [
+    'first_name',
+    'last_name',
+    'phone_number',
+    'address',
+    'dob',
+  ];
+  const filteredBody = filterObj(req.body, ...allowedFields);
+
+  // Validate date of birth format (if provided)
+  if (
+    filteredBody.dob &&
+    !moment(filteredBody.dob, 'YYYY-MM-DD', true).isValid()
+  ) {
+    return next(
+      new AppError('Invalid date format for dob. Please use YYYY-MM-DD.', 400)
+    );
+  }
+
+  // Update the user's personal information
+  req.params.id = infoId;
+  await factory.updateOne(Info, 'info_id')(req, res, next);
+
+  // Update the user's photo if a new one is provided
+  if (req.file) {
+    // Assuming the photo URL is stored in the Info model
+    await Info.update(
+      { photo: req.file.location },
+      { where: { info_id: infoId } }
+    );
+  }
+
+  // Check if the user is an admin and update school information if provided
+  if (req.user.role === 'admin') {
+    if (user.Schools && user.Schools.length > 0) {
+      const school = user.Schools[0];
+
+      // Extract school-related fields from the request body
+      const { school_name, school_address, school_phone_number } = req.body;
+
+      // Update the school information if provided
+      if (school_name || school_address || school_phone_number) {
+        await School.update(
+          {
+            school_name: school_name || school.school_name,
+            school_address: school_address || school.school_address,
+            school_phone_number:
+              school_phone_number || school.school_phone_number,
+          },
+          { where: { school_id: school.school_id } }
+        );
+      }
+    }
+  }
+
+  // Prevent teachers from updating any school data
+  if (
+    req.user.role === 'teacher' &&
+    (req.body.school_name ||
+      req.body.school_address ||
+      req.body.school_phone_number)
+  ) {
+    return next(
+      new AppError(
+        'Teachers are not allowed to update school information.',
+        403
+      )
+    );
+  }
 });
 
+// Delete current login user
 exports.deleteMe = catchAsync(async (req, res, next) => {
   // Get the currently logged-in user ID from the token
   const user_id = req.user.user_id;
