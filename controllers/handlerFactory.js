@@ -136,7 +136,7 @@ exports.updateOne = (Model, idField) =>
     } catch (err) {
       // Return a JSON error response
       console.log('this is error :', err);
-      
+
       next(new AppError('Server error, please try again later.', 500));
     }
   });
