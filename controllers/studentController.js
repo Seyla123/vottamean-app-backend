@@ -206,7 +206,7 @@ exports.deleteStudent = catchAsync(async (req, res, next) => {
 });
 
 // Get all students by class
-exports.getAllStudentsByClass = catchAsync(async (req, res, next) => {
+exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
   const session_id  = req.params.id;
   const teacher_id = req.teacher_id;
 
