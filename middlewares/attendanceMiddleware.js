@@ -3,21 +3,6 @@ const { Attendance, Student, Session } = require('../models');
 const AppError = require('../utils/appError');
 const { isBelongsToAdmin } = require('../utils/helper');
 const catchAsync = require('../utils/catchAsync');
-// Check if attendance already exists for the same student, session, and date
-exports.isAttendanceMarked = async (req, res, next) => {
-  const { student_id, session_id } = req.body;
-  const today = new Date().toISOString().split('T')[0]; // Format date to YYYY-MM-DD
-
-  const existingAttendance = await Attendance.findOne({
-    where: { student_id, session_id, date: today },
-  });
-
-  if (existingAttendance) {
-    return next(new AppError('Attendance already marked for today', 400));
-  }
-
-  next();
-};
 
 // check attendance exists and belongs to the school admin ?
 exports.checkAttendanceExists = async (req, res, next) => {

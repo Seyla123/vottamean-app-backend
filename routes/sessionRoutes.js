@@ -4,6 +4,7 @@ const express = require('express');
 // Authentication and session Controller
 const authController = require('../controllers/authController');
 const sessionController = require('../controllers/sessionController');
+const sessionMiddleware = require('../middlewares/sessionMiddleware');
 // Define Express Router
 const router = express.Router();
 
@@ -15,8 +16,10 @@ router.use(authController.restrictTo('admin'));
 // Route to create a new session
 router
   .route('/')
-  .post(sessionController.createSession)
-  .get(sessionController.getAllSessions);
+  .post(
+    sessionMiddleware.checkExistingSession,
+    sessionMiddleware.validateAdminOwnership, 
+    sessionController.createSession).get(sessionController.getAllSessions);
 
 router
   .route('/:id')

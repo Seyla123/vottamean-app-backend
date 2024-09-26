@@ -5,6 +5,7 @@ const express = require('express');
 const teacherController = require('../controllers/teacherController');
 const authController = require('../controllers/authController');
 const sessionController = require('../controllers/sessionController');
+const studentController = require('../controllers/studentController');
 
 // Define Express Router
 const router = express.Router();
@@ -18,10 +19,14 @@ router.use(authController.protect);
 // Require email verification for the following route
 router.use(authController.requireEmailVerification);
 
-//Teacher teaching classes
-router.get('/classes',authController.restrictTo('teacher'), sessionController.getAllTeacherSessions);
-//router.get('/classes/:id',authController.restrictTo('teacher'), sessionController.getAllTeacherSessions);
+//Teacher teaching schedule session
+router.get('/sessions',
+  authController.restrictTo('teacher'), 
+  sessionController.getAllTeacherSessions);
 
+router.get('/sessions/:id',
+  authController.restrictTo('teacher'), 
+  studentController.getAllStudentsByClassInSession);
 
 // Restrict all routes to admin only
 router.use(authController.restrictTo('admin'));
