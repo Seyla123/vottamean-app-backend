@@ -16,8 +16,10 @@ router.use(authController.restrictTo('admin'));
 // Route to create a new session
 router
   .route('/')
-  .post(sessionMiddleware.checkExistingSession, sessionController.createSession)
-  .get(sessionController.getAllSessions);
+  .post(
+    sessionMiddleware.checkExistingSession,
+    sessionMiddleware.validateAdminOwnership, 
+    sessionController.createSession).get(sessionController.getAllSessions);
 
 router
   .route('/:id')

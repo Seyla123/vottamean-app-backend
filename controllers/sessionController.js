@@ -20,27 +20,6 @@ dayjs.extend(isoWeek);;
 
 // create session
 exports.createSession = catchAsync(async (req, res, next) => {
-  await Promise.all([
-    isBelongsToAdmin(req.body.class_id, 'class_id', req.school_admin_id, Class),
-    isBelongsToAdmin(
-      req.body.period_id,
-      'period_id',
-      req.school_admin_id,
-      Period
-    ),
-    isBelongsToAdmin(
-      req.body.teacher_id,
-      'teacher_id',
-      req.school_admin_id,
-      Teacher
-    ),
-    isBelongsToAdmin(
-      req.body.subject_id,
-      'subject_id',
-      req.school_admin_id,
-      Subject
-    ),
-  ]);
   // filter the request body to only include 'class_id', 'subject_id','day_id','period_id','teacher_id'
   req.body = filterObj(
     req.body,
