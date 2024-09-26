@@ -222,6 +222,7 @@ exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
   // Find all students in the same class
   const students = await Student.findAll({
     where: { class_id: session.class_id },
+    include: [{ model: Info, as: 'Info' }],
   });
 
   // Respond successfully with students
