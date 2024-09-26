@@ -11,6 +11,7 @@ const factory = require('./handlerFactory');
 // Utils
 const { filterObj } = require('../utils/filterObj');
 const { isBelongsToAdmin } = require('../utils/helper');
+const { fetchTeacherSessions, formatTeacherSessions } = require('../utils/sessionUtils');
 
 // day js 
 const dayjs = require('dayjs');
@@ -140,47 +141,21 @@ exports.deleteSession = catchAsync(async (req, res, next) => {
 
 // teacher site
 // get all teacher session
-
 exports.getAllTeacherSessions = catchAsync(async (req, res, next) => {
   const filter = req.query.filter;
   const currentDay = dayjs().isoWeekday();
 
-  // Fetch all teacher sessions with the necessary associations
-  const sessions = await Session.findAll({
-    where: {
-      teacher_id: req.teacher_id,
-      active: true,
-      ...(filter === 'today' && { day_id: currentDay }),
-    },
-    include: [
-      { model: DayOfWeek, as: 'DayOfWeek' },
-      { model: Class, as: 'Class' },
-      { model: Period, as: 'Period' },
-      { model: Subject, as: 'Subject' },
-    ],
-  });
+  // Fetch all teacher sessions
+  const sessions = await fetchTeacherSessions(req.teacher_id, filter, currentDay);
 
-  // Transform the data into the required format
-  const formattedSessions = await Promise.all(sessions.map(async (session) => {
-    // Count the number of students in the class
-    const studentCount = await Student.count({
-      where: { class_id: session.Class.class_id, active: true }, // Assuming classId is the foreign key in Student
-    });
+  // Handle case where no sessions are found
+  if (!sessions.length) {
+    return next(new AppError('No teacher session found', 404));
+  }
 
-    return {
-      session_id: session.session_id,
-      class_name: session.Class.class_name,
-      day: session.DayOfWeek.day, // assuming 'day' is the field in DayOfWeek model
-      subject: session.Subject.name, // assuming 'name' is the field in Subject model
-      students: studentCount || 0, // Count the number of students
-      start_time:session.Period.start_time,
-      end_time:session.Period.end_time,
-    };
-  }));
-  
-if(!sessions){
-  return next(new AppError('No teacher session found', 404));  
-}
+  // Format the sessions
+  const formattedSessions = await formatTeacherSessions(sessions);
+
   // Send the transformed data as the response
   res.status(200).json({
     status: 'success',
