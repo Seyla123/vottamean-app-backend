@@ -31,7 +31,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       photo: {
         type: DataTypes.STRING,
-        defaultValue: 'default.jpg',
+        defaultValue: 'https://images.pexels.com/photos/3779760/pexels-photo-3779760.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
         validate: infoValidator.isValidPhoto,
       },
       phone_number: {

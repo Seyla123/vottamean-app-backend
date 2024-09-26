@@ -34,6 +34,10 @@ const { filterObj } = require('../utils/filterObj');
 // Get one teacher
 exports.getTeacher = factory.getOne(Teacher, 'teacher_id', [
   {
+    model: User,
+    as: 'User',
+  },
+  {
     model: Info,
     as: 'Info',
   },
