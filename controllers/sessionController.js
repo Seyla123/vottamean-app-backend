@@ -21,8 +21,9 @@ dayjs.extend(isoWeek);;
 // create session
 exports.createSession = catchAsync(async (req, res, next) => {
   // filter the request body to only include 'class_id', 'subject_id','day_id','period_id','teacher_id'
-  req.body = filterObj( req.body, ExcludedSessionField );
+  req.body = filterObj( req.body, ...ExcludedSessionField );
   req.body.school_admin_id = req.school_admin_id;
+  console.log(req.body);
   
   // create new Session
   factory.createOne(Session)(req, res, next);
@@ -57,7 +58,7 @@ exports.updateSession = catchAsync(async (req, res, next) => {
     Session
   );
   //  filter the request body to only include 'class_id', 'subject_id','day_id','period_id','teacher_id'
-  req.body = filterObj(req.body, ExcludedSessionField);
+  req.body = filterObj(req.body, ...ExcludedSessionField);
 
   // update session
   factory.updateOne(Session, 'session_id')(req, res, next);
