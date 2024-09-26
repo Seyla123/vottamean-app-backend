@@ -53,7 +53,7 @@ exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
     Key: `users/${req.file.filename}`,
     Body: resizedImageBuffer,
     ContentType: 'image/jpeg',
-    ACL: 'public-read',
+    // ACL: 'public-read',
   };
 
   console.log('Uploading to S3 with params:', uploadParams);
@@ -64,6 +64,9 @@ exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
   console.log('Upload successful');
 
   req.file.location = `https://${uploadParams.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${uploadParams.Key}`;
+
+  // console the req.file.location
+  console.log('File location:', req.file.location);
 
   next();
 });

@@ -126,6 +126,108 @@ exports.getAllUsers = factory.getAll(User, {}, [
 ]);
 
 // Update current logged-in user
+// exports.updateMe = catchAsync(async (req, res, next) => {
+//   let user;
+
+//   // Check if the user is an Admin or Teacher
+//   if (req.user.role === 'admin') {
+//     user = await Admin.findOne({
+//       where: { user_id: req.user.user_id },
+//       include: [
+//         { model: School, as: 'Schools', through: { model: SchoolAdmin } },
+//       ],
+//     });
+//   } else if (req.user.role === 'teacher') {
+//     user = await Teacher.findOne({
+//       where: { user_id: req.user.user_id },
+//       include: [{ model: Info, as: 'Info' }],
+//     });
+//   } else {
+//     return next(new AppError('Invalid user role', 403));
+//   }
+
+//   if (!user) {
+//     return next(new AppError('No user found with that ID', 404));
+//   }
+
+//   // Get the info ID for the user
+//   const infoId = user.info_id || (user.Info && user.Info.info_id);
+//   if (!infoId) {
+//     return next(new AppError('No user information found for this ID', 404));
+//   }
+
+//   // Allowed fields for personal information update
+//   const allowedFields = [
+//     'first_name',
+//     'last_name',
+//     'phone_number',
+//     'address',
+//     'dob',
+//   ];
+//   const filteredBody = filterObj(req.body, ...allowedFields);
+
+//   // Validate date of birth format (if provided)
+//   if (
+//     filteredBody.dob &&
+//     !moment(filteredBody.dob, 'YYYY-MM-DD', true).isValid()
+//   ) {
+//     return next(
+//       new AppError('Invalid date format for dob. Please use YYYY-MM-DD.', 400)
+//     );
+//   }
+
+//   // Update the user's personal information
+//   req.params.id = infoId;
+//   await factory.updateOne(Info, 'info_id')(req, res, next);
+
+//   // Update the user's photo if a new one is provided
+//   if (req.file) {
+//     // Assuming the photo URL is stored in the Info model
+//     await Info.update(
+//       { photo: req.file.location },
+//       { where: { info_id: infoId } }
+//     );
+//   }
+
+//   // Check if the user is an admin and update school information if provided
+//   if (req.user.role === 'admin') {
+//     if (user.Schools && user.Schools.length > 0) {
+//       const school = user.Schools[0];
+
+//       // Extract school-related fields from the request body
+//       const { school_name, school_address, school_phone_number } = req.body;
+
+//       // Update the school information if provided
+//       if (school_name || school_address || school_phone_number) {
+//         await School.update(
+//           {
+//             school_name: school_name || school.school_name,
+//             school_address: school_address || school.school_address,
+//             school_phone_number:
+//               school_phone_number || school.school_phone_number,
+//           },
+//           { where: { school_id: school.school_id } }
+//         );
+//       }
+//     }
+//   }
+
+//   // Prevent teachers from updating any school data
+//   if (
+//     req.user.role === 'teacher' &&
+//     (req.body.school_name ||
+//       req.body.school_address ||
+//       req.body.school_phone_number)
+//   ) {
+//     return next(
+//       new AppError(
+//         'Teachers are not allowed to update school information.',
+//         403
+//       )
+//     );
+//   }
+// });
+// Update current logged-in user
 exports.updateMe = catchAsync(async (req, res, next) => {
   let user;
 
