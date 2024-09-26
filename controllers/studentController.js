@@ -1,5 +1,5 @@
 // Database models
-const { Student, Info, sequelize, Class } = require('../models');
+const { Student, Info, sequelize, Class, Session } = require('../models');
 // Info Validators
 const {
   isValidEmail,
@@ -80,7 +80,7 @@ exports.addStudent = catchAsync(async (req, res, next) => {
     // 5. Create student record with associated info
     const newStudent = await Student.create(
       {
-         class_id,
+        class_id,
         guardian_name,
         guardian_email,
         guardian_relationship,
@@ -151,7 +151,7 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
     'address',
     'dob',
   ];
-  req.body = filterObj(req.body,...allowedFields);
+  req.body = filterObj(req.body, ...allowedFields);
 
   const school_admin_id = req.school_admin_id;
   const transaction = await sequelize.transaction();
@@ -180,7 +180,7 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
     await transaction.commit();
 
     // respond with success message
-    const updatedStudent = await Student.findOne({where: { student_id: req.params.id, school_admin_id },include:{model: Info, as:'Info'}})
+    const updatedStudent = await Student.findOne({ where: { student_id: req.params.id, school_admin_id }, include: { model: Info, as: 'Info' } })
 
     res.status(201).json({
       status: 'success',
@@ -204,3 +204,30 @@ exports.deleteStudent = catchAsync(async (req, res, next) => {
   );
   factory.deleteOne(Student, 'student_id')(req, res, next);
 });
+
+// Get all students by class
+exports.getAllStudentsByClass = catchAsync(async (req, res, next) => {
+  const session_id  = req.params.id;
+  const teacher_id = req.teacher_id;
+
+  // Check if session belongs to the teacher
+  const session = await Session.findOne({
+    where: { session_id, teacher_id },
+  });
+
+  if (!session) {
+    return next(new AppError('Session not found', 400));
+  }
+
+  // Find all students in the same class
+  const students = await Student.findAll({
+    where: { class_id: session.class_id },
+  });
+
+  // Respond successfully with students
+  res.status(200).json({
+    status: 'success',
+    length: students.length,
+    data: students,
+  });
+})
