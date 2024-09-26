@@ -1,4 +1,4 @@
-const { Student, Session, Period, DayOfWeek, Subject, Class } = require('../models');
+const { Student, Session, Period, DayOfWeek, Subject, Class, Info, Teacher } = require('../models');
 // Function to fetch teacher sessions
 exports.fetchTeacherSessions = async (teacherId, filter, currentDay) => {
     return await Session.findAll({
@@ -36,3 +36,20 @@ exports.formatTeacherSessions = async (sessions) => {
   
     return formattedSessions;
   };
+
+//   Included model session
+  exports.includedSession = [
+    { model: DayOfWeek, as: 'DayOfWeek' },
+    { model: Class, as: 'Class' },
+    { model: Period, as: 'Period' },
+    { model: Teacher, as: 'Teacher', include: [{ model: Info, as: 'Info' }] },
+    { model: Subject, as: 'Subject' },
+  ]
+
+// Excluded session field
+  exports.ExcludedSessionField = [
+    'class_id',
+    'subject_id',
+    'day_id',
+    'period_id',
+    'teacher_id']
