@@ -20,9 +20,13 @@ router.use(authController.protect);
 router.use(authController.requireEmailVerification);
 
 //Teacher teaching schedule session
-router.get('/sessions',authController.restrictTo('teacher'), sessionController.getAllTeacherSessions);
-router.get('/sessions/:id',authController.restrictTo('teacher'), studentController.getAllStudentsByClassInSession);
+router.get('/sessions',
+  authController.restrictTo('teacher'), 
+  sessionController.getAllTeacherSessions);
 
+router.get('/sessions/:id',
+  authController.restrictTo('teacher'), 
+  studentController.getAllStudentsByClassInSession);
 
 // Restrict all routes to admin only
 router.use(authController.restrictTo('admin'));
