@@ -1,5 +1,5 @@
 // Database models
-const { Session, Class, Period, Teacher, Subject, Info , DayOfWeek ,Student} = require('../models');
+const { Session } = require('../models');
 
 // Error handler
 const catchAsync = require('../utils/catchAsync');
@@ -11,7 +11,7 @@ const factory = require('./handlerFactory');
 // Utils
 const { filterObj } = require('../utils/filterObj');
 const { isBelongsToAdmin } = require('../utils/helper');
-const { fetchTeacherSessions, formatTeacherSessions } = require('../utils/sessionUtils');
+const { fetchTeacherSessions, formatTeacherSessions, includedSession, ExcludedSessionField } = require('../utils/sessionUtils');
 
 // day js 
 const dayjs = require('dayjs');
@@ -21,15 +21,9 @@ dayjs.extend(isoWeek);;
 // create session
 exports.createSession = catchAsync(async (req, res, next) => {
   // filter the request body to only include 'class_id', 'subject_id','day_id','period_id','teacher_id'
-  req.body = filterObj(
-    req.body,
-    'class_id',
-    'subject_id',
-    'day_id',
-    'period_id',
-    'teacher_id'
-  );
+  req.body = filterObj( req.body, ExcludedSessionField );
   req.body.school_admin_id = req.school_admin_id;
+  
   // create new Session
   factory.createOne(Session)(req, res, next);
 });
@@ -37,17 +31,8 @@ exports.createSession = catchAsync(async (req, res, next) => {
 // get all sessions
 exports.getAllSessions = catchAsync(async (req, res, next) => {
   factory.getAll(
-    Session,
-    {
-      school_admin_id: req.school_admin_id,
-    },
-    [
-      { model: DayOfWeek, as: 'DayOfWeek' },
-      { model: Class, as: 'Class' },
-      { model: Period, as: 'Period' },
-      { model: Teacher, as: 'Teacher', include: [{ model: Info, as: 'Info' }] },
-      { model: Subject, as: 'Subject' },
-    ],
+    Session, { school_admin_id: req.school_admin_id },
+    includedSession,
     ['']
   )(req, res, next);
 });
@@ -57,13 +42,7 @@ exports.getSession = catchAsync(async (req, res, next) => {
   factory.getOne(
     Session,
     'session_id',
-    [
-      { model: DayOfWeek, as: 'DayOfWeek' },
-      { model: Class, as: 'Class' },
-      { model: Period, as: 'Period' },
-      { model: Teacher, as: 'Teacher', include: [{ model: Info, as: 'Info' }] },
-      { model: Subject, as: 'Subject' },
-    ],
+    includedSession,
     { active: true, school_admin_id: req.school_admin_id }
   )(req, res, next);
 });
@@ -78,14 +57,8 @@ exports.updateSession = catchAsync(async (req, res, next) => {
     Session
   );
   //  filter the request body to only include 'class_id', 'subject_id','day_id','period_id','teacher_id'
-  req.body = filterObj(
-    req.body,
-    'class_id',
-    'subject_id',
-    'day_id',
-    'period_id',
-    'teacher_id'
-  );
+  req.body = filterObj(req.body, ExcludedSessionField);
+
   // update session
   factory.updateOne(Session, 'session_id')(req, res, next);
 });
