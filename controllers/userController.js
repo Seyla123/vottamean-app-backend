@@ -6,6 +6,7 @@ const {
   School,
   SchoolAdmin,
   Info,
+  Sequelize,
 } = require('../models');
 
 // Error Handlers
@@ -26,7 +27,6 @@ exports.getMe = catchAsync(async (req, res, next) => {
   next(); // Proceed to the next middleware or route handler
 });
 
-// Get user
 // Get user
 exports.getUser = catchAsync(async (req, res, next) => {
   // Fetch user with related profiles and school data
@@ -59,9 +59,13 @@ exports.getUser = catchAsync(async (req, res, next) => {
               {
                 model: School,
                 as: 'School',
-                required: false,
+                required: true,
               },
             ],
+            // Filter based on school_admin_id
+            where: {
+              school_admin_id: Sequelize.col('TeacherProfile.school_admin_id'),
+            },
             required: false,
           },
         ],
@@ -78,40 +82,15 @@ exports.getUser = catchAsync(async (req, res, next) => {
   // Extract user data
   const { user_id, email, role, AdminProfile, TeacherProfile } = user.toJSON();
 
-  // Process admin's schools, ensuring no duplicates
-  let uniqueAdminSchools = [];
-  if (AdminProfile && AdminProfile.Schools) {
-    const schoolMap = {};
-    AdminProfile.Schools.forEach((school) => {
-      if (!schoolMap[school.school_id]) {
-        schoolMap[school.school_id] = school;
-      }
-    });
-    uniqueAdminSchools = Object.values(schoolMap);
-  }
+  // Extract school directly from the teacher's SchoolAdmin relation
+  const school = TeacherProfile?.SchoolAdmin?.School || null;
 
-  // Extract teacher's school from SchoolAdmin
-  let teacherSchool = null;
-  if (
-    TeacherProfile &&
-    TeacherProfile.SchoolAdmin &&
-    TeacherProfile.SchoolAdmin.School
-  ) {
-    teacherSchool = TeacherProfile.SchoolAdmin.School;
-  }
-
-  // Structure the response based on the user's role
+  // Structure the response with minimal data and no duplication
   const userProfile = {
     id: user_id,
     email,
     role,
-    adminProfile:
-      role === 'admin' && AdminProfile
-        ? {
-            ...AdminProfile,
-            schools: uniqueAdminSchools,
-          }
-        : null,
+    adminProfile: role === 'admin' && AdminProfile ? { ...AdminProfile } : null,
     teacherProfile:
       role === 'teacher' && TeacherProfile
         ? {
@@ -120,7 +99,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
             createdAt: TeacherProfile.createdAt,
             updatedAt: TeacherProfile.updatedAt,
             info: TeacherProfile.Info,
-            school: teacherSchool,
+            school: school,
           }
         : null,
   };
@@ -147,6 +126,7 @@ exports.getAllUsers = factory.getAll(User, {}, [
 ]);
 
 // Update current login user
+// Update current logged-in user
 exports.updateMe = catchAsync(async (req, res, next) => {
   let user;
 
@@ -171,12 +151,13 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     return next(new AppError('No user found with that ID', 404));
   }
 
+  // Get the info ID for the user
   const infoId = user.info_id || (user.Info && user.Info.info_id);
   if (!infoId) {
     return next(new AppError('No user information found for this ID', 404));
   }
 
-  // Filter out fields that are not allowed to be updated
+  // Allowed fields for personal information update
   const allowedFields = [
     'first_name',
     'last_name',
@@ -186,6 +167,7 @@ exports.updateMe = catchAsync(async (req, res, next) => {
   ];
   const filteredBody = filterObj(req.body, ...allowedFields);
 
+  // Validate date of birth format (if provided)
   if (
     filteredBody.dob &&
     !moment(filteredBody.dob, 'YYYY-MM-DD', true).isValid()
@@ -195,42 +177,55 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     );
   }
 
-  // Set the info_id for the update
+  // Update the user's personal information
   req.params.id = infoId;
-
-  // Logging the payload before update
-  console.log('Updating info with payload:', filteredBody);
-
-  // Update the user's info.
   await factory.updateOne(Info, 'info_id')(req, res, next);
 
-  // Update the user's photo if provided
+  // Update the user's photo if a new one is provided
   if (req.file) {
-    // Assuming you store the photo URL in the Info model
+    // Assuming the photo URL is stored in the Info model
     await Info.update(
       { photo: req.file.location },
       { where: { info_id: infoId } }
     );
   }
 
-  // Update school information if the user is an Admin and schools exist
-  if (req.user.role === 'admin' && user.Schools && user.Schools.length > 0) {
-    const school = user.Schools[0];
+  // Check if the user is an admin and update school information if provided
+  if (req.user.role === 'admin') {
+    if (user.Schools && user.Schools.length > 0) {
+      const school = user.Schools[0];
 
-    const { school_name, school_address, school_phone_number } = req.body;
+      // Extract school-related fields from the request body
+      const { school_name, school_address, school_phone_number } = req.body;
 
-    // Update the school information only if the respective fields are provided
-    if (school_name || school_address || school_phone_number) {
-      await School.update(
-        {
-          school_name: school_name || school.school_name,
-          school_address: school_address || school.school_address,
-          school_phone_number:
-            school_phone_number || school.school_phone_number,
-        },
-        { where: { school_id: school.school_id } }
-      );
+      // Update the school information if provided
+      if (school_name || school_address || school_phone_number) {
+        await School.update(
+          {
+            school_name: school_name || school.school_name,
+            school_address: school_address || school.school_address,
+            school_phone_number:
+              school_phone_number || school.school_phone_number,
+          },
+          { where: { school_id: school.school_id } }
+        );
+      }
     }
+  }
+
+  // Prevent teachers from updating any school data
+  if (
+    req.user.role === 'teacher' &&
+    (req.body.school_name ||
+      req.body.school_address ||
+      req.body.school_phone_number)
+  ) {
+    return next(
+      new AppError(
+        'Teachers are not allowed to update school information.',
+        403
+      )
+    );
   }
 });
 
