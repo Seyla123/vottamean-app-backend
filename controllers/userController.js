@@ -13,6 +13,9 @@ const { filterObj } = require('../utils/filterObj');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 
+// Moment library
+const moment = require('moment');
+
 // Factory Handler
 const factory = require('./handlerFactory');
 
@@ -91,81 +94,95 @@ exports.getAllUsers = factory.getAll(User, {}, [
   },
 ]);
 
-// Update current user details (excluding password)
+// Update current login user
 exports.updateMe = catchAsync(async (req, res, next) => {
-  // // Handle photo upload
-  // if (req.file && req.file.location) {
-  //   filteredBody.photo = req.file.location;
-  // }
-  const user = await Admin.findOne({ where: { user_id: req.user.user_id } });
-  if (!user) {
-    return new AppError('No user found with that ID', 404);
+  let user;
+
+  // Check if the user is an Admin or Teacher
+  if (req.user.role === 'admin') {
+    user = await Admin.findOne({
+      where: { user_id: req.user.user_id },
+      include: [
+        { model: School, as: 'Schools', through: { model: SchoolAdmin } },
+      ],
+    });
+  } else if (req.user.role === 'teacher') {
+    user = await Teacher.findOne({
+      where: { user_id: req.user.user_id },
+      include: [{ model: Info, as: 'Info' }],
+    });
+  } else {
+    return next(new AppError('Invalid user role', 403));
   }
-  req.params.id = user.info_id;
-  factory.updateOne(Info, 'info_id')(req, res, next);
+
+  if (!user) {
+    return next(new AppError('No user found with that ID', 404));
+  }
+
+  const infoId = user.info_id || (user.Info && user.Info.info_id);
+  if (!infoId) {
+    return next(new AppError('No user information found for this ID', 404));
+  }
+
+  // Filter out fields that are not allowed to be updated
+  const allowedFields = [
+    'first_name',
+    'last_name',
+    'phone_number',
+    'address',
+    'dob',
+  ];
+  const filteredBody = filterObj(req.body, ...allowedFields);
+
+  if (
+    filteredBody.dob &&
+    !moment(filteredBody.dob, 'YYYY-MM-DD', true).isValid()
+  ) {
+    return next(
+      new AppError('Invalid date format for dob. Please use YYYY-MM-DD.', 400)
+    );
+  }
+
+  // Set the info_id for the update
+  req.params.id = infoId;
+
+  // Logging the payload before update
+  console.log('Updating info with payload:', filteredBody);
+
+  // Update the user's info.
+  await factory.updateOne(Info, 'info_id')(req, res, next);
+
+  // Update the user's photo if provided
+  if (req.file) {
+    // Assuming you store the photo URL in the Info model
+    await Info.update(
+      { photo: req.file.location },
+      { where: { info_id: infoId } }
+    );
+  }
+
+  // Update school information if the user is an Admin and schools exist
+  if (req.user.role === 'admin' && user.Schools && user.Schools.length > 0) {
+    const school = user.Schools[0];
+
+    const { school_name, school_address, school_phone_number } = req.body;
+
+    // Update the school information only if the respective fields are provided
+    if (school_name || school_address || school_phone_number) {
+      await School.update(
+        {
+          school_name: school_name || school.school_name,
+          school_address: school_address || school.school_address,
+          school_phone_number:
+            school_phone_number || school.school_phone_number,
+        },
+        { where: { school_id: school.school_id } }
+      );
+    }
+  }
 });
 
-// exports.updateMe = catchAsync(async (req, res, next) => {
-//   const filteredBody = filterObj(
-//     req.body,
-//     'first_name',
-//     'last_name',
-//     'dob',
-//     'gender',
-//     'phone_number',
-//     'address'
-//   );
-
-//   // Find the user based on the logged-in user ID
-//   const user = await User.findOne({
-//     where: { user_id: req.user.user_id },
-//     include: [
-//       {
-//         model: Admin,
-//         as: 'AdminProfile',
-//         include: [{ model: Info, as: 'Info' }],
-//       },
-//       {
-//         model: Teacher,
-//         as: 'TeacherProfile',
-//         include: [{ model: Info, as: 'Info' }],
-//       },
-//     ],
-//   });
-
-//   if (!user) {
-//     return next(new AppError('No user found with that ID', 404));
-//   }
-
-//   // Update the `Info` table data (for both Admin and Teacher profiles)
-//   let updatedInfo;
-//   if (user.AdminProfile) {
-//     updatedInfo = await Info.update(filteredBody, {
-//       where: { info_id: user.AdminProfile.info_id },
-//     });
-//   } else if (user.TeacherProfile) {
-//     updatedInfo = await Info.update(filteredBody, {
-//       where: { info_id: user.TeacherProfile.info_id },
-//     });
-//   }
-
-//   // If you need to update the `User` model (email, etc.), you can update it here
-//   if (req.body.email) {
-//     await User.update(
-//       { email: req.body.email },
-//       { where: { user_id: req.user.user_id } }
-//     );
-//   }
-
-//   res.status(200).json({
-//     status: 'success',
-//     data: {
-//       user,
-//       updatedInfo,
-//     },
-//   });
-// });
-
+// Delete current login user
 exports.deleteMe = catchAsync(async (req, res, next) => {
   // Get the currently logged-in user ID from the token
   const user_id = req.user.user_id;
