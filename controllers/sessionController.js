@@ -169,10 +169,7 @@ exports.getAllTeacherSessions = catchAsync(async (req, res, next) => {
 
     return {
       session_id: session.session_id,
-      Class:{
-        class_id: session.Class.class_id,
-        class_name: session.Class.class_name,
-      },
+      class_name: session.Class.class_name,
       day: session.DayOfWeek.day, // assuming 'day' is the field in DayOfWeek model
       subject: session.Subject.name, // assuming 'name' is the field in Subject model
       students: studentCount || 0, // Count the number of students
