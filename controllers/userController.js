@@ -26,7 +26,8 @@ exports.getMe = catchAsync(async (req, res, next) => {
   next(); // Proceed to the next middleware or route handler
 });
 
-// Get one User
+// Get user
+// Get user
 exports.getUser = catchAsync(async (req, res, next) => {
   // Fetch user with related profiles and school data
   const user = await User.findOne({
@@ -37,14 +38,33 @@ exports.getUser = catchAsync(async (req, res, next) => {
         as: 'AdminProfile',
         include: [
           { model: Info, as: 'Info' },
-          { model: School, as: 'Schools', through: { model: SchoolAdmin } },
+          {
+            model: School,
+            as: 'Schools',
+            through: { model: SchoolAdmin },
+            required: false,
+          },
         ],
         required: false,
       },
       {
         model: Teacher,
         as: 'TeacherProfile',
-        include: [{ model: Info, as: 'Info' }],
+        include: [
+          { model: Info, as: 'Info' },
+          {
+            model: SchoolAdmin,
+            as: 'SchoolAdmin',
+            include: [
+              {
+                model: School,
+                as: 'School',
+                required: false,
+              },
+            ],
+            required: false,
+          },
+        ],
         required: false,
       },
     ],
@@ -55,10 +75,32 @@ exports.getUser = catchAsync(async (req, res, next) => {
     return next(new AppError('No user found with that ID', 404));
   }
 
-  // Avoid circular reference and structure data
+  // Extract user data
   const { user_id, email, role, AdminProfile, TeacherProfile } = user.toJSON();
 
-  // Structure response based on role
+  // Process admin's schools, ensuring no duplicates
+  let uniqueAdminSchools = [];
+  if (AdminProfile && AdminProfile.Schools) {
+    const schoolMap = {};
+    AdminProfile.Schools.forEach((school) => {
+      if (!schoolMap[school.school_id]) {
+        schoolMap[school.school_id] = school;
+      }
+    });
+    uniqueAdminSchools = Object.values(schoolMap);
+  }
+
+  // Extract teacher's school from SchoolAdmin
+  let teacherSchool = null;
+  if (
+    TeacherProfile &&
+    TeacherProfile.SchoolAdmin &&
+    TeacherProfile.SchoolAdmin.School
+  ) {
+    teacherSchool = TeacherProfile.SchoolAdmin.School;
+  }
+
+  // Structure the response based on the user's role
   const userProfile = {
     id: user_id,
     email,
@@ -67,13 +109,23 @@ exports.getUser = catchAsync(async (req, res, next) => {
       role === 'admin' && AdminProfile
         ? {
             ...AdminProfile,
-            schools: AdminProfile.Schools || null,
+            schools: uniqueAdminSchools,
           }
         : null,
-    teacherProfile: (role === 'teacher' && TeacherProfile) || null,
+    teacherProfile:
+      role === 'teacher' && TeacherProfile
+        ? {
+            teacher_id: TeacherProfile.teacher_id,
+            active: TeacherProfile.active,
+            createdAt: TeacherProfile.createdAt,
+            updatedAt: TeacherProfile.updatedAt,
+            info: TeacherProfile.Info,
+            school: teacherSchool,
+          }
+        : null,
   };
 
-  // Send response
+  // Send the structured response
   res.status(200).json({
     status: 'success',
     data: userProfile,
