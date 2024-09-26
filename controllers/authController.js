@@ -235,7 +235,25 @@ exports.login = catchAsync(async (req, res, next) => {
 
   // 3. Find the user by email and verify the password.
   const user = await User.scope('withPassword').findOne({ where: { email } });
-  if (!user || !(await user.correctPassword(password))) {
+
+  // Check if user exists
+  if (!user) {
+    return next(new AppError('Incorrect email or password', 401));
+  }
+
+  // Check if the account is active
+  if (!user.active) {
+    // Assuming 'active' is a boolean field
+    return next(
+      new AppError(
+        'Your account is inactive. Please contact support for further assistance.',
+        403
+      )
+    );
+  }
+
+  // Verify password
+  if (!(await user.correctPassword(password))) {
     return next(new AppError('Incorrect email or password', 401));
   }
 

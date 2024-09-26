@@ -125,7 +125,6 @@ exports.getAllUsers = factory.getAll(User, {}, [
   },
 ]);
 
-// Update current login user
 // Update current logged-in user
 exports.updateMe = catchAsync(async (req, res, next) => {
   let user;

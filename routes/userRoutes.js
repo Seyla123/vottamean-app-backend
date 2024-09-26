@@ -27,10 +27,10 @@ router.get('/me', userController.getMe, userController.getUser);
 // Update current user details
 router.patch(
   '/update-me',
-  userController.getMe,
-  userController.updateMe,
   photoController.uploadUserPhoto,
-  photoController.resizeUserPhoto
+  photoController.resizeUserPhoto,
+  userController.getMe,
+  userController.updateMe
 );
 
 // Delete the current user
