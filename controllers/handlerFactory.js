@@ -71,7 +71,7 @@ exports.getOne = (Model, idField, popOptions = [], additionalFilter = {}) =>
  * @param {Array} [search=[]] - Fields to search within.
  * @returns {Function} Middleware function for retrieving all documents.
  */
-exports.getAll = (Model, additionalFilter = {}, popOptions = [], search = [], attribute=[]) =>
+exports.getAll = (Model, additionalFilter = {}, popOptions = [], search = [], attribute) =>
   catchAsync(async (req, res, next) => {
     let filter = { ...additionalFilter, active: 1 };
 
@@ -84,7 +84,7 @@ exports.getAll = (Model, additionalFilter = {}, popOptions = [], search = [], at
       .limitFields()
       .paginate()
       .includeAssociations(popOptions);
-    features.options.attributes = attribute;
+    if (attribute) features.options.attributes = attribute;
     const doc = await features.exec({
       where: filter,
       include: popOptions,
