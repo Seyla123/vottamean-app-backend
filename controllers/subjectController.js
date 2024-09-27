@@ -10,11 +10,11 @@ const factory = require('./handlerFactory');
 
 const { filterObj } = require('../utils/filterObj');
 
+// Check if the subject belongs to the school admin
 const checkIfBelongs = async (id, school_admin_id) => {
-  // Validate the ID
   const subject = await Subject.findOne({
     where: {
-      subject_id: id, // Assuming 'id' is the primary key of the Period model
+      subject_id: id,
       school_admin_id: school_admin_id,
     },
   });
@@ -26,13 +26,13 @@ const checkIfBelongs = async (id, school_admin_id) => {
   }
 };
 
-// check if any duplicate to prevent create the same period
-const checkDuplicate = async (name , school_admin_id) => {
+// Check for duplicate subjects
+const checkDuplicate = async (name, school_admin_id) => {
   const subject = await Subject.findOne({
     where: {
-      name: name,
-      school_admin_id : school_admin_id, 
-      active : true
+      subject_name: subject_name,
+      school_admin_id: school_admin_id,
+      active: true,
     },
   });
   if (subject) {
@@ -42,25 +42,28 @@ const checkDuplicate = async (name , school_admin_id) => {
 
 // Create a new subject
 exports.createSubject = catchAsync(async (req, res, next) => {
-  const school_admin_id = req.school_admin_id; 
+  const school_admin_id = req.school_admin_id;
   const { name } = req.body;
 
-  // filter the request body
-  req.body = filterObj(req.body, 'name' , 'description');
+  // Filter the request body
+  req.body = filterObj(req.body, 'subject_name', 'description');
 
   req.body.school_admin_id = school_admin_id;
 
   // If no subject with the same name exists, create a new one
   await checkDuplicate(name, school_admin_id);
 
-  // create new subject
+  // Create new subject
   await factory.createOne(Subject)(req, res, next);
-
 });
 
 // Get all subjects
 exports.getAllSubjects = catchAsync(async (req, res, next) => {
-  factory.getAll(Subject, { school_admin_id: req.school_admin_id })(req, res, next);
+  factory.getAll(Subject, { school_admin_id: req.school_admin_id })(
+    req,
+    res,
+    next
+  );
 });
 
 // Get a subject by ID

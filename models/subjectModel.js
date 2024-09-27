@@ -13,7 +13,7 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
-      name: {
+      subject_name: {
         type: DataTypes.STRING,
         allowNull: false,
         validate: validators.isValidSubject,
