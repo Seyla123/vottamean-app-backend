@@ -18,6 +18,7 @@ const periodRoutes = require('./periodRoutes');
 const dayRoutes = require('./dayRoutes');
 const sessionRoutes = require('./sessionRoutes');
 const subjectRoutes = require('./subjectRoutes');
+const statusRoutes = require('./statusRoutes');
 
 // Information Route
 const infoRoutes = require('./infoRoutes');
@@ -31,6 +32,7 @@ router.use('/students', studentRoutes);
 router.use('/periods', periodRoutes);
 router.use('/subjects', subjectRoutes);
 router.use('/days', dayRoutes);
+router.use('/status', statusRoutes);
 router.use('/sessions', sessionRoutes);
 
 // School Routes
