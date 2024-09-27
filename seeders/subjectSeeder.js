@@ -3,27 +3,27 @@ const { Subject } = require('../models');
 const insertSubjects = async () => {
   const subjects = [
     {
-      name: 'Mathematics',
+      subject_name: 'Mathematics',
       description: 'Study of numbers, shapes, and patterns.',
       active: true,
     },
     {
-      name: 'Science',
+      subject_name: 'Science',
       description: 'Study of the physical and natural world.',
       active: true,
     },
     {
-      name: 'History',
+      subject_name: 'History',
       description: 'Study of past events and civilizations.',
       active: true,
     },
     {
-      name: 'English Literature',
+      subject_name: 'English Literature',
       description: 'Study of written works in the English language.',
       active: true,
     },
     {
-      name: 'Physical Education',
+      subject_name: 'Physical Education',
       description: 'Study of physical fitness and sports.',
       active: true,
     },
@@ -31,7 +31,7 @@ const insertSubjects = async () => {
 
   for (const subject of subjects) {
     const [subjectInstance, created] = await Subject.findOrCreate({
-      where: { name: subject.name },
+      where: { subject_name: subject.subject_name },
       defaults: {
         description: subject.description,
         active: subject.active,
@@ -41,9 +41,9 @@ const insertSubjects = async () => {
     });
 
     if (created) {
-      console.log(`Inserted subject: ${subjectInstance.name}`);
+      console.log(`Inserted subject: ${subjectInstance.subject_name}`);
     } else {
-      console.log(`Subject already exists: ${subjectInstance.name}`);
+      console.log(`Subject already exists: ${subjectInstance.subject_name}`);
     }
   }
 };
