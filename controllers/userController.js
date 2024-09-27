@@ -125,7 +125,7 @@ exports.getAllUsers = factory.getAll(User, {}, [
   },
 ]);
 
-// Update current logged-in user
+// Update current login user
 exports.updateMe = catchAsync(async (req, res, next) => {
   let user;
 
@@ -186,13 +186,13 @@ exports.updateMe = catchAsync(async (req, res, next) => {
   // Check if there's any update to user information
   const hasUpdates = Object.keys(filteredBody).length > 0;
 
-  // Update the user's personal information only if there are changes
+  // If there are changes to user information, update them
   if (hasUpdates) {
     req.params.id = infoId;
     await factory.updateOne(Info, 'info_id')(req, res, next);
   }
 
-  // Update the user's photo if a new one is provided
+  // Independent check for file (photo) upload
   if (req.file) {
     console.log('Uploaded file:', req.file.location);
 
@@ -202,9 +202,17 @@ exports.updateMe = catchAsync(async (req, res, next) => {
       { where: { info_id: infoId } }
     );
     console.log('Photo update result:', updateResult);
+
+    // Send response if only the photo was updated
+    if (!hasUpdates) {
+      return res.status(200).json({
+        status: 'success',
+        message: 'Profile photo updated successfully',
+      });
+    }
   }
 
-  // Check if the user is an admin and update school information if provided
+  // Additional logic for Admin to update school information
   if (req.user.role === 'admin') {
     if (user.Schools && user.Schools.length > 0) {
       const school = user.Schools[0];
@@ -241,6 +249,12 @@ exports.updateMe = catchAsync(async (req, res, next) => {
       )
     );
   }
+
+  // Send final response after completing all updates
+  res.status(200).json({
+    status: 'success',
+    message: 'Profile updated successfully',
+  });
 });
 
 // Delete current login user
