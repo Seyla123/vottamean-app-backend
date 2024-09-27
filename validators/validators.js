@@ -60,9 +60,6 @@ module.exports = {
 
   // Validator for description
   isValidDescription: (value) => {
-    if (validator.isEmpty(value)) {
-      throw new Error('Description cannot be empty');
-    }
     if (!validator.isLength(value, { max: 255 })) {
       throw new Error('Description cannot exceed 255 characters');
     }
