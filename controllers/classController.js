@@ -14,22 +14,36 @@ const { filterObj } = require('../utils/filterObj');
 //  Checking for belongs to admin id
 const { isBelongsToAdmin } = require('../utils/helper');
 
+// validation
+const {
+  isValidClassName,
+  isValidDescription,
+} = require('../validators/validators');
+
 // Create a new class
 exports.addClass = catchAsync(async (req, res, next) => {
-  // check if class already exists in the school
+  const { class_name, description } = req.body;
+  // Validate class_name and description
+  if (!isValidClassName(class_name)) {
+    return next(new AppError('Invalid class name', 400));
+  }
+  if (!isValidDescription(description)) {
+    return next(new AppError('Invalid class description', 400));
+  }
+  // Check if class already exists in the school
   const existingClass = await Class.findOne({
     where: {
-      class_name: req.body.class_name,
+      class_name: class_name,
       school_admin_id: req.school_admin_id,
     },
   });
   if (existingClass) {
     return next(new AppError('Class already exists', 400));
   }
-  // filter the request body to only include class_name and description
+  // Filter the request body to only include class_name and description
   req.body = filterObj(req.body, 'class_name', 'description');
   req.body.school_admin_id = req.school_admin_id;
-  // create new class
+  // Create new class
   factory.createOne(Class)(req, res, next);
 });
 
@@ -55,8 +69,19 @@ exports.getClass = catchAsync(async (req, res, next) => {
 
 // Update a class
 exports.updateClass = catchAsync(async (req, res, next) => {
-  await isBelongsToAdmin(req.params.id, 'class_id', req.school_admin_id, Class); // Check if belongs to admin
-  req.body = filterObj(req.body, 'class_name', 'description'); // Filter out only class_name and description
+  const { class_name, description } = req.body
+  // Validate class name
+  if (!isValidClassName(class_name)) {
+    return next(new AppError('Class name is required and must be valid', 400));
+  }
+  if (!isValidDescription(description)) {
+    return next(new AppError('Description cannot exceed 255 characters', 400));
+  }
+  // Check if the class belongs to the admin
+  await isBelongsToAdmin(req.params.id, 'class_id', req.school_admin_id, Class);
+  // Filter out only class_name and description
+  req.body = filterObj(req.body, 'class_name', 'description');
+  // Update the class
   factory.updateOne(Class, 'class_id')(req, res, next);
 });
 
