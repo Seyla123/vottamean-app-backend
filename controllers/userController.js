@@ -146,6 +146,7 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     return next(new AppError('Invalid user role', 403));
   }
 
+  // Handle case where no user is found
   if (!user) {
     return next(new AppError('No user found with that ID', 404));
   }
@@ -163,7 +164,10 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     'phone_number',
     'address',
     'dob',
+    'gender',
   ];
+
+  // Filter the body to only include allowed fields
   const filteredBody = filterObj(req.body, ...allowedFields);
 
   // Validate date of birth format (if provided)
@@ -176,17 +180,28 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     );
   }
 
-  // Update the user's personal information
-  req.params.id = infoId;
-  await factory.updateOne(Info, 'info_id')(req, res, next);
+  // Log the filtered body for verification
+  console.log('Filtered Body:', filteredBody);
+
+  // Check if there's any update to user information
+  const hasUpdates = Object.keys(filteredBody).length > 0;
+
+  // Update the user's personal information only if there are changes
+  if (hasUpdates) {
+    req.params.id = infoId;
+    await factory.updateOne(Info, 'info_id')(req, res, next);
+  }
 
   // Update the user's photo if a new one is provided
   if (req.file) {
-    // Assuming the photo URL is stored in the Info model
-    await Info.update(
+    console.log('Uploaded file:', req.file.location);
+
+    // Update photo URL in the Info model
+    const updateResult = await Info.update(
       { photo: req.file.location },
       { where: { info_id: infoId } }
     );
+    console.log('Photo update result:', updateResult);
   }
 
   // Check if the user is an admin and update school information if provided
