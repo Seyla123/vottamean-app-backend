@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 5001;
 // Connect to the database
 sequelize
   .sync({
-    force: false, //process.env.NODE_ENV === 'development', // True for development, false for production
+    force: false//process.env.NODE_ENV === 'development', // True for development, false for production
   })
   .then(async () => {
     await seedDatabase();
