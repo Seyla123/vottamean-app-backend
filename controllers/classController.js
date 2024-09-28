@@ -22,14 +22,7 @@ const {
 
 // Create a new class
 exports.addClass = catchAsync(async (req, res, next) => {
-  const { class_name, description } = req.body;
-  // Validate class_name and description
-  if (!isValidClassName(class_name)) {
-    return next(new AppError('Invalid class name', 400));
-  }
-  if (!isValidDescription(description)) {
-    return next(new AppError('Invalid class description', 400));
-  }
+  const { class_name } = req.body;
   // Check if class already exists in the school
   const existingClass = await Class.findOne({
     where: {

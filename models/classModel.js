@@ -15,11 +15,14 @@ module.exports = (sequelize, DataTypes) => {
       class_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: validators.isValidClassName,
+        validate: {
+          isValidClassName : validators.isValidClassName},
       },
       description: {
-        type: DataTypes.STRING,
-        validate: validators.isValidDescription,
+        type: DataTypes.STRING(220),
+        validate: {
+          isValidClassName : validators.isValidDescription, // Use imported validator
+        },
       },
       active: {
         type: DataTypes.BOOLEAN,
