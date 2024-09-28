@@ -43,11 +43,7 @@ const checkDuplicate = async (subject_name, school_admin_id) => {
 // Create a new subject
 exports.createSubject = catchAsync(async (req, res, next) => {
   const school_admin_id = req.school_admin_id;
-<<<<<<< HEAD
   const { subject_name } = req.body;
-=======
-  const { name } = req.body;
->>>>>>> 86a89b3efcca23009bcc40aa6e0a3b43bb39e29b
 
   // Filter the request body
   req.body = filterObj(req.body, 'subject_name', 'description');
