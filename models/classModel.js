@@ -19,7 +19,7 @@ module.exports = (sequelize, DataTypes) => {
           isValidClassName : validators.isValidClassName},
       },
       description: {
-        type: DataTypes.STRING(220),
+        type: DataTypes.STRING,
         validate: {
           isValidClassName : validators.isValidDescription, // Use imported validator
         },
