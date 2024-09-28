@@ -10,7 +10,7 @@ exports.formatDataSessionfForAttendance = async (session_id) => {
         { model: DayOfWeek, as: 'DayOfWeek', attributes: ['day'] },
         { model: Period, as: 'Period', attributes: ['start_time', 'end_time'] },
         {model: Class, as: 'Class', attributes: ['class_name']},
-        { model: Subject, as: 'Subject', attributes: ['name']},{
+        { model: Subject, as: 'Subject', attributes: ['subject_name']},{
           model: Teacher, as: 'Teacher', include:[
             { model:Info,as: 'Info', attributes: ['first_name', 'last_name']}
           ]
@@ -25,7 +25,7 @@ exports.formatDataSessionfForAttendance = async (session_id) => {
   
     const sessionData = {
       className: `${session.Class.class_name}`,
-      subjectName: `${session.Subject.name}`,
+      subjectName: `${session.Subject.subject_name}`,
       teacherName: `${session.Teacher.Info.first_name} ${session.Teacher.Info.last_name}`,
       sessionDate: `${session.DayOfWeek.day}, ${todayDate}`,
       studyTime: `${dayjs(startTime).format('h:mm A')} - ${dayjs(endTime).format('h:mm A')}`,

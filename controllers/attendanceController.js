@@ -82,7 +82,7 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
           model: Subject,
           as: 'Subject',
           where: subject_id && { subject_id },
-          attributes: ['subject_id', 'name'],
+          attributes: ['subject_id', 'subject_name'],
           required: !!subject_id,
         },
         {

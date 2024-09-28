@@ -27,7 +27,7 @@ exports.formatTeacherSessions = async (sessions) => {
         session_id: session.session_id,
         class_name: session.Class.class_name,
         day: session.DayOfWeek.day,
-        subject: session.Subject.name,
+        subject: session.Subject.subject_name,
         students: studentCount || 0,
         start_time: session.Period.start_time,
         end_time: session.Period.end_time,
