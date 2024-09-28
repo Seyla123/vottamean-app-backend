@@ -7,6 +7,7 @@ const {
   SchoolAdmin,
   Info,
   Sequelize,
+  Subscription,
 } = require('../models');
 
 // Error Handlers
@@ -29,7 +30,7 @@ exports.getMe = catchAsync(async (req, res, next) => {
 
 // Get user
 exports.getUser = catchAsync(async (req, res, next) => {
-  // Fetch user with related profiles and school data
+  // Fetch user with related profiles, school data, and subscriptions
   const user = await User.findOne({
     where: { user_id: req.params.id },
     include: [
@@ -62,13 +63,17 @@ exports.getUser = catchAsync(async (req, res, next) => {
                 required: true,
               },
             ],
-            // Filter based on school_admin_id
             where: {
               school_admin_id: Sequelize.col('TeacherProfile.school_admin_id'),
             },
             required: false,
           },
         ],
+        required: false,
+      },
+      {
+        model: Subscription,
+        as: 'subscriptions',
         required: false,
       },
     ],
@@ -80,7 +85,8 @@ exports.getUser = catchAsync(async (req, res, next) => {
   }
 
   // Extract user data
-  const { user_id, email, role, AdminProfile, TeacherProfile } = user.toJSON();
+  const { user_id, email, role, AdminProfile, TeacherProfile, subscriptions } =
+    user.toJSON();
 
   // Extract school directly from the teacher's SchoolAdmin relation
   const school = TeacherProfile?.SchoolAdmin?.School || null;
@@ -90,6 +96,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
     id: user_id,
     email,
     role,
+    subscriptions,
     adminProfile: role === 'admin' && AdminProfile ? { ...AdminProfile } : null,
     teacherProfile:
       role === 'teacher' && TeacherProfile

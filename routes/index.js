@@ -8,6 +8,9 @@ const adminRoutes = require('./adminRoutes');
 const teacherRoutes = require('./teacherRoutes');
 const studentRoutes = require('./studentRoutes');
 
+// Payment Routes
+const paymentRoutes = require('./paymentRoutes');
+
 // School Routes
 const schoolAdminRoutes = require('./schoolAdminRoutes');
 
@@ -29,11 +32,9 @@ router.use('/users', userRoutes);
 router.use('/admins', adminRoutes);
 router.use('/teachers', teacherRoutes);
 router.use('/students', studentRoutes);
-router.use('/periods', periodRoutes);
-router.use('/subjects', subjectRoutes);
-router.use('/days', dayRoutes);
-router.use('/status', statusRoutes);
-router.use('/sessions', sessionRoutes);
+
+// Payment Routes
+router.use('/payment', paymentRoutes);
 
 // School Routes
 router.use('/school-admin', schoolAdminRoutes);
@@ -41,11 +42,14 @@ router.use('/school-admin', schoolAdminRoutes);
 // Features Routes
 router.use('/subjects', subjectRoutes);
 router.use('/classes', classRoutes);
+router.use('/periods', periodRoutes);
+router.use('/subjects', subjectRoutes);
+router.use('/days', dayRoutes);
+router.use('/status', statusRoutes);
+router.use('/sessions', sessionRoutes);
+router.use('/attendance', attendanceRoutes);
 
 // Information Route
 router.use('/info', infoRoutes);
-
-// Attendance Routes
-router.use('/attendance', attendanceRoutes);
 
 module.exports = router;
