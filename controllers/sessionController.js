@@ -86,11 +86,6 @@ exports.getAllTeacherSessions = catchAsync(async (req, res, next) => {
   // Fetch all teacher sessions
   const sessions = await fetchTeacherSessions(req.teacher_id, filter, currentDay);
 
-  // Handle case where no sessions are found
-  if (!sessions.length) {
-    return next(new AppError('No teacher session found', 404));
-  }
-
   // Format the sessions
   const formattedSessions = await formatTeacherSessions(sessions);
 
