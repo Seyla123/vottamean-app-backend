@@ -11,7 +11,6 @@ const {
   School,
   SchoolAdmin,
   Teacher,
-  Subscription,
 } = require('../models');
 const { Op } = require('sequelize');
 
@@ -195,18 +194,7 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
       { transaction }
     );
 
-    // 9. Create subscription for the user (free tier)
-    const subscription = await Subscription.create(
-      {
-        user_id: user.user_id,
-        plan_type: 'free',
-        start_date: new Date(),
-        end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-      },
-      { transaction }
-    );
-
-    // 10. Commit the transaction if all records are created successfully
+    // 9. Commit the transaction if all records are created successfully
     await transaction.commit();
 
     res.status(200).json({
@@ -314,28 +302,23 @@ exports.protect = catchAsync(async (req, res, next) => {
 
   // 3. Verify the token and decode the payload.
   const decoded = await jwt.verify(token, process.env.JWT_SECRET);
-  const currentUser = await User.findByPk(decoded.id);
 
   // 4. Find the user associated with the token.
+  const currentUser = await User.findByPk(decoded.id);
   if (!currentUser) {
     return next(
       new AppError('The user belonging to this token no longer exists.', 401)
     );
   }
 
-  // 5. ​Check if free trial has expired or subscription is inactive
-  const subscription = await Subscription.findOne({
-    where: { user_id: currentUser.user_id, status: 'active' },
-  });
-
-  // 6. Check if the user has changed the password after the token was issued.
-  if (!subscription || new Date(subscription.end_date) < new Date()) {
+  // 5. Check if the user has changed the password after the token was issued.
+  if (currentUser.changedPasswordAfter(decoded.iat)) {
     return next(
-      new AppError('Your free trial or subscription has expired.', 403)
+      new AppError('User recently changed password! Please log in again.', 401)
     );
   }
 
-  // ៧. Attach user details to the request object and proceed.
+  // 6. Attach user details to the request object and proceed.
   req.user = currentUser;
   res.locals.user = currentUser;
   next();
