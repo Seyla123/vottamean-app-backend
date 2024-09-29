@@ -201,7 +201,10 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
         user_id: user.user_id,
         plan_type: 'free',
         start_date: new Date(),
+        // testing end_date with 14 days
         end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        // testing end_date with just 1 minute
+        // end_date: new Date(Date.now() + 1 * 60 * 1000),
       },
       { transaction }
     );
@@ -335,7 +338,7 @@ exports.protect = catchAsync(async (req, res, next) => {
     );
   }
 
-  // ៧. Attach user details to the request object and proceed.
+  // 7. Attach user details to the request object and proceed.
   req.user = currentUser;
   res.locals.user = currentUser;
   next();
