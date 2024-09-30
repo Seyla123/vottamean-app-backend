@@ -1,44 +1,59 @@
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
-  const Payment = sequelize.define('Payment', {
-    payment_id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
+  class Payment extends Model {
+    // instance or class methods here if needed
+  }
+
+  Payment.init(
+    {
+      payment_id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      amount: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+      },
+      currency: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'USD',
+      },
+      payment_method: {
+        type: DataTypes.STRING, // e.g., 'credit_card', 'paypal', etc.
+        allowNull: false,
+      },
+      payment_status: {
+        type: DataTypes.ENUM('successful', 'failed', 'pending'),
+        defaultValue: 'pending',
+      },
+      payment_date: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
     },
-    amount: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
-    },
-    currency: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      defaultValue: 'USD',
-    },
-    payment_method: {
-      type: DataTypes.STRING, // e.g., 'credit_card', 'paypal', etc.
-      allowNull: false,
-    },
-    payment_status: {
-      type: DataTypes.ENUM('successful', 'failed', 'pending'),
-      defaultValue: 'pending',
-    },
-    payment_date: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-  });
+    {
+      sequelize,
+      tableName: 'payment',
+      timestamps: true,
+      underscored: true,
+    }
+  );
 
   Payment.associate = (models) => {
-    Payment.belongsTo(models.User, {
-      foreignKey: 'user_id',
-      as: 'user',
-      onDelete: 'CASCADE',
+    // Payment belongs to a School Admin
+    Payment.belongsTo(models.SchoolAdmin, {
+      foreignKey: 'school_admin_id',
+      as: 'SchoolAdmin',
     });
 
-    Payment.belongsTo(models.Subscription, {
-      foreignKey: 'subscription_id',
-      as: 'subscription',
+    // Payment has many Sessions
+    Payment.hasMany(models.Session, {
+      foreignKey: 'payment_id',
+      as: 'Sessions',
       onDelete: 'CASCADE',
     });
   };

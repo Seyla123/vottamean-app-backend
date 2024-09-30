@@ -177,20 +177,6 @@ module.exports = (sequelize, DataTypes) => {
       as: 'TeacherProfile',
       onDelete: 'CASCADE',
     });
-
-    // User has many subscriptions
-    User.hasMany(models.Subscription, {
-      foreignKey: 'user_id',
-      as: 'subscriptions',
-      onDelete: 'CASCADE',
-    });
-
-    // User has many payments
-    User.hasMany(models.Payment, {
-      foreignKey: 'user_id',
-      as: 'payments',
-      onDelete: 'CASCADE',
-    });
   };
 
   return User;
