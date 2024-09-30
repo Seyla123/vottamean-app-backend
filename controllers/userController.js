@@ -71,11 +71,6 @@ exports.getUser = catchAsync(async (req, res, next) => {
         ],
         required: false,
       },
-      {
-        model: Subscription,
-        as: 'subscriptions',
-        required: false,
-      },
     ],
   });
 

@@ -125,6 +125,104 @@ exports.signup = catchAsync(async (req, res, next) => {
 // ----------------------------
 // VERIFY EMAIL FUNCTION
 // ----------------------------
+// exports.verifyEmail = catchAsync(async (req, res, next) => {
+//   // 1. Extract necessary fields from the request body.
+//   const hashedToken = crypto
+//     .createHash('sha256')
+//     .update(req.params.token)
+//     .digest('hex');
+
+//   const tempToken = req.query.token;
+
+//   const decoded = await jwt.verify(tempToken, process.env.JWT_SECRET);
+
+//   // 2. Validate that the password and password confirmation match.
+//   if (decoded.emailVerificationToken !== hashedToken) {
+//     return next(new AppError('Token is invalid or has expired.', 400));
+//   }
+
+//   // 3. Start a transaction for data models
+//   const transaction = await sequelize.transaction();
+//   try {
+//     const {
+//       email,
+//       password,
+//       address,
+//       dob,
+//       first_name,
+//       last_name,
+//       gender,
+//       phone_number,
+//       school_name,
+//       school_address,
+//       school_phone_number,
+//     } = decoded;
+
+//     // 4. Create the user
+//     const user = await User.create(
+//       { email, password, emailVerified: true },
+//       { transaction }
+//     );
+
+//     // 5. Create the info record
+//     const info = await Info.create(
+//       {
+//         first_name,
+//         last_name,
+//         gender,
+//         phone_number,
+//         address,
+//         dob,
+//       },
+//       { transaction }
+//     );
+
+//     // 6. Create the school record
+//     const school = await School.create(
+//       { school_name, school_address, school_phone_number },
+//       { transaction }
+//     );
+
+//     // 7. Create the admin record with the user and info ID
+//     const admin = await Admin.create(
+//       { user_id: user.user_id, info_id: info.info_id },
+//       { transaction }
+//     );
+
+//     // 8. Create the SchoolAdmin record and capture the instance
+//     const schoolAdmin = await SchoolAdmin.create(
+//       { admin_id: admin.admin_id, school_id: school.school_id },
+//       { transaction }
+//     );
+
+//     // 9. Create the subscription for the school admin (free tier)
+//     await Subscription.create(
+//       {
+//         school_admin_id: schoolAdmin.school_admin_id,
+//         plan_type: 'free',
+//         start_date: new Date(),
+//         end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14-day free trial
+//       },
+//       { transaction }
+//     );
+
+//     // 10. Commit the transaction
+//     await transaction.commit();
+
+//     // 11. Respond with a success message
+//     res.status(200).json({
+//       status: 'success',
+//       message: 'Email verified and account created successfully!',
+//     });
+//   } catch (err) {
+//     // 12. Rollback the transaction if any error occurs
+//     await transaction.rollback();
+//     return next(
+//       new AppError(`Failed to create user and school: ${err.message}`, 500)
+//     );
+//   }
+// });
+
 exports.verifyEmail = catchAsync(async (req, res, next) => {
   // 1. Extract necessary fields from the request body.
   const hashedToken = crypto
@@ -195,21 +293,7 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
       { transaction }
     );
 
-    // 9. Create subscription for the user (free tier)
-    const subscription = await Subscription.create(
-      {
-        user_id: user.user_id,
-        plan_type: 'free',
-        start_date: new Date(),
-        // testing end_date with 14 days
-        end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-        // testing end_date with just 1 minute
-        // end_date: new Date(Date.now() + 1 * 60 * 1000),
-      },
-      { transaction }
-    );
-
-    // 10. Commit the transaction if all records are created successfully
+    // 9. Commit the transaction if all records are created successfully
     await transaction.commit();
 
     res.status(200).json({
@@ -296,6 +380,104 @@ exports.logout = (req, res) => {
 // ----------------------------
 // PROTECT MIDDLEWARE
 // ----------------------------
+// exports.protect = catchAsync(async (req, res, next) => {
+//   // 1. Extract token from authorization header or cookies.
+//   let token;
+//   if (
+//     req.headers.authorization &&
+//     req.headers.authorization.startsWith('Bearer')
+//   ) {
+//     token = req.headers.authorization.split(' ')[1];
+//   } else if (req.cookies.jwt) {
+//     token = req.cookies.jwt;
+//   }
+
+//   // 2. Check if token is provided.
+//   if (!token) {
+//     return next(
+//       new AppError('You are not logged in! Please log in to get access.', 401)
+//     );
+//   }
+
+//   // 3. Verify the token and decode the payload.
+//   let decoded;
+//   try {
+//     decoded = await jwt.verify(token, process.env.JWT_SECRET);
+//   } catch (error) {
+//     return next(new AppError('Invalid token. Please log in again.', 401));
+//   }
+
+//   // 4. Find the user associated with the token and include the Admin profile.
+//   const currentUser = await User.findByPk(decoded.id, {
+//     include: [
+//       {
+//         model: Admin,
+//         as: 'AdminProfile',
+//         include: [
+//           {
+//             model: School,
+//             as: 'Schools',
+//             through: {
+//               model: SchoolAdmin,
+//             },
+//             include: [
+//               {
+//                 model: SchoolAdmin,
+//                 as: 'SchoolAdmin',
+//                 include: [
+//                   {
+//                     model: Subscription,
+//                     as: 'subscriptions',
+//                     where: { status: 'active' },
+//                     required: false,
+//                   },
+//                 ],
+//               },
+//             ],
+//           },
+//         ],
+//       },
+//     ],
+//   });
+
+//   // 5. Check if the user exists
+//   if (!currentUser) {
+//     return next(
+//       new AppError('The user belonging to this token no longer exists.', 401)
+//     );
+//   }
+
+//   // 6. Check if AdminProfile and SchoolAdmin exists
+//   if (!currentUser.AdminProfile || !currentUser.AdminProfile.SchoolAdmin) {
+//     return next(
+//       new AppError(
+//         'Admin or SchoolAdmin associated with this user does not exist.',
+//         401
+//       )
+//     );
+//   }
+
+//   // 7. Access SchoolAdmin from AdminProfile
+//   const schoolAdmin = currentUser.AdminProfile.SchoolAdmin;
+
+//   // 8. Check if there is an active subscription in SchoolAdmin
+//   const subscription = schoolAdmin?.subscriptions?.find(
+//     (sub) => new Date(sub.end_date) >= new Date()
+//   );
+
+//   if (!subscription) {
+//     return next(
+//       new AppError('Your free trial or subscription has expired.', 403)
+//     );
+//   }
+
+//   // 9. Attach user and school admin details to the request object and proceed.
+//   req.user = currentUser;
+//   req.schoolAdmin = schoolAdmin;
+//   res.locals.user = currentUser;
+//   next();
+// });
+
 exports.protect = catchAsync(async (req, res, next) => {
   // 1. Extract token from authorization header or cookies.
   let token;
@@ -317,28 +499,23 @@ exports.protect = catchAsync(async (req, res, next) => {
 
   // 3. Verify the token and decode the payload.
   const decoded = await jwt.verify(token, process.env.JWT_SECRET);
-  const currentUser = await User.findByPk(decoded.id);
 
   // 4. Find the user associated with the token.
+  const currentUser = await User.findByPk(decoded.id);
   if (!currentUser) {
     return next(
       new AppError('The user belonging to this token no longer exists.', 401)
     );
   }
 
-  // 5. ​Check if free trial has expired or subscription is inactive
-  const subscription = await Subscription.findOne({
-    where: { user_id: currentUser.user_id, status: 'active' },
-  });
-
-  // 6. Check if the user has changed the password after the token was issued.
-  if (!subscription || new Date(subscription.end_date) < new Date()) {
+  // 5. Check if the user has changed the password after the token was issued.
+  if (currentUser.changedPasswordAfter(decoded.iat)) {
     return next(
-      new AppError('Your free trial or subscription has expired.', 403)
+      new AppError('User recently changed password! Please log in again.', 401)
     );
   }
 
-  // 7. Attach user details to the request object and proceed.
+  // 6. Attach user details to the request object and proceed.
   req.user = currentUser;
   res.locals.user = currentUser;
   next();
