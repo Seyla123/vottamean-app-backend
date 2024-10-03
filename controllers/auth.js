@@ -11,7 +11,6 @@ const {
   School,
   SchoolAdmin,
   Teacher,
-  Subscription,
 } = require('../models');
 const { Op } = require('sequelize');
 
@@ -141,7 +140,7 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
     return next(new AppError('Token is invalid or has expired.', 400));
   }
 
-  // 3. Start a transaction for data models
+  // 3. Transaction of the data models
   const transaction = await sequelize.transaction();
   try {
     const {
@@ -158,13 +157,13 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
       school_phone_number,
     } = decoded;
 
-    // 4. Create the user
+    // 4. Create the user first
     const user = await User.create(
       { email, password, emailVerified: true },
       { transaction }
     );
 
-    // 5. Create the info record
+    // 5. Create info record and get info_id
     const info = await Info.create(
       {
         first_name,
@@ -183,46 +182,28 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
       { transaction }
     );
 
-    // 7. Create the admin record with the user and info ID
+    // 7. Use the info_id from Info creation for Admin creation
     const admin = await Admin.create(
       { user_id: user.user_id, info_id: info.info_id },
       { transaction }
     );
 
-    // 8. Create the SchoolAdmin record and capture the instance
-    const schoolAdmin = await SchoolAdmin.create(
+    // 8. Create the SchoolAdmin record
+    await SchoolAdmin.create(
       { admin_id: admin.admin_id, school_id: school.school_id },
       { transaction }
     );
 
-    // 9. Create the subscription for the school admin (free tier)
-    await Subscription.create(
-      {
-        admin_id: admin.admin_id,
-        plan_type: 'free',
-        start_date: new Date(),
-        // 14-day free trial
-        end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-        // testing subscription expired in 1 minute
-        end_date: new Date(Date.now() + 60 * 1000),
-      },
-      { transaction }
-    );
-
-    // 10. Commit the transaction
+    // 9. Commit the transaction if all records are created successfully
     await transaction.commit();
 
-    // 11. Respond with a success message
     res.status(200).json({
       status: 'success',
       message: 'Email verified and account created successfully!',
     });
   } catch (err) {
-    // 12. Rollback the transaction if any error occurs
     await transaction.rollback();
-    return next(
-      new AppError(`Failed to create user and school: ${err.message}`, 500)
-    );
+    return next(new AppError(`Failed to create user and school ${err}`, 500));
   }
 });
 
