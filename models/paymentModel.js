@@ -43,16 +43,16 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   Payment.associate = (models) => {
-    // Payment belongs to a School Admin
     Payment.belongsTo(models.Admin, {
       foreignKey: 'admin_id',
       as: 'Admin',
+      onDelete: 'CASCADE',
     });
 
-    // Payment has many Sessions
-    Payment.hasMany(models.Subscription, {
-      foreignKey: 'payment_id',
+    Payment.belongsTo(models.Subscription, {
+      foreignKey: 'subscription_id',
       as: 'subscriptions',
       onDelete: 'CASCADE',
     });

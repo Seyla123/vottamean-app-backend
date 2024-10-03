@@ -44,14 +44,14 @@ module.exports = (sequelize, DataTypes) => {
 
     // Admin has many subscriptions
     Admin.hasMany(models.Subscription, {
-      foreignKey: 'school_admin_id',
+      foreignKey: 'admin_id',
       as: 'subscriptions',
       onDelete: 'CASCADE',
     });
 
     // Admin has many payments
     Admin.hasMany(models.Payment, {
-      foreignKey: 'school_admin_id',
+      foreignKey: 'admin_id',
       as: 'payments',
       onDelete: 'CASCADE',
     });

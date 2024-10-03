@@ -15,7 +15,7 @@ const { addMonths, addYears } = require('../utils/datePaymentUtils');
 // CREATE PAYMENT INTENT
 // ----------------------------
 exports.createPaymentIntent = catchAsync(async (req, res, next) => {
-  const { user_id, plan_type, payment_method_id } = req.body;
+  const { admin_id, plan_type, payment_method_id } = req.body;
 
   // Get the amount based on the plan type (monthly/yearly)
   const amount = getPlanAmount(plan_type);
@@ -33,7 +33,7 @@ exports.createPaymentIntent = catchAsync(async (req, res, next) => {
 
   // If payment succeeds, create Subscription and Payment records
   const subscription = await Subscription.create({
-    user_id: user_id,
+    admin_id: admin_id,
     plan_type: plan_type,
     start_date: new Date(),
     end_date:
@@ -44,7 +44,7 @@ exports.createPaymentIntent = catchAsync(async (req, res, next) => {
   });
 
   await Payment.create({
-    user_id: user_id,
+    admin_id: admin_id,
     subscription_id: subscription.subscription_id,
     amount: (amount / 100).toFixed(2),
     payment_method: paymentIntent.payment_method,
@@ -113,7 +113,7 @@ const getPlanAmount = (plan_type) => {
 
 const handlePaymentSucceeded = async (paymentIntent) => {
   const subscription = await Subscription.findOne({
-    where: { user_id: paymentIntent.customer },
+    where: { admin_id: paymentIntent.customer },
   });
   if (subscription) {
     await Payment.update(
@@ -129,7 +129,7 @@ const handlePaymentSucceeded = async (paymentIntent) => {
 
 const handlePaymentFailed = async (paymentIntent) => {
   const subscription = await Subscription.findOne({
-    where: { user_id: paymentIntent.customer },
+    where: { admin_id: paymentIntent.customer },
   });
 
   if (subscription) {
