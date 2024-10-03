@@ -58,20 +58,6 @@ module.exports = (sequelize, DataTypes) => {
       as: 'Sessions',
       onDelete: 'CASCADE',
     });
-
-    // SchoolAdmin has many subscriptions
-    SchoolAdmin.hasMany(models.Subscription, {
-      foreignKey: 'school_admin_id',
-      as: 'subscriptions',
-      onDelete: 'CASCADE',
-    });
-
-    // SchoolAdmin has many payments
-    SchoolAdmin.hasMany(models.Payment, {
-      foreignKey: 'school_admin_id',
-      as: 'payments',
-      onDelete: 'CASCADE',
-    });
   };
 
   return SchoolAdmin;

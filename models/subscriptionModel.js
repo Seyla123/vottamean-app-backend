@@ -33,16 +33,16 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      tableName: 'subscription',
+      tableName: 'subscriptions',
       timestamps: true,
       underscored: true,
     }
   );
 
   Subscription.associate = (models) => {
-    Subscription.belongsTo(models.SchoolAdmin, {
-      foreignKey: 'school_admin_id',
-      as: 'SchoolAdmin',
+    Subscription.belongsTo(models.Admin, {
+      foreignKey: 'admin_id',
+      as: 'Admin',
       onDelete: 'CASCADE',
     });
   };

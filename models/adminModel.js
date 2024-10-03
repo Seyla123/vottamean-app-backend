@@ -41,6 +41,20 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'info_id',
       as: 'Info',
     });
+
+    // Admin has many subscriptions
+    Admin.hasMany(models.Subscription, {
+      foreignKey: 'school_admin_id',
+      as: 'subscriptions',
+      onDelete: 'CASCADE',
+    });
+
+    // Admin has many payments
+    Admin.hasMany(models.Payment, {
+      foreignKey: 'school_admin_id',
+      as: 'payments',
+      onDelete: 'CASCADE',
+    });
   };
 
   return Admin;

@@ -45,15 +45,15 @@ module.exports = (sequelize, DataTypes) => {
 
   Payment.associate = (models) => {
     // Payment belongs to a School Admin
-    Payment.belongsTo(models.SchoolAdmin, {
-      foreignKey: 'school_admin_id',
-      as: 'SchoolAdmin',
+    Payment.belongsTo(models.Admin, {
+      foreignKey: 'admin_id',
+      as: 'Admin',
     });
 
     // Payment has many Sessions
-    Payment.hasMany(models.Session, {
+    Payment.hasMany(models.Subscription, {
       foreignKey: 'payment_id',
-      as: 'Sessions',
+      as: 'subscriptions',
       onDelete: 'CASCADE',
     });
   };

@@ -198,10 +198,13 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
     // 9. Create the subscription for the school admin (free tier)
     await Subscription.create(
       {
-        school_admin_id: schoolAdmin.school_admin_id,
+        admin_id: admin.admin_id,
         plan_type: 'free',
         start_date: new Date(),
-        end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14-day free trial
+        // 14-day free trial
+        end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        // testing subscription expired in 1 minute
+        end_date: new Date(Date.now() + 60 * 1000),
       },
       { transaction }
     );
