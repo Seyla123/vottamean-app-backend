@@ -41,7 +41,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
           { model: Info, as: 'Info' },
           {
             model: School,
-            as: 'Schools',
+            as: 'School',
             through: { model: SchoolAdmin },
             required: false,
           },

@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
     Admin.belongsToMany(models.School, {
       through: models.SchoolAdmin,
       foreignKey: 'admin_id',
-      as: 'Schools',
+      as: 'School',
     });
 
     // Admin belongs to an Info
