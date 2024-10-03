@@ -53,7 +53,7 @@ module.exports = (sequelize, DataTypes) => {
 
     Payment.belongsTo(models.Subscription, {
       foreignKey: 'subscription_id',
-      as: 'subscriptions',
+      as: 'Subscriptions',
       onDelete: 'CASCADE',
     });
   };

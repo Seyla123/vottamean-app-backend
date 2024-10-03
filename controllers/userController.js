@@ -20,6 +20,7 @@ const moment = require('moment');
 
 // Factory Handler
 const factory = require('./handlerFactory');
+const { Model } = require('sequelize');
 
 // Middleware to get the current logged-in user
 exports.getMe = catchAsync(async (req, res, next) => {
@@ -27,6 +28,8 @@ exports.getMe = catchAsync(async (req, res, next) => {
   req.params.id = req.user.user_id;
   next(); // Proceed to the next middleware or route handler
 });
+
+// Get user
 
 // Get user
 exports.getUser = catchAsync(async (req, res, next) => {
@@ -43,6 +46,11 @@ exports.getUser = catchAsync(async (req, res, next) => {
             model: School,
             as: 'School',
             through: { model: SchoolAdmin },
+            required: false,
+          },
+          {
+            model: Subscription,
+            as: 'Subscriptions',
             required: false,
           },
         ],
@@ -62,6 +70,16 @@ exports.getUser = catchAsync(async (req, res, next) => {
                 as: 'School',
                 required: true,
               },
+              {
+                model: Admin,
+                as: 'Admin',
+                include: [
+                  {
+                    model: Subscription,
+                    as: 'Subscriptions',
+                  },
+                ],
+              },
             ],
             where: {
               school_admin_id: Sequelize.col('TeacherProfile.school_admin_id'),
@@ -79,9 +97,19 @@ exports.getUser = catchAsync(async (req, res, next) => {
     return next(new AppError('No user found with that ID', 404));
   }
 
-  // Extract user data
-  const { user_id, email, role, AdminProfile, TeacherProfile, subscriptions } =
-    user.toJSON();
+  // Extract subscriptions from AdminProfile or TeacherProfile, ensuring no duplication
+  let subscriptions = [];
+  if (user.AdminProfile && user.AdminProfile.Subscriptions) {
+    subscriptions = user.AdminProfile.Subscriptions;
+  } else if (
+    user.TeacherProfile &&
+    user.TeacherProfile.SchoolAdmin.Admin.Subscriptions
+  ) {
+    subscriptions = user.TeacherProfile.SchoolAdmin.Admin.Subscriptions;
+  }
+
+  // Extract other user data
+  const { user_id, email, role, AdminProfile, TeacherProfile } = user.toJSON();
 
   // Extract school directly from the teacher's SchoolAdmin relation
   const school = TeacherProfile?.SchoolAdmin?.School || null;
@@ -91,8 +119,11 @@ exports.getUser = catchAsync(async (req, res, next) => {
     id: user_id,
     email,
     role,
-    subscriptions,
-    adminProfile: role === 'admin' && AdminProfile ? { ...AdminProfile } : null,
+    subscriptions, // Only include the root level subscriptions
+    adminProfile:
+      role === 'admin' && AdminProfile
+        ? { ...AdminProfile, Subscriptions: undefined }
+        : null, // Remove nested Subscriptions
     teacherProfile:
       role === 'teacher' && TeacherProfile
         ? {
@@ -100,8 +131,8 @@ exports.getUser = catchAsync(async (req, res, next) => {
             active: TeacherProfile.active,
             createdAt: TeacherProfile.createdAt,
             updatedAt: TeacherProfile.updatedAt,
-            info: TeacherProfile.Info,
-            school: school,
+            Info: TeacherProfile.Info,
+            School: school,
           }
         : null,
   };

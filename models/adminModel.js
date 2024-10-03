@@ -45,7 +45,7 @@ module.exports = (sequelize, DataTypes) => {
     // Admin has many subscriptions
     Admin.hasMany(models.Subscription, {
       foreignKey: 'admin_id',
-      as: 'subscriptions',
+      as: 'Subscriptions',
       onDelete: 'CASCADE',
     });
 
