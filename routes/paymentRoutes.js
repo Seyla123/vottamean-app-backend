@@ -17,6 +17,11 @@ router.use(authController.requireEmailVerification);
 // Create a payment intent (for creating subscriptions)
 router.post('/create-payment-intent', paymentController.createPaymentIntent);
 
+router.post(
+  '/create-checkout-session',
+  paymentController.createCheckoutSession
+);
+
 // Stripe webhook endpoint (for handling payment events from Stripe)
 router.post(
   '/webhook',
