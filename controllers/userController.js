@@ -48,7 +48,9 @@ exports.getAllUsers = factory.getAll(User, {}, [
   },
 ]);
 
-// Get user
+// ----------------------------
+// GET CURRENT LOGIN USER
+// ----------------------------
 exports.getUser = catchAsync(async (req, res, next) => {
   // Fetch user with related profiles, school data, and subscriptions
   const user = await User.findOne({
@@ -161,7 +163,9 @@ exports.getUser = catchAsync(async (req, res, next) => {
   });
 });
 
-// Update current login user
+// ----------------------------
+// UPDATE CURRENT LOGIN USER
+// ----------------------------
 exports.updateMe = catchAsync(async (req, res, next) => {
   let user;
 

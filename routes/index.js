@@ -34,7 +34,7 @@ router.use('/teachers', teacherRoutes);
 router.use('/students', studentRoutes);
 
 // Payment Routes
-router.use('/payment', paymentRoutes);
+router.use('/payments', paymentRoutes);
 
 // School Routes
 router.use('/school-admin', schoolAdminRoutes);
