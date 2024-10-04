@@ -28,7 +28,25 @@ exports.getMe = catchAsync(async (req, res, next) => {
   next(); // Proceed to the next middleware or route handler
 });
 
-// Get user
+// Update user details (excluding password)
+exports.updateUser = factory.updateOne(User, 'user_id');
+
+// Delete user
+exports.deleteUser = factory.deleteOne(User, 'user_id');
+
+// Get all Users
+exports.getAllUsers = factory.getAll(User, {}, [
+  {
+    model: Admin,
+    as: 'AdminProfile',
+    include: [{ model: Info, as: 'Info' }],
+  },
+  {
+    model: Teacher,
+    as: 'TeacherProfile',
+    include: [{ model: Info, as: 'Info' }],
+  },
+]);
 
 // Get user
 exports.getUser = catchAsync(async (req, res, next) => {
@@ -142,20 +160,6 @@ exports.getUser = catchAsync(async (req, res, next) => {
     data: userProfile,
   });
 });
-
-// Get all Users
-exports.getAllUsers = factory.getAll(User, {}, [
-  {
-    model: Admin,
-    as: 'AdminProfile',
-    include: [{ model: Info, as: 'Info' }],
-  },
-  {
-    model: Teacher,
-    as: 'TeacherProfile',
-    include: [{ model: Info, as: 'Info' }],
-  },
-]);
 
 // Update current login user
 exports.updateMe = catchAsync(async (req, res, next) => {
@@ -300,12 +304,6 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
   // Call the factory deleteOne function
   factory.deleteOne(User, 'user_id')(req, res, next);
 });
-
-// Update user details (excluding password)
-exports.updateUser = factory.updateOne(User, 'user_id');
-
-// Delete user
-exports.deleteUser = factory.deleteOne(User, 'user_id');
 
 // Restore user by user ID
 exports.restoreUser = catchAsync(async (req, res, next) => {

@@ -83,7 +83,13 @@ module.exports = (sequelize, DataTypes) => {
   // Using the reusable hook
   Info.addHook(
     'beforeValidate',
-    trimWhiteSpaces(['first_name', 'last_name', 'phone_number', 'address', 'photo'])
+    trimWhiteSpaces([
+      'first_name',
+      'last_name',
+      'phone_number',
+      'address',
+      'photo',
+    ])
   );
 
   return Info;

@@ -71,7 +71,8 @@ module.exports = (sequelize, DataTypes) => {
       as: 'Info',
       onDelete: 'CASCADE',
     });
-  }
+  };
+
   // Using the reusable hook
   Student.addHook(
     'beforeValidate',
