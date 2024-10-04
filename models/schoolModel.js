@@ -43,6 +43,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   School.associate = (models) => {
     School.belongsToMany(models.Admin, {
       through: models.SchoolAdmin,

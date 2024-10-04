@@ -39,6 +39,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   Subscription.associate = (models) => {
     Subscription.belongsTo(models.Admin, {
       foreignKey: 'admin_id',

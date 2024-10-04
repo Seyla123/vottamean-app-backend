@@ -45,6 +45,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   Period.associate = (models) => {
     // Period belongs to a School Admin
     Period.belongsTo(models.SchoolAdmin, {

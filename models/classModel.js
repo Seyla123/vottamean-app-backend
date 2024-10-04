@@ -16,12 +16,13 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
-          isValidClassName : validators.isValidClassName},
+          isValidClassName: validators.isValidClassName,
+        },
       },
       description: {
         type: DataTypes.STRING,
         validate: {
-          isValidClassName : validators.isValidDescription, // Use imported validator
+          isValidClassName: validators.isValidDescription, // Use imported validator
         },
       },
       active: {
@@ -38,6 +39,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   Class.associate = (models) => {
     // Class belongs to a School Admin
     Class.belongsTo(models.SchoolAdmin, {

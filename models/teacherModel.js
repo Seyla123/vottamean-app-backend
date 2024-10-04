@@ -26,6 +26,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   Teacher.associate = (models) => {
     // Teacher belongs to a User
     Teacher.belongsTo(models.User, {

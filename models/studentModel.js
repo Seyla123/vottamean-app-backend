@@ -49,7 +49,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
-  // Associations
+  // Define associations
   Student.associate = (models) => {
     // Student belongs to a SchoolAdmin
     Student.belongsTo(models.SchoolAdmin, {

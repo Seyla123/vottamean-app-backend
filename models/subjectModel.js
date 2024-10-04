@@ -36,7 +36,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
-  // Associations
+  // Define associations
   Subject.associate = (models) => {
     // Subject belongs to a School Admin
     Subject.belongsTo(models.SchoolAdmin, {

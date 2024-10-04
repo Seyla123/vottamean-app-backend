@@ -21,6 +21,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   SchoolAdmin.associate = (models) => {
     // SchoolAdmin belongs to an Admin
     SchoolAdmin.belongsTo(models.Admin, {

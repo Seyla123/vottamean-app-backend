@@ -32,6 +32,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   Attendance.associate = (models) => {
     // Attendance belongs to a Student
     Attendance.belongsTo(models.Student, {

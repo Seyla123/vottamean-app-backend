@@ -65,6 +65,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   Info.associate = (models) => {
     Info.hasOne(models.Admin, {
       foreignKey: 'info_id',

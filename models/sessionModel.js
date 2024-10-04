@@ -26,6 +26,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   Session.associate = (models) => {
     // Session belongs to a Status
     Session.belongsTo(models.SchoolAdmin, {
