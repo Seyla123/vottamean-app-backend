@@ -20,7 +20,6 @@ const moment = require('moment');
 
 // Factory Handler
 const factory = require('./handlerFactory');
-const { Model } = require('sequelize');
 
 // Middleware to get the current logged-in user
 exports.getMe = catchAsync(async (req, res, next) => {
@@ -167,7 +166,7 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     user = await Admin.findOne({
       where: { user_id: req.user.user_id },
       include: [
-        { model: School, as: 'Schools', through: { model: SchoolAdmin } },
+        { model: School, as: 'School', through: { model: SchoolAdmin } },
       ],
     });
   } else if (req.user.role === 'teacher') {
@@ -247,8 +246,8 @@ exports.updateMe = catchAsync(async (req, res, next) => {
 
   // Additional logic for Admin to update school information
   if (req.user.role === 'admin') {
-    if (user.Schools && user.Schools.length > 0) {
-      const school = user.Schools[0];
+    if (user.School && user.School.length > 0) {
+      const school = user.School[0];
 
       // Extract school-related fields from the request body
       const { school_name, school_address, school_phone_number } = req.body;
