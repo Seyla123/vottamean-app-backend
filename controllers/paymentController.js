@@ -235,7 +235,7 @@ const handleCheckoutSessionCompleted = async (session) => {
   await Payment.create({
     admin_id: admin_id,
     subscription_id: subscription.subscription_id,
-    amount: (session.amount_total / 100).toFixed(2), // Convert amount to dollars
+    amount: (session.amount_total / 100).toFixed(2),
     payment_method: session.payment_method_types[0],
     payment_status: 'successful',
   });
