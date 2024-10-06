@@ -9,7 +9,14 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 
 // Helper functions for date manipulation
-const { addMonths, addYears } = require('../utils/datePaymentUtils');
+const {
+  checkActiveSubscription,
+  checkTeacherLimit,
+  addMonths,
+  addYears,
+} = require('../utils/paymentHelper');
+
+//
 
 // -----------------------------------
 // GET ALL SUBSCRIPTION PLAN TO CHECK
@@ -62,6 +69,45 @@ exports.getAllPayments = catchAsync(async (req, res, next) => {
 });
 
 // -----------------------------------
+// CANCEL SUBSCRIPTION
+// -----------------------------------
+exports.cancelSubscription = catchAsync(async (req, res, next) => {
+  const { admin_id } = req.body;
+
+  if (!admin_id) {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'Missing required field: admin_id',
+    });
+  }
+
+  const activeSubscription = await Subscription.findOne({
+    where: {
+      admin_id: admin_id,
+      status: 'active',
+    },
+  });
+
+  if (!activeSubscription) {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'No active subscription found to cancel.',
+    });
+  }
+
+  // Update the subscription to canceled
+  await Subscription.update(
+    { status: 'canceled' },
+    { where: { subscription_id: activeSubscription.subscription_id } }
+  );
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Subscription canceled successfully.',
+  });
+});
+
+// -----------------------------------
 // CREATE CHECKOUT SESSION : Stripe UI
 // -----------------------------------
 exports.createCheckoutSession = catchAsync(async (req, res, next) => {
@@ -74,12 +120,22 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
     });
   }
 
+  // Check if the admin has an active subscription
+  try {
+    await checkActiveSubscription(admin_id);
+  } catch (error) {
+    return res.status(400).json({
+      status: 'fail',
+      message: error.message,
+    });
+  }
+
   const amount = getPlanAmount(plan_type);
   if (!amount) {
     return next(new AppError('Invalid plan type', 400));
   }
 
-  // URLs for success and cancel
+  // Create a new Stripe Checkout Session
   const successUrl =
     process.env.CLIENT_PAYMENT_SUCCESS_URL ||
     `${req.protocol}://${req.get('host')}/payment/success`;
@@ -138,6 +194,16 @@ exports.createPaymentIntent = catchAsync(async (req, res, next) => {
     });
   }
 
+  // Check if the admin has an active subscription
+  try {
+    await checkActiveSubscription(admin_id);
+  } catch (error) {
+    return res.status(400).json({
+      status: 'fail',
+      message: error.message,
+    });
+  }
+
   const amount = getPlanAmount(plan_type);
   if (!amount) {
     return next(new AppError('Invalid plan type', 400));
@@ -162,56 +228,10 @@ exports.createPaymentIntent = catchAsync(async (req, res, next) => {
     return next(new AppError(error.message, error.statusCode || 500));
   }
 
-  // Respond with the client_secret immediately after creating the PaymentIntent
   res.status(200).json({
     status: 'success',
     client_secret: paymentIntent.client_secret,
   });
-
-  // Confirm the PaymentIntent in the background to avoid sending multiple responses
-  try {
-    const confirmedIntent = await stripe.paymentIntents.confirm(
-      paymentIntent.id
-    );
-    console.log('Confirmed Payment Intent:', confirmedIntent);
-
-    // Check the confirmed intent status
-    if (confirmedIntent.status === 'succeeded') {
-      // Handle successful payment and create records
-      const subscription = await Subscription.create({
-        admin_id: admin_id,
-        plan_type: plan_type,
-        start_date: new Date(),
-        end_date:
-          plan_type === 'monthly'
-            ? addMonths(new Date(), 1)
-            : addYears(new Date(), 1),
-        status: 'active',
-      });
-
-      await Payment.create({
-        admin_id: admin_id,
-        subscription_id: subscription.subscription_id,
-        amount: (amount / 100).toFixed(2),
-        payment_method: confirmedIntent.payment_method,
-        payment_status: 'successful',
-      });
-
-      // Note: cannot send another response here because one has already been sent
-      // Instead, can log or handle any additional operations needed.
-      console.log('Payment successful, subscription activated:', subscription);
-    } else if (confirmedIntent.status === 'requires_action') {
-      console.log('Payment requires additional authentication.');
-    } else if (confirmedIntent.status === 'requires_payment_method') {
-      console.error(
-        'Payment failed, please try with a different payment method.'
-      );
-    } else {
-      console.error('Payment not successful, please try again.');
-    }
-  } catch (error) {
-    console.error('Error confirming payment intent:', error);
-  }
 });
 
 // ----------------------------
