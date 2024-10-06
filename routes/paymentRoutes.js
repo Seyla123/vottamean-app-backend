@@ -16,6 +16,7 @@ const router = express.Router();
 
 // Get all payment methods
 router.get('/get-all-subscriptions', paymentController.getAllSubscriptions);
+router.get('/get-all-payments', paymentController.getAllPayments);
 
 // Create a payment intent (for creating subscriptions)
 router.post('/create-payment-intent', paymentController.createPaymentIntent);
@@ -26,19 +27,19 @@ router.post(
 );
 
 // Stripe webhook endpoint (for handling payment events from Stripe)
-router.post(
-  '/webhook',
-  express.raw({ type: 'application/json' }),
-  paymentController.handleStripeWebhook
-);
-
 // router.post(
 //   '/webhook',
 //   express.raw({ type: 'application/json' }),
-//   (req, res) => {
-//     console.log('Received webhook:', req.body);
-//     res.status(200).json({ received: true });
-//   }
+//   paymentController.handleStripeWebhook
 // );
+
+router.post(
+  '/webhook',
+  express.raw({ type: 'application/json' }),
+  (req, res) => {
+    console.log('Received webhook:', req.body);
+    res.status(200).json({ received: true });
+  }
+);
 
 module.exports = router;
