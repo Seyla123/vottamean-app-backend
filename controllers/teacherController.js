@@ -4,8 +4,11 @@ const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 // Database Models
 const { Teacher, Info, sequelize, User, Admin } = require('../models');
+
+// Helper funciton
 const { isBelongsToAdmin } = require('../utils/helper');
-const { checkTeacherLimit } = require('../utils/checkTeacherLimit');
+const { checkTeacherLimit } = require('../utils/paymentHelper');
+
 // Validators
 const {
   isValidEmail,

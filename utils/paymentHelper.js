@@ -1,5 +1,19 @@
 const { Admin, Subscription, Teacher } = require('../models');
 const AppError = require('./appError');
+const { Op } = require('sequelize');
+
+// Helper functions for date manipulation in the payment process
+exports.addMonths = (date, months) => {
+  const result = new Date(date);
+  result.setMonth(result.getMonth() + months);
+  return result;
+};
+
+exports.addYears = (date, years) => {
+  const result = new Date(date);
+  result.setFullYear(result.getFullYear() + years);
+  return result;
+};
 
 // Helper function to check subscription and teacher limit
 exports.checkTeacherLimit = async (school_admin_id) => {
@@ -37,4 +51,28 @@ exports.checkTeacherLimit = async (school_admin_id) => {
 
   // Unlimited for paid plans
   return true;
+};
+
+// Helper function to check if an admin has an active subscription
+exports.checkActiveSubscription = async (admin_id) => {
+  const activeSubscription = await Subscription.findOne({
+    where: {
+      admin_id: admin_id,
+      status: 'active',
+      end_date: {
+        [Op.gt]: new Date(), // Ensure the subscription has not expired
+      },
+    },
+  });
+
+  // If an active subscription is found, throw an error
+  if (activeSubscription) {
+    throw new AppError(
+      'You already have an active subscription. Please cancel it before purchasing a new plan.',
+      400
+    );
+  }
+
+  // No active subscription found
+  return false;
 };
