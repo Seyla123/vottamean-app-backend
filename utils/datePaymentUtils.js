@@ -1,3 +1,4 @@
+// Helper functions for date manipulation in the payment process
 exports.addMonths = (date, months) => {
   const result = new Date(date);
   result.setMonth(result.getMonth() + months);
