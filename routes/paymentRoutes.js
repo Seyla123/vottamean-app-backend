@@ -14,6 +14,9 @@ const router = express.Router();
 // // Require email verification for payment routes
 // router.use(authController.requireEmailVerification);
 
+// Get all payment methods
+router.get('/get-all-subscriptions', paymentController.getAllSubscriptions);
+
 // Create a payment intent (for creating subscriptions)
 router.post('/create-payment-intent', paymentController.createPaymentIntent);
 

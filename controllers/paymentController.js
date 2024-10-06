@@ -2,7 +2,7 @@
 const stripe = require('../config/stripe');
 
 // Database models
-const { Subscription, Payment } = require('../models');
+const { Subscription, Payment, Admin } = require('../models');
 
 // Error handling utilities
 const catchAsync = require('../utils/catchAsync');
@@ -10,6 +10,32 @@ const AppError = require('../utils/appError');
 
 // Helper functions for date manipulation
 const { addMonths, addYears } = require('../utils/datePaymentUtils');
+
+// -----------------------------------
+// GET ALL SUBSCRIPTION PLAN TO CHECK
+// -----------------------------------
+exports.getAllSubscriptions = catchAsync(async (req, res, next) => {
+  // Query the Subscription model to retrieve all subscription data
+  const subscriptions = await Subscription.findAll({
+    // Include related models if needed, for example:
+    include: [{ model: Admin, as: 'Admin' }],
+    order: [['subscription_id', 'ASC']], // Optional: order by subscription_id
+  });
+
+  // If no subscriptions found, return an error
+  if (!subscriptions || subscriptions.length === 0) {
+    return next(new AppError('No subscriptions found', 404));
+  }
+
+  // Return the subscription data in the response
+  res.status(200).json({
+    status: 'success',
+    results: subscriptions.length,
+    data: {
+      subscriptions,
+    },
+  });
+});
 
 // -----------------------------------
 // CREATE CHECKOUT SESSION : Stripe UI
