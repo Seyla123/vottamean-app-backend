@@ -2,7 +2,7 @@
 const stripe = require('../config/stripe');
 
 // Database models
-const { Subscription, Payment } = require('../models');
+const { Subscription, Payment, Admin } = require('../models');
 
 // Error handling utilities
 const catchAsync = require('../utils/catchAsync');
@@ -10,6 +10,56 @@ const AppError = require('../utils/appError');
 
 // Helper functions for date manipulation
 const { addMonths, addYears } = require('../utils/datePaymentUtils');
+
+// -----------------------------------
+// GET ALL SUBSCRIPTION PLAN TO CHECK
+// -----------------------------------
+exports.getAllSubscriptions = catchAsync(async (req, res, next) => {
+  // Query the Subscription model to retrieve all subscription data
+  const subscriptions = await Subscription.findAll({
+    include: [{ model: Admin, as: 'Admin' }],
+    order: [['subscription_id', 'ASC']],
+  });
+
+  // If no subscriptions found, return an error
+  if (!subscriptions || subscriptions.length === 0) {
+    return next(new AppError('No subscriptions found', 404));
+  }
+
+  // Return the subscription data in the response
+  res.status(200).json({
+    status: 'success',
+    results: subscriptions.length,
+    data: {
+      subscriptions,
+    },
+  });
+});
+
+// -----------------------------------
+// GET ALL PAYMENT PURCHASE TO CHECK
+// -----------------------------------
+exports.getAllPayments = catchAsync(async (req, res, next) => {
+  // Query the Payment model to retrieve all payment data
+  const payments = await Payment.findAll({
+    include: [{ model: Admin, as: 'Admin' }],
+    order: [['payment_id', 'ASC']],
+  });
+
+  // If no payments found, return an error
+  if (!payments || payments.length === 0) {
+    return next(new AppError('No payments found', 404));
+  }
+
+  // Return the payment data in the response
+  res.status(200).json({
+    status: 'success',
+    results: payments.length,
+    data: {
+      payments,
+    },
+  });
+});
 
 // -----------------------------------
 // CREATE CHECKOUT SESSION : Stripe UI
@@ -58,6 +108,10 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
       mode: 'subscription',
       success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
+      metadata: {
+        admin_id: admin_id,
+        plan_type: plan_type,
+      },
     });
 
     res.status(200).json({
@@ -69,6 +123,7 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
     return next(new AppError(error.message, 400));
   }
 });
+
 // ---------------------------------
 // CREATE PAYMENT INTENT : Custom UI
 // ---------------------------------
@@ -162,42 +217,6 @@ exports.createPaymentIntent = catchAsync(async (req, res, next) => {
 // ----------------------------
 // STRIPE WEBHOOK HANDLER
 // ----------------------------
-// exports.handleStripeWebhook = catchAsync(async (req, res, next) => {
-//   const sig = req.headers['stripe-signature'];
-
-//   let event;
-//   try {
-//     event = stripe.webhooks.constructEvent(
-//       req.body,
-//       sig,
-//       process.env.STRIPE_WEBHOOK_SECRET
-//     );
-//   } catch (err) {
-//     return next(new AppError(`Webhook Error: ${err.message}`, 400));
-//   }
-
-//   // Handle the event
-//   const {
-//     type,
-//     data: { object: paymentIntent },
-//   } = event;
-
-//   switch (type) {
-//     case 'invoice.payment_succeeded':
-//       await handlePaymentSucceeded(paymentIntent);
-//       break;
-
-//     case 'invoice.payment_failed':
-//       await handlePaymentFailed(paymentIntent);
-//       break;
-
-//     default:
-//       console.log(`Unhandled event type ${type}`);
-//   }
-
-//   res.status(200).json({ received: true });
-// });
-
 exports.handleStripeWebhook = catchAsync(async (req, res, next) => {
   const sig = req.headers['stripe-signature'];
   let event;
@@ -212,7 +231,6 @@ exports.handleStripeWebhook = catchAsync(async (req, res, next) => {
     return next(new AppError(`Webhook Error: ${err.message}`, 400));
   }
 
-  // Handle Stripe event types
   const {
     type,
     data: { object: session },
@@ -232,6 +250,19 @@ exports.handleStripeWebhook = catchAsync(async (req, res, next) => {
 
   res.status(200).json({ received: true });
 });
+
+// ----------------------------
+// HELPER FUNCTIONS
+// ----------------------------
+const getPlanAmount = (plan_type) => {
+  if (plan_type === 'monthly') {
+    return 10 * 100; // $10 in cents
+  } else if (plan_type === 'yearly') {
+    return 100 * 100; // $100 in cents
+  } else {
+    return null;
+  }
+};
 
 // Function to handle successful checkout session
 const handleCheckoutSessionCompleted = async (session) => {
@@ -281,49 +312,3 @@ const handlePaymentFailed = async (session) => {
   }
   console.error(`Payment failed for admin_id: ${admin_id}`);
 };
-
-// ----------------------------
-// HELPER FUNCTIONS
-// ----------------------------
-const getPlanAmount = (plan_type) => {
-  if (plan_type === 'monthly') {
-    return 10 * 100; // $10 in cents
-  } else if (plan_type === 'yearly') {
-    return 100 * 100; // $100 in cents
-  } else {
-    return null;
-  }
-};
-
-// const handlePaymentSucceeded = async (paymentIntent) => {
-//   const subscription = await Subscription.findOne({
-//     where: { admin_id: paymentIntent.customer },
-//   });
-//   if (subscription) {
-//     await Payment.update(
-//       { payment_status: 'successful' },
-//       { where: { subscription_id: subscription.subscription_id } }
-//     );
-//     await Subscription.update(
-//       { status: 'active' },
-//       { where: { subscription_id: subscription.subscription_id } }
-//     );
-//   }
-// };
-
-// const handlePaymentFailed = async (paymentIntent) => {
-//   const subscription = await Subscription.findOne({
-//     where: { admin_id: paymentIntent.customer },
-//   });
-
-//   if (subscription) {
-//     await Payment.update(
-//       { payment_status: 'failed' },
-//       { where: { subscription_id: subscription.subscription_id } }
-//     );
-//     await Subscription.update(
-//       { status: 'expired' },
-//       { where: { subscription_id: subscription.subscription_id } }
-//     );
-//   }
-// };

@@ -17,9 +17,8 @@ const { addMonths, addYears } = require('../utils/datePaymentUtils');
 exports.getAllSubscriptions = catchAsync(async (req, res, next) => {
   // Query the Subscription model to retrieve all subscription data
   const subscriptions = await Subscription.findAll({
-    // Include related models if needed, for example:
     include: [{ model: Admin, as: 'Admin' }],
-    order: [['subscription_id', 'ASC']], // Optional: order by subscription_id
+    order: [['subscription_id', 'ASC']],
   });
 
   // If no subscriptions found, return an error
@@ -34,6 +33,70 @@ exports.getAllSubscriptions = catchAsync(async (req, res, next) => {
     data: {
       subscriptions,
     },
+  });
+});
+
+// -----------------------------------
+// GET ALL PAYMENT PURCHASE TO CHECK
+// -----------------------------------
+exports.getAllPayments = catchAsync(async (req, res, next) => {
+  // Query the Payment model to retrieve all payment data
+  const payments = await Payment.findAll({
+    include: [{ model: Admin, as: 'Admin' }],
+    order: [['payment_id', 'ASC']],
+  });
+
+  // If no payments found, return an error
+  if (!payments || payments.length === 0) {
+    return next(new AppError('No payments found', 404));
+  }
+
+  // Return the payment data in the response
+  res.status(200).json({
+    status: 'success',
+    results: payments.length,
+    data: {
+      payments,
+    },
+  });
+});
+
+// -----------------------------------
+// CANCEL SUBSCRIPTION
+// -----------------------------------
+exports.cancelSubscription = catchAsync(async (req, res, next) => {
+  const { admin_id } = req.body;
+
+  if (!admin_id) {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'Missing required field: admin_id',
+    });
+  }
+
+  const activeSubscription = await Subscription.findOne({
+    where: {
+      admin_id: admin_id,
+      status: 'active',
+    },
+  });
+
+  if (!activeSubscription) {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'No active subscription found to cancel.',
+    });
+  }
+
+  // Update the subscription to canceled
+  await Subscription.update(
+    { status: 'canceled' },
+    { where: { subscription_id: activeSubscription.subscription_id } }
+  );
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Subscription canceled successfully.',
   });
 });
 
