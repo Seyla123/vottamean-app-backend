@@ -195,6 +195,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
   // const verificationUrl = `${req.protocol}://${req.get(
   //   'host'
   // )}/api/v1/teachers/verify-email/teacher/${verificationToken}?token=${tempToken}`;
+  // const verificationUrl = `http://localhost:8000/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
   const verificationUrl = `${req.headers.origin}/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
 
   try {
