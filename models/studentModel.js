@@ -15,7 +15,12 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
-      guardian_name: {
+      guardian_first_name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: infoValidator.isValidName,
+      },
+      guardian_last_name: {
         type: DataTypes.STRING,
         allowNull: false,
         validate: infoValidator.isValidName,

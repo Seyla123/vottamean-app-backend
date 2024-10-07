@@ -204,16 +204,6 @@ exports.createPaymentIntent = catchAsync(async (req, res, next) => {
     });
   }
 
-  // Check if the admin has an active subscription
-  try {
-    await checkActiveSubscription(admin_id);
-  } catch (error) {
-    return res.status(400).json({
-      status: 'fail',
-      message: error.message,
-    });
-  }
-
   const amount = getPlanAmount(plan_type);
   if (!amount) {
     return next(new AppError('Invalid plan type', 400));

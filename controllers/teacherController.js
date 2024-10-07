@@ -3,8 +3,12 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 // Database Models
-const { Teacher, Info, sequelize, User } = require('../models');
+const { Teacher, Info, sequelize, User, Admin } = require('../models');
+
+// Helper funciton
 const { isBelongsToAdmin } = require('../utils/helper');
+const { checkTeacherLimit } = require('../utils/paymentHelper');
+
 // Validators
 const {
   isValidEmail,
@@ -105,14 +109,14 @@ exports.updateTeacher = catchAsync(async (req, res, next) => {
     where: { info_id: teacher.info_id },
   });
   // 6. Retrieve the updated Info record
-   // After updating, fetch the updated data
+  // After updating, fetch the updated data
   const updatedInfo = await Info.findByPk(teacher.info_id);
   res.status(200).json({
-      status: 'success',
-      message: 'Teacher info updated successfully',
-      data: {
-          info: updatedInfo,
-      },
+    status: 'success',
+    message: 'Teacher info updated successfully',
+    data: {
+      info: updatedInfo,
+    },
   });
 });
 
@@ -124,7 +128,15 @@ exports.deleteTeacher = factory.deleteOne(Teacher, 'teacher_id');
 // ----------------------------
 exports.signupTeacher = catchAsync(async (req, res, next) => {
   const school_admin_id = req.school_admin_id;
-  // 1. Extract necessary fields from the request body.
+
+  // 1. Check the subscription plan and limit
+  try {
+    await checkTeacherLimit(school_admin_id);
+  } catch (error) {
+    return next(error);
+  }
+
+  // 2. Extract necessary fields from the request body
   const {
     email,
     password,
@@ -137,7 +149,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     phone_number,
   } = req.body;
 
-  // 2. Validate input fields using custom validators
+  // 3. Validate input fields using custom validators
   try {
     isValidEmail(email);
     isValidPassword(password);
@@ -152,16 +164,16 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     return next(new AppError(error.message, 400));
   }
 
-  // 3. Check if the email is already registered.
+  // 4. Check if the email is already registered
   const existingUser = await User.findOne({ where: { email } });
   if (existingUser) {
     return next(new AppError('Email is already registered', 400));
   }
 
-  // 4. Generate a verification token and its hashed version.
+  // 5. Generate a verification token and its hashed version
   const { token: verificationToken, hashedToken } = createVerificationToken();
 
-  // 5. Create a temporary JWT token with user data and the hashed verification token.
+  // 6. Create a temporary JWT token with user data and the hashed verification token
   const tempToken = jwt.sign(
     {
       email,
@@ -183,6 +195,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
   // const verificationUrl = `${req.protocol}://${req.get(
   //   'host'
   // )}/api/v1/teachers/verify-email/teacher/${verificationToken}?token=${tempToken}`;
+  // const verificationUrl = `http://localhost:8000/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
   const verificationUrl = `${req.headers.origin}/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
 
   try {
@@ -191,7 +204,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     return next(new AppError('Failed to send verification email', 500));
   }
 
-  // 7. Respond with a success message and the temporary token.
+  // 8. Respond with a success message and the temporary token
   res.status(200).json({
     status: 'success',
     message:
