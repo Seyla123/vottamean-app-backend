@@ -23,6 +23,7 @@ sequelize
       );
       // console to check stripe web hook
       console.log('stripe webhook secret :', process.env.STRIPE_WEBHOOK_SECRET);
+      console.log('stripe secret key access :', process.env.STRIPE_SECRET_KEY);
     });
   })
   .catch((err) => {
