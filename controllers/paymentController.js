@@ -11,7 +11,6 @@ const AppError = require('../utils/appError');
 // Helper functions for date manipulation
 const {
   checkActiveSubscription,
-  checkTeacherLimit,
   addMonths,
   addYears,
 } = require('../utils/paymentHelper');
@@ -95,7 +94,18 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
     });
   }
 
-  // Update the subscription to canceled
+  // Cancel the subscription in Stripe
+  try {
+    await stripe.subscriptions.del(activeSubscription.stripe_subscription_id);
+  } catch (error) {
+    return next(
+      new AppError(
+        `Error canceling subscription in Stripe: ${error.message}`,
+        400
+      )
+    );
+  }
+
   await Subscription.update(
     { status: 'canceled' },
     { where: { subscription_id: activeSubscription.subscription_id } }

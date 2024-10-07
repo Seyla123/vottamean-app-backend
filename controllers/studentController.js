@@ -23,14 +23,24 @@ const { filterObj } = require('../utils/filterObj');
 
 // check is belongs to admin function
 const { isBelongsToAdmin } = require('../utils/helper');
+const { checkStudentLimit } = require('../utils/paymentHelper');
 
 // Add a new student and create default attendance
 exports.addStudent = catchAsync(async (req, res, next) => {
   const school_admin_id = req.school_admin_id;
-  // 1. Extract fields from the request body
+
+  // 1. Check the subscription plan and limit
+  try {
+    await checkStudentLimit(school_admin_id);
+  } catch (error) {
+    return next(error);
+  }
+
+  // 2. Extract fields from the request body
   const {
     class_id,
-    guardian_name,
+    guardian_first_name,
+    guardian_last_name,
     guardian_email,
     guardian_relationship,
     guardian_phone_number,
@@ -53,7 +63,8 @@ exports.addStudent = catchAsync(async (req, res, next) => {
     isValidPhoneNumber(phone_number);
     isValidAddress(address);
     isValidGender(gender);
-    isValidName(guardian_name);
+    isValidName(guardian_first_name);
+    isValidName(guardian_last_name);
     isValidEmail(guardian_email);
     isValidGuardianRelationship(guardian_relationship);
     isValidPhoneNumber(guardian_phone_number);
@@ -81,7 +92,8 @@ exports.addStudent = catchAsync(async (req, res, next) => {
     const newStudent = await Student.create(
       {
         class_id,
-        guardian_name,
+        guardian_first_name,
+        guardian_last_name,
         guardian_email,
         guardian_relationship,
         guardian_phone_number,
@@ -140,7 +152,8 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
   // filter allow fields
   const allowedFields = [
     'class_id',
-    'guardian_name',
+    'guardian_first_name',
+    'guardian_last_name',
     'guardian_email',
     'guardian_relationship',
     'guardian_phone_number',
@@ -157,7 +170,7 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
   const transaction = await sequelize.transaction();
 
   try {
-    //update student 
+    //update student
     await Student.update(req.body, {
       where: { student_id: req.params.id, school_admin_id },
       transaction,
@@ -169,7 +182,7 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
       transaction,
     });
 
-    //after find student update info 
+    //after find student update info
     const info_id = student.Info.info_id;
     await Info.update(req.body, {
       where: { info_id },
@@ -180,14 +193,16 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
     await transaction.commit();
 
     // respond with success message
-    const updatedStudent = await Student.findOne({ where: { student_id: req.params.id, school_admin_id }, include: { model: Info, as: 'Info' } })
+    const updatedStudent = await Student.findOne({
+      where: { student_id: req.params.id, school_admin_id },
+      include: { model: Info, as: 'Info' },
+    });
 
     res.status(201).json({
       status: 'success',
       message: 'Update student anf their info successfully',
       data: updatedStudent,
     });
-
   } catch (error) {
     await transaction.rollback();
     return next(new AppError('Error updating student or info', 500));
@@ -207,7 +222,7 @@ exports.deleteStudent = catchAsync(async (req, res, next) => {
 
 // Get all students by class
 exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
-  const session_id  = req.params.id;
+  const session_id = req.params.id;
   const teacher_id = req.teacher_id;
 
   // Check if session belongs to the teacher
@@ -231,4 +246,4 @@ exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
     length: students.length,
     data: students,
   });
-})
+});

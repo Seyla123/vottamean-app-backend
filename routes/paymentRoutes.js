@@ -1,9 +1,12 @@
 // Import necessary modules
 const express = require('express');
+const bodyParser = require('body-parser');
 
 // Import Controllers
 const authController = require('../controllers/authController');
 const paymentController = require('../controllers/paymentController');
+
+const { rawBodyMiddleware } = require('../middlewares/rawBodyMiddleware');
 
 // Define Express Router
 const router = express.Router();
@@ -32,19 +35,27 @@ router.post(
 );
 
 // Stripe webhook endpoint (for handling payment events from Stripe)
-// router.post(
-//   '/webhook',
-//   express.raw({ type: 'application/json' }),
-//   paymentController.handleStripeWebhook
-// );
-
 router.post(
   '/webhook',
   express.raw({ type: 'application/json' }),
-  (req, res) => {
-    console.log('Received webhook:', req.body);
-    res.status(200).json({ received: true });
-  }
+  paymentController.handleStripeWebhook
 );
+
+// router.post(
+//   '/webhook',
+//   // express.raw({ type: 'application/json' }),
+//   // paymentController.handleStripeWebhook,
+//   (req, res) => {
+//     console.log('Received webhook:', req.body);
+//     res.status(200).json({ received: true });
+//   }
+// );
+
+// // Use the raw body middleware for the webhook
+// router.post(
+//   '/webhook',
+//   rawBodyMiddleware,
+//   paymentController.handleStripeWebhook
+// );
 
 module.exports = router;
