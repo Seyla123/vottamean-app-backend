@@ -105,7 +105,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   // const verificationUrl = `${req.protocol}://${req.get(
   //   'host'
   // )}/api/v1/auth/verify-email/${verificationToken}?token=${tempToken}`;
-  const verificationUrl = `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}`;
+  const verificationUrl = `${req.headers.origin}/auth/verify-email/${verificationToken}?token=${tempToken}`;
 
   try {
     await sendVerificationEmail(email, verificationUrl);
@@ -246,7 +246,7 @@ exports.requireEmailVerification = catchAsync(async (req, res, next) => {
 exports.login = catchAsync(async (req, res, next) => {
   // 1. Extract email and password from the request body.
   const { email, password } = req.body;
-
+  
   // 2. Ensure both email and password are provided.
   if (!email || !password) {
     return next(new AppError('Please provide email and password', 400));
