@@ -95,16 +95,16 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
   }
 
   // Cancel the subscription in Stripe
-  try {
-    await stripe.subscriptions.del(activeSubscription.stripe_subscription_id);
-  } catch (error) {
-    return next(
-      new AppError(
-        `Error canceling subscription in Stripe: ${error.message}`,
-        400
-      )
-    );
-  }
+  // try {
+  //   await stripe.subscriptions.del(activeSubscription.stripe_subscription_id);
+  // } catch (error) {
+  //   return next(
+  //     new AppError(
+  //       `Error canceling subscription in Stripe: ${error.message}`,
+  //       400
+  //     )
+  //   );
+  // }
 
   await Subscription.update(
     { status: 'canceled' },
@@ -238,10 +238,56 @@ exports.createPaymentIntent = catchAsync(async (req, res, next) => {
     return next(new AppError(error.message, error.statusCode || 500));
   }
 
+  // Respond with the client_secret immediately after creating the PaymentIntent
   res.status(200).json({
     status: 'success',
     client_secret: paymentIntent.client_secret,
   });
+
+  // Confirm the PaymentIntent in the background to avoid sending multiple responses
+  try {
+    const confirmedIntent = await stripe.paymentIntents.confirm(
+      paymentIntent.id
+    );
+    console.log('Confirmed Payment Intent:', confirmedIntent);
+
+    // Check the confirmed intent status
+    if (confirmedIntent.status === 'succeeded') {
+      // Handle successful payment and create records
+      const subscription = await Subscription.create({
+        admin_id: admin_id,
+        plan_type: plan_type,
+        start_date: new Date(),
+        end_date:
+          plan_type === 'monthly'
+            ? addMonths(new Date(), 1)
+            : addYears(new Date(), 1),
+        status: 'active',
+      });
+
+      await Payment.create({
+        admin_id: admin_id,
+        subscription_id: subscription.subscription_id,
+        amount: (amount / 100).toFixed(2),
+        payment_method: confirmedIntent.payment_method,
+        payment_status: 'successful',
+      });
+
+      // Note: cannot send another response here because one has already been sent
+      // Instead, can log or handle any additional operations needed.
+      console.log('Payment successful, subscription activated:', subscription);
+    } else if (confirmedIntent.status === 'requires_action') {
+      console.log('Payment requires additional authentication.');
+    } else if (confirmedIntent.status === 'requires_payment_method') {
+      console.error(
+        'Payment failed, please try with a different payment method.'
+      );
+    } else {
+      console.error('Payment not successful, please try again.');
+    }
+  } catch (error) {
+    console.error('Error confirming payment intent:', error);
+  }
 });
 
 // ----------------------------

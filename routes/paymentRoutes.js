@@ -38,24 +38,29 @@ router.post(
 router.post(
   '/webhook',
   express.raw({ type: 'application/json' }),
-  paymentController.handleStripeWebhook
+  paymentController.handleStripeWebhook,
+  (req, res) => {
+    console.log('Received webhook:', req.body);
+    res.status(200).json({
+      received: true,
+      status: 'success',
+      message: 'Webhook received',
+    });
+  }
 );
 
-// router.post(
-//   '/webhook',
-//   // express.raw({ type: 'application/json' }),
-//   // paymentController.handleStripeWebhook,
-//   (req, res) => {
-//     console.log('Received webhook:', req.body);
-//     res.status(200).json({ received: true });
-//   }
-// );
-
-// // Use the raw body middleware for the webhook
-// router.post(
-//   '/webhook',
-//   rawBodyMiddleware,
-//   paymentController.handleStripeWebhook
-// );
+router.get(
+  '/webhook',
+  express.raw({ type: 'application/json' }),
+  paymentController.handleStripeWebhook,
+  (req, res) => {
+    console.log('Received webhook:', req.body);
+    res.status(200).json({
+      received: true,
+      status: 'success',
+      message: 'Webhook received',
+    });
+  }
+);
 
 module.exports = router;
