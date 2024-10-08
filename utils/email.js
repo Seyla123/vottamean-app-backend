@@ -4,7 +4,9 @@ const { htmlToText } = require('html-to-text');
 
 // Import HTML template function
 const { generateEmailTemplate } = require('./emailTemplate');
-const { attendanceStatusEmailTemplate } = require('../emails/attendanceStatusEmailTemaple');
+const {
+  attendanceStatusEmailTemplate,
+} = require('../emails/attendanceStatusEmailTemaple');
 
 // Email Service
 class Email {
@@ -13,17 +15,19 @@ class Email {
     this.firstName = user.first_name || '';
     this.url = url;
     this.unsubscribeUrl = `${url}/unsubscribe`;
-    this.from = `HexCode+ Company <${process.env.EMAIL_FROM}>`;
+    this.from = `HexCode+ Company <${process.env.BREVO_EMAIL_FROM}>`;
   }
 
   // Create Transporter
   newTransport() {
     if (process.env.NODE_ENV === 'production') {
       return nodemailer.createTransport({
-        service: 'SendGrid',
+        host: process.env.BREVO_HOST,
+        port: process.env.BREVO_PORT,
+        secure: process.env.BREVO_PORT === '465',
         auth: {
-          user: process.env.SENDGRID_USERNAME,
-          pass: process.env.SENDGRID_PASSWORD,
+          user: process.env.BREVO_USERNAME,
+          pass: process.env.BREVO_PASSWORD,
         },
       });
     }
@@ -86,10 +90,12 @@ class Email {
       3: { text: 'Absent', className: 'absent' },
       4: { text: 'Absent with Permission', className: 'absent-permission' },
     };
-    
-    const statusInfo = statusMap[status_id] || { text: 'Unknown Status', className: '' };
-    
-    
+
+    const statusInfo = statusMap[status_id] || {
+      text: 'Unknown Status',
+      className: '',
+    };
+
     const subject = `${statusInfo.text} : Attendance Alert for ${data.studentName}`;
     const html = attendanceStatusEmailTemplate(data, statusInfo.text);
     //const message = `Dear Guardian,\n\nThis is to inform you that your child, ${studentName}, is marked as ${statusText} in today's session.\n\nBest regards,\nSchool Administration`;
@@ -100,7 +106,7 @@ class Email {
       to: this.to,
       subject,
       text: message,
-      html:html
+      html: html,
     };
 
     try {

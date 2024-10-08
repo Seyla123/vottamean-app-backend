@@ -17,6 +17,10 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: 'free',
       },
+      stripe_subscription_id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
       start_date: {
         type: DataTypes.DATE,
         allowNull: false,
