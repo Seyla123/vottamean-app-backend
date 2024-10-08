@@ -239,3 +239,63 @@ exports.getAttendance = catchAsync(async (req, res, next) => {
   ];
   factory.getOne(Attendance, 'attendance_id', associations)(req, res, next);
 });
+
+exports.exportAttendance = catchAsync(async (req, res, next) => {
+  // Example data (replace with your actual data)
+  const data = [
+    {
+      id: 3,
+      attendance_id: 12,
+      name: "seyla son",
+      time: "11:00 - 12:00",
+      subject: "math",
+      class: "class c",
+      address: "123 Elm Street, Springfield, IL, 62701, Cambo",
+      date: "2024-10-08",
+      status_id: 2,
+      status: "Late",
+      img: null,
+    },
+    {
+      id: 10,
+      attendance_id: 9,
+      name: "seyla sonn c",
+      time: "11:00 - 12:00",
+      subject: "math",
+      class: "class c",
+      address: "123 Elm Street, Springfield, IL, 62701, Cambo",
+      date: "2024-10-08",
+      status_id: 4,
+      status: "Permission",
+      img: null,
+    },
+  ];
+
+  // Create CSV rows
+  const csvRows = [];
+  const headers = ['ID', 'Attendance ID', 'Name', 'Time', 'Subject', 'Class', 'Address', 'Date', 'Status ID', 'Status'];
+  csvRows.push(headers.join(','));
+
+  data.forEach(item => {
+    const row = [
+      item.id,
+      item.attendance_id,
+      item.name,
+      item.time,
+      item.subject,
+      item.class,
+      item.address,
+      item.date,
+      item.status_id,
+      item.status
+    ];
+    csvRows.push(row.join(','));
+  });
+
+  const csvString = csvRows.join('\n');
+
+  // Set response headers to trigger file download
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=attendance_data.csv');
+  res.status(200).send(csvString); // Send the CSV string as the response
+});

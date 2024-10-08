@@ -16,6 +16,12 @@ router
   .route('/')
   .get(authController.restrictTo('admin'), attendanceController.getAllAttendances);
 
+  router
+      .route('/export-attendance')
+      .get(
+        authController.restrictTo('admin'),
+        attendanceController.exportAttendance
+      )
 router
   .route('/:id')
   .put(
