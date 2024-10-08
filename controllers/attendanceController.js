@@ -20,11 +20,8 @@ const factory = require('./handlerFactory');
 const { Op } = require('sequelize');
 const { formatDataSessionfForAttendance, sendAttendanceEmail, formattedStudentAttendance } = require('../utils/attendanceUtils');
 // Get all attendances
-exports.getAllAttendances = catchAsync(async (req, res, next) => {
-  const school_admin_id = req.school_admin_id;
-  const { subject_id, search, class_id } = req.query;
-
-  // associations for attendance
+// associations for attendance
+const getAssociations= (school_admin_id, class_id, subject_id, search)=>{
   const associations = [
     {
       model: Student,
@@ -94,18 +91,25 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
       ],
     },
   ];
+  return associations
+}
+// filter allow fields
+const allowedFields = [
+  'filter',
+  'student_id',
+  'session_id',
+  'status_id',
+  'page',
+  'sort',
+  'limit',
+  'fields',
+];
+exports.getAllAttendances = catchAsync(async (req, res, next) => {
+  const school_admin_id = req.school_admin_id;
+  const { subject_id, search, class_id } = req.query;
 
-  // filter allow fields
-  const allowedFields = [
-    'filter',
-    'student_id',
-    'session_id',
-    'status_id',
-    'page',
-    'sort',
-    'limit',
-    'fields',
-  ];
+  const associations = getAssociations(school_admin_id, class_id, subject_id, search);
+
   req.query = filterObj(req.query, ...allowedFields);
 
   factory.getAll(Attendance, {}, associations, [])(req, res, next);
@@ -241,6 +245,7 @@ exports.getAttendance = catchAsync(async (req, res, next) => {
 });
 
 exports.exportAttendance = catchAsync(async (req, res, next) => {
+  
   // Example data (replace with your actual data)
   const data = [
     {
@@ -271,31 +276,34 @@ exports.exportAttendance = catchAsync(async (req, res, next) => {
     },
   ];
 
-  // Create CSV rows
-  const csvRows = [];
-  const headers = ['ID', 'Attendance ID', 'Name', 'Time', 'Subject', 'Class', 'Address', 'Date', 'Status ID', 'Status'];
-  csvRows.push(headers.join(','));
-
-  data.forEach(item => {
-    const row = [
-      item.id,
-      item.attendance_id,
-      item.name,
-      item.time,
-      item.subject,
-      item.class,
-      item.address,
-      item.date,
-      item.status_id,
-      item.status
-    ];
-    csvRows.push(row.join(','));
-  });
-
-  const csvString = csvRows.join('\n');
-
-  // Set response headers to trigger file download
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', 'attachment; filename=attendance_data.csv');
-  res.status(200).send(csvString); // Send the CSV string as the response
+  exportCsv(data);
 });
+
+const exportCsv = (data) => {
+   // Create CSV rows
+   const csvRows = [];
+   const headers = ['Student ID', 'Attendance ID', 'Name', 'Time', 'Subject', 'Class', 'Address', 'Date', 'Status'];
+   csvRows.push(headers.join(','));
+ 
+   data.forEach(item => {
+     const row = [
+       item.id,
+       item.attendance_id,
+       item.name,
+       item.time,
+       item.subject,
+       item.class,
+       item.address,
+       item.date,
+       item.status
+     ];
+     csvRows.push(row.join(','));
+   });
+ 
+   const csvString = csvRows.join('\n');
+ 
+   // Set response headers to trigger file download
+   res.setHeader('Content-Type', 'text/csv');
+   res.setHeader('Content-Disposition', 'attachment; filename=attendance_data.csv');
+   res.status(200).send(csvString); // Send the CSV string as the response
+}
