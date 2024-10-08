@@ -530,7 +530,7 @@ exports.changePassword = catchAsync(async (req, res, next) => {
 // ----------------------------
 // CHECK IF THE EMAIL IS AVAILABLE
 // ----------------------------
-exports.checkEmail = catchAsync(async (req, res, next) => {
+exports.checkAvailableEmail = catchAsync(async (req, res, next) => {
   const { email } = req.query;
 
   const existingUser = await User.findOne({ where: { email } });

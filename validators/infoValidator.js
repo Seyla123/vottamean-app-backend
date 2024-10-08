@@ -34,12 +34,19 @@ module.exports = {
 
   // Validator for phone number
   isValidPhoneNumber: (value) => {
+    // Remove non-numeric characters (except for +)
+    const cleanedValue = value.replace(/[^\d+]/g, '');
+
+    // Check length and format
     if (
-      !validator.isLength(value, { min: 9, max: 15 }) ||
-      !/^[0-9]{9,15}$/.test(value)
+      !validator.isLength(cleanedValue, { min: 10, max: 15 }) ||
+      !/^\+?\d{9,15}$/.test(cleanedValue) // Allow optional '+' at the start and validate digits
     ) {
-      throw new Error('Phone number must be between 10 and 15 digits');
+      throw new Error(
+        'Phone number must be between 10 and 15 digits and can include a country code.'
+      );
     }
+
     return true;
   },
 
