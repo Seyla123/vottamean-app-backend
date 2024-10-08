@@ -85,6 +85,7 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
       admin_id: admin_id,
       status: 'active',
     },
+    order: [['createdAt', 'DESC']],
   });
 
   if (!activeSubscription) {
@@ -94,17 +95,41 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
     });
   }
 
+  // Check if the subscription is a free one
+  if (activeSubscription.plan_type && activeSubscription.plan_type === 'free') {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'Cannot cancel a free subscription.',
+    });
+  }
+
+  // Log the stripe_subscription_id for debugging
+  console.log(
+    'Stripe Subscription ID:',
+    activeSubscription.stripe_subscription_id
+  );
+
+  // Validate if stripe_subscription_id exists
+  if (!activeSubscription.stripe_subscription_id) {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'Stripe subscription ID is missing or undefined.',
+    });
+  }
+
   // Cancel the subscription in Stripe
-  // try {
-  //   await stripe.subscriptions.del(activeSubscription.stripe_subscription_id);
-  // } catch (error) {
-  //   return next(
-  //     new AppError(
-  //       `Error canceling subscription in Stripe: ${error.message}`,
-  //       400
-  //     )
-  //   );
-  // }
+  try {
+    await stripe.subscriptions.cancel(
+      activeSubscription.stripe_subscription_id
+    );
+  } catch (error) {
+    return next(
+      new AppError(
+        `Error canceling subscription in Stripe: ${error.message}`,
+        400
+      )
+    );
+  }
 
   await Subscription.update(
     { status: 'canceled' },
@@ -342,13 +367,20 @@ const getPlanAmount = (plan_type) => {
 
 // Function to handle successful checkout session
 const handleCheckoutSessionCompleted = async (session) => {
+  // Get the admin ID from the session object
   const admin_id = session.metadata.admin_id;
+
+  // Get the plan type from the session object
   const plan_type = session.metadata.plan_type;
+
+  // Get the subscription ID from the session object
+  const subscriptionId = session.subscription;
 
   // Create a subscription record in the database
   const subscription = await Subscription.create({
     admin_id: admin_id,
     plan_type: plan_type,
+    stripe_subscription_id: subscriptionId,
     start_date: new Date(),
     end_date:
       plan_type === 'monthly'
@@ -369,6 +401,7 @@ const handleCheckoutSessionCompleted = async (session) => {
   console.log(`Payment and subscription recorded for admin_id: ${admin_id}`);
 };
 
+// Function to handle failed payment
 const handlePaymentFailed = async (session) => {
   const admin_id = session.metadata.admin_id;
 

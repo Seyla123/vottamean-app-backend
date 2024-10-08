@@ -62,7 +62,7 @@ exports.getClass = catchAsync(async (req, res, next) => {
 
 // Update a class
 exports.updateClass = catchAsync(async (req, res, next) => {
-  const { class_name, description } = req.body
+  const { class_name, description } = req.body;
   // Validate class name
   if (!isValidClassName(class_name)) {
     return next(new AppError('Class name is required and must be valid', 400));
