@@ -11,11 +11,11 @@ const { rawBodyMiddleware } = require('../middlewares/rawBodyMiddleware');
 // Define Express Router
 const router = express.Router();
 
-// // Protect all routes after this middleware
-// router.use(authController.protect);
+// Protect all routes after this middleware
+router.use(authController.protect);
 
-// // Require email verification for payment routes
-// router.use(authController.requireEmailVerification);
+// Require email verification for payment routes
+router.use(authController.requireEmailVerification);
 
 // Get all payment data
 router.get('/get-all-payments', paymentController.getAllPayments);
