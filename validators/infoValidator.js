@@ -76,7 +76,7 @@ module.exports = {
       );
     }
 
-    // Optional: Further check that the date is not in the future
+    // Check if the date is not in the future
     if (validator.isAfter(value, new Date().toISOString().split('T')[0])) {
       throw new Error('Date of birth cannot be in the future');
     }
