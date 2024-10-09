@@ -113,6 +113,10 @@ module.exports = {
       throw new Error('Password must contain at least one number');
     }
 
+    if (!/[\W_]/.test(value)) {
+      throw new Error('Password must contain at least one special character');
+    }
+
     return true;
   },
 
