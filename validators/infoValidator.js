@@ -76,7 +76,7 @@ module.exports = {
       );
     }
 
-    // Optional: Further check that the date is not in the future
+    // Check if the date is not in the future
     if (validator.isAfter(value, new Date().toISOString().split('T')[0])) {
       throw new Error('Date of birth cannot be in the future');
     }
@@ -111,6 +111,10 @@ module.exports = {
 
     if (!/[0-9]/.test(value)) {
       throw new Error('Password must contain at least one number');
+    }
+
+    if (!/[\W_]/.test(value)) {
+      throw new Error('Password must contain at least one special character');
     }
 
     return true;
