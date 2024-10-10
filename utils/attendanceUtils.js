@@ -110,14 +110,13 @@ exports.exportCsv = (data) =>(res) => {
   // Create CSV rows
   const csvRows = [];
   // add headers
-  const headers = ['Student ID', 'Attendance ID', 'Full Name', 'Start time', 'End time', 'Subject', 'Class', 'Address',  'Status','Date',];
+  const headers = ['Student ID', 'Full Name', 'Start time', 'End time', 'Subject', 'Class', 'Address','Status','Date',];
   csvRows.push(headers.join(','));
 
   // format data and add to csv rows
   data.forEach(item => {
     const row = [
       item.Student.student_id,
-      item.attendance_id,
       item.Student.Info.first_name + ' ' + item.Student.Info.last_name,
       item.Sessions.Period.start_time ,
        item.Sessions.Period.end_time,       
