@@ -169,7 +169,22 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
 
   if (existingUser) {
     if (!existingUser.emailVerified) {
-      // If the user exists but is not verified, resend verification email
+      // Calculate the time since the last verification request
+      const timeSinceLastRequest =
+        new Date() - new Date(existingUser.verificationRequestedAt);
+      const tenMinutes = 1 * 60 * 1000; // 10 minutes in milliseconds
+
+      // If less than 10 minutes have passed, do not allow another request.
+      if (timeSinceLastRequest < tenMinutes) {
+        return next(
+          new AppError(
+            `You must wait 10 minutes before requesting another verification email.`,
+            400
+          )
+        );
+      }
+
+      // If more than 10 minutes have passed, resend verification email
       const { token: verificationToken, hashedToken } =
         createVerificationToken();
 
@@ -187,7 +202,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
           emailVerificationToken: hashedToken,
         },
         process.env.JWT_SECRET,
-        { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
+        { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '1m' }
       );
 
       const verificationUrl =
@@ -196,6 +211,9 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
 
       try {
         await sendVerificationEmail(email, verificationUrl);
+        // Update the `verificationRequestedAt` field
+        existingUser.verificationRequestedAt = new Date();
+        await existingUser.save();
       } catch (error) {
         return next(new AppError('Failed to send verification email', 500));
       }
@@ -207,6 +225,8 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
         token: tempToken,
       });
     }
+
+    // If the email is verified, return an error
     return next(new AppError('Email is already registered and verified.', 400));
   }
 
@@ -220,6 +240,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
         password,
         emailVerified: false,
         role: 'teacher',
+        verificationRequestedAt: new Date(),
       },
       { transaction }
     );
@@ -263,8 +284,12 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
       emailVerificationToken: hashedToken,
     },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
+    { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '1m' }
   );
+
+  const verificationUrl =
+    `http://localhost:5173/auth/verify-teacher-email/${verificationToken}?token=${tempToken}` ||
+    `${req.headers.origin}/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
 
   try {
     await sendVerificationEmail(email, verificationUrl);

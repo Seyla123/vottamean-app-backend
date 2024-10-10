@@ -35,7 +35,7 @@ const checkLimit = async (school_admin_id, type) => {
   // 3. Check plan type and entity limit
   if (plan_type === 'basic' && duration === 'trial') {
     // Basic Free Trial Plan
-    const limit = type === 'teacher' ? 1 : 1;
+    const limit = type === 'teacher' ? 5 : 50;
     if (entityCount >= limit) {
       throw new AppError(`Basic Free plan allows only ${limit} ${type}s`, 403);
     }

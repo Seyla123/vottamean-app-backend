@@ -75,9 +75,23 @@ exports.signup = catchAsync(async (req, res, next) => {
   // 3. Check if the email is already registered.
   const existingUser = await User.findOne({ where: { email } });
 
-  // If the user exists but is not verified, send a new verification email
+  // If the user exists but is not verified, check the time since the last verification request.
   if (existingUser) {
     if (!existingUser.emailVerified) {
+      const timeSinceLastRequest =
+        new Date() - new Date(existingUser.verificationRequestedAt);
+      const tenMinutes = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+      // If less than 10 minutes have passed, do not allow another request.
+      if (timeSinceLastRequest < tenMinutes) {
+        return next(
+          new AppError(
+            `You must wait 10 minutes before requesting another verification email.`,
+            400
+          )
+        );
+      }
+
       // 4. Generate a new verification token and its hashed version.
       const { token: verificationToken, hashedToken } =
         createVerificationToken();
@@ -109,6 +123,9 @@ exports.signup = catchAsync(async (req, res, next) => {
 
       try {
         await sendVerificationEmail(email, verificationUrl);
+        // Update the `verificationRequestedAt` field
+        existingUser.verificationRequestedAt = new Date();
+        await existingUser.save();
       } catch (error) {
         return next(new AppError('Failed to send verification email', 500));
       }
@@ -125,11 +142,12 @@ exports.signup = catchAsync(async (req, res, next) => {
     return next(new AppError('Email is already registered and verified.', 400));
   }
 
-  // 8. If no existing user, create a new user with emailVerified set to false
+  // 8. If no existing user, create a new user with emailVerified set to false and set verificationRequestedAt to now.
   const newUser = await User.create({
     email,
     password,
     emailVerified: false,
+    verificationRequestedAt: new Date(),
   });
 
   // 9. Generate a new temporary JWT token for the new user
