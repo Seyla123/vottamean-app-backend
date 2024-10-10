@@ -166,15 +166,60 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
 
   // 4. Check if the email is already registered
   const existingUser = await User.findOne({ where: { email } });
+
+  let tempToken; // Define tempToken here
+
   if (existingUser) {
-    return next(new AppError('Email is already registered', 400));
+    // If the user exists but is not verified, send a new verification email
+    if (!existingUser.emailVerified) {
+      // Generate a new verification token and its hashed version
+      const { token: verificationToken, hashedToken } =
+        createVerificationToken();
+
+      // Create a temporary JWT token with user data and the hashed verification token
+      tempToken = jwt.sign(
+        {
+          email,
+          address,
+          dob: new Date(dob),
+          first_name,
+          last_name,
+          gender,
+          phone_number,
+          school_admin_id,
+          emailVerificationToken: hashedToken,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
+      );
+
+      // Construct the verification URL and send it via email.
+      const verificationUrl =
+        `http://localhost:5173/auth/verify-teacher-email/${verificationToken}?token=${tempToken}` ||
+        `${req.headers.origin}/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
+
+      try {
+        await sendVerificationEmail(email, verificationUrl);
+      } catch (error) {
+        return next(new AppError('Failed to send verification email', 500));
+      }
+
+      return res.status(200).json({
+        status: 'success',
+        message:
+          'A new verification email has been sent. Please verify your email to complete registration.',
+        token: tempToken, // Return the token
+      });
+    }
+
+    return next(new AppError('Email is already registered and verified.', 400));
   }
 
-  // 5. Generate a verification token and its hashed version
+  // 5. Generate a verification token and its hashed version for new users
   const { token: verificationToken, hashedToken } = createVerificationToken();
 
-  // 6. Create a temporary JWT token with user data and the hashed verification token
-  const tempToken = jwt.sign(
+  // Create a temporary JWT token with user data and the hashed verification token
+  tempToken = jwt.sign(
     {
       email,
       password,

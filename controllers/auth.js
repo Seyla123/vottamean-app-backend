@@ -11,6 +11,7 @@ const {
   School,
   SchoolAdmin,
   Teacher,
+  Subscription,
 } = require('../models');
 const { Op } = require('sequelize');
 
@@ -101,10 +102,9 @@ exports.signup = catchAsync(async (req, res, next) => {
   );
 
   // 6. Construct the verification URL and send it via email.
-  // const verificationUrl = `${req.protocol}://${req.get(
-  //   'host'
-  // )}/api/v1/auth/verify-email/${verificationToken}?token=${tempToken}`;
-  const verificationUrl = `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}`;
+  const verificationUrl =
+    `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}` ||
+    `${req.headers.origin}/auth/verify-email/${verificationToken}?token=${tempToken}`;
 
   try {
     await sendVerificationEmail(email, verificationUrl);
@@ -140,7 +140,7 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
     return next(new AppError('Token is invalid or has expired.', 400));
   }
 
-  // 3. Transaction of the data models
+  // 3. Start a transaction for data models
   const transaction = await sequelize.transaction();
   try {
     const {
@@ -157,13 +157,13 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
       school_phone_number,
     } = decoded;
 
-    // 4. Create the user first
+    // 4. Create the user
     const user = await User.create(
       { email, password, emailVerified: true },
       { transaction }
     );
 
-    // 5. Create info record and get info_id
+    // 5. Create the info record
     const info = await Info.create(
       {
         first_name,
@@ -182,28 +182,46 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
       { transaction }
     );
 
-    // 7. Use the info_id from Info creation for Admin creation
+    // 7. Create the admin record with the user and info ID
     const admin = await Admin.create(
       { user_id: user.user_id, info_id: info.info_id },
       { transaction }
     );
 
-    // 8. Create the SchoolAdmin record
-    await SchoolAdmin.create(
+    // 8. Create the SchoolAdmin record and capture the instance
+    const schoolAdmin = await SchoolAdmin.create(
       { admin_id: admin.admin_id, school_id: school.school_id },
       { transaction }
     );
 
-    // 9. Commit the transaction if all records are created successfully
+    // 9. Create the subscription for the school admin (free tier)
+    await Subscription.create(
+      {
+        admin_id: admin.admin_id,
+        plan_type: 'free',
+        start_date: new Date(),
+        // 14-day free trial
+        end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        // testing subscription expired in 1 minute
+        // end_date: new Date(Date.now() + 60 * 1000),
+      },
+      { transaction }
+    );
+
+    // 10. Commit the transaction
     await transaction.commit();
 
+    // 11. Respond with a success message
     res.status(200).json({
       status: 'success',
       message: 'Email verified and account created successfully!',
     });
   } catch (err) {
+    // 12. Rollback the transaction if any error occurs
     await transaction.rollback();
-    return next(new AppError(`Failed to create user and school ${err}`, 500));
+    return next(
+      new AppError(`Failed to create user and school: ${err.message}`, 500)
+    );
   }
 });
 
@@ -415,7 +433,9 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   await user.save({ validateBeforeSave: false });
 
   // 4. Construct the password reset URL.
-  const resetURL = `http://localhost:5173/auth/verify-reset-password/${resetToken}`;
+  const resetURL =
+    `http://localhost:5173/auth/verify-reset-password/${resetToken}` ||
+    `${req.headers.origin}/auth/verify-reset-password/${resetToken}`;
 
   // 5. Attempt to send the password reset email.
   try {
@@ -510,7 +530,7 @@ exports.changePassword = catchAsync(async (req, res, next) => {
 // ----------------------------
 // CHECK IF THE EMAIL IS AVAILABLE
 // ----------------------------
-exports.checkEmail = catchAsync(async (req, res, next) => {
+exports.checkAvailableEmail = catchAsync(async (req, res, next) => {
   const { email } = req.query;
 
   const existingUser = await User.findOne({ where: { email } });
