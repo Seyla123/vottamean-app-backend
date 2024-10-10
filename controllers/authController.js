@@ -255,10 +255,11 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
     await Subscription.create(
       {
         admin_id: admin.admin_id,
-        plan_type: 'free',
+        plan_type: 'basic',
         start_date: new Date(),
         // 14-day free trial
         end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        trial_period: true,
         // testing subscription expired in 1 minute
         // end_date: new Date(Date.now() + 60 * 1000),
       },

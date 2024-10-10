@@ -13,9 +13,14 @@ module.exports = (sequelize, DataTypes) => {
         primaryKey: true,
       },
       plan_type: {
-        type: DataTypes.ENUM('free', 'monthly', 'yearly'),
+        type: DataTypes.ENUM('basic', 'standard', 'premium'),
         allowNull: false,
-        defaultValue: 'free',
+        defaultValue: 'basic',
+      },
+      duration: {
+        type: DataTypes.ENUM('trial', 'monthly', 'yearly'),
+        allowNull: false,
+        defaultValue: 'trial',
       },
       stripe_subscription_id: {
         type: DataTypes.STRING,

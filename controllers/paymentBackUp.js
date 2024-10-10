@@ -70,81 +70,6 @@ exports.getAllPayments = catchAsync(async (req, res, next) => {
 // -----------------------------------
 // CANCEL SUBSCRIPTION
 // -----------------------------------
-// exports.cancelSubscription = catchAsync(async (req, res, next) => {
-//   const { admin_id } = req.body;
-
-//   if (!admin_id) {
-//     return res.status(400).json({
-//       status: 'fail',
-//       message: 'Missing required field: admin_id',
-//     });
-//   }
-
-//   const activeSubscription = await Subscription.findOne({
-//     where: {
-//       admin_id: admin_id,
-//       status: 'active',
-//     },
-//     order: [['createdAt', 'DESC']],
-//   });
-
-//   if (!activeSubscription) {
-//     return res.status(400).json({
-//       status: 'fail',
-//       message: 'No active subscription found to cancel.',
-//     });
-//   }
-
-//   // Check if the subscription is a free one
-//   if (activeSubscription.plan_type && activeSubscription.plan_type === 'free') {
-//     return res.status(400).json({
-//       status: 'fail',
-//       message: 'Cannot cancel a free subscription.',
-//     });
-//   }
-
-//   // Log the stripe_subscription_id for debugging
-//   console.log(
-//     'Stripe Subscription ID:',
-//     activeSubscription.stripe_subscription_id
-//   );
-
-//   // Validate if stripe_subscription_id exists
-//   if (!activeSubscription.stripe_subscription_id) {
-//     return res.status(400).json({
-//       status: 'fail',
-//       message: 'Stripe subscription ID is missing or undefined.',
-//     });
-//   }
-
-//   // Cancel the subscription in Stripe
-//   try {
-//     await stripe.subscriptions.cancel(
-//       activeSubscription.stripe_subscription_id
-//     );
-//   } catch (error) {
-//     return next(
-//       new AppError(
-//         `Error canceling subscription in Stripe: ${error.message}`,
-//         400
-//       )
-//     );
-//   }
-
-//   await Subscription.update(
-//     { status: 'canceled' },
-//     { where: { subscription_id: activeSubscription.subscription_id } }
-//   );
-
-//   res.status(200).json({
-//     status: 'success',
-//     message: 'Subscription canceled successfully.',
-//   });
-// });
-
-// -----------------------------------
-// CANCEL SUBSCRIPTION
-// -----------------------------------
 exports.cancelSubscription = catchAsync(async (req, res, next) => {
   const { admin_id } = req.body;
 
@@ -155,7 +80,6 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
     });
   }
 
-  // Retrieve the active subscription for the given admin
   const activeSubscription = await Subscription.findOne({
     where: {
       admin_id: admin_id,
@@ -171,90 +95,26 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
     });
   }
 
+  // Check if the subscription is a free one
+  if (activeSubscription.plan_type && activeSubscription.plan_type === 'free') {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'Cannot cancel a free subscription.',
+    });
+  }
+
+  // Log the stripe_subscription_id for debugging
+  console.log(
+    'Stripe Subscription ID:',
+    activeSubscription.stripe_subscription_id
+  );
+
+  // Validate if stripe_subscription_id exists
   if (!activeSubscription.stripe_subscription_id) {
     return res.status(400).json({
       status: 'fail',
       message: 'Stripe subscription ID is missing or undefined.',
     });
-  }
-
-  // Calculate the refund based on the subscription duration (e.g., within 3 days)
-  const subscriptionStartDate = new Date(activeSubscription.start_date);
-  const currentDate = new Date();
-  const timeDiff = currentDate - subscriptionStartDate;
-  const daysDiff = timeDiff / (1000 * 3600 * 24); // Convert milliseconds to days
-
-  let refundAmount = 0;
-  if (daysDiff <= 3) {
-    refundAmount = activeSubscription.amount; // Refund full amount if within 3 days
-
-    try {
-      // Retrieve the subscription from Stripe
-      const subscription = await stripe.subscriptions.retrieve(
-        activeSubscription.stripe_subscription_id
-      );
-      const invoice = await stripe.invoices.retrieve(
-        subscription.latest_invoice
-      );
-
-      if (!invoice.payment_intent) {
-        return res.status(400).json({
-          status: 'fail',
-          message: 'No payment intent found for this subscription.',
-        });
-      }
-
-      const paymentIntent = await stripe.paymentIntents.retrieve(
-        invoice.payment_intent
-      );
-
-      // Check if there are charges associated with the payment intent
-      if (!paymentIntent.charges || paymentIntent.charges.data.length === 0) {
-        return res.status(400).json({
-          status: 'fail',
-          message: 'No charges found for this payment intent.',
-        });
-      }
-
-      const chargeId = paymentIntent.charges.data[0].id;
-      const charge = await stripe.charges.retrieve(chargeId);
-
-      if (charge.refunded) {
-        return res.status(400).json({
-          status: 'fail',
-          message: 'The charge has already been refunded.',
-        });
-      }
-
-      // Process the refund
-      await stripe.refunds.create({
-        charge: chargeId,
-        amount: refundAmount, // Refund in cents (Stripe works with cents)
-      });
-
-      // Optionally create and finalize a refund invoice
-      const refundInvoice = await stripe.invoices.create({
-        customer: activeSubscription.stripe_customer_id,
-        auto_advance: true,
-        description: `Refund for subscription cancellation (Subscription ID: ${activeSubscription.subscription_id})`,
-      });
-
-      await stripe.invoiceItems.create({
-        customer: activeSubscription.stripe_customer_id,
-        amount: -refundAmount, // Refund amount (negative value)
-        currency: 'usd',
-        description: 'Refund for canceled subscription',
-        invoice: refundInvoice.id,
-      });
-
-      await stripe.invoices.finalizeInvoice(refundInvoice.id);
-      await stripe.invoices.sendInvoice(refundInvoice.id);
-    } catch (error) {
-      console.error('Error during refund process:', error);
-      return next(
-        new AppError(`Error processing refund in Stripe: ${error.message}`, 400)
-      );
-    }
   }
 
   // Cancel the subscription in Stripe
@@ -271,17 +131,14 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
     );
   }
 
-  // Update the subscription status in your database
   await Subscription.update(
     { status: 'canceled' },
     { where: { subscription_id: activeSubscription.subscription_id } }
   );
 
-  // Respond with success message and refund amount (if applicable)
   res.status(200).json({
     status: 'success',
     message: 'Subscription canceled successfully.',
-    refundAmount: refundAmount > 0 ? refundAmount / 100 : 0, // Convert cents to dollars
   });
 });
 
