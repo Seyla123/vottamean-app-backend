@@ -71,7 +71,13 @@ exports.getOne = (Model, idField, popOptions = [], additionalFilter = {}) =>
  * @param {Array} [search=[]] - Fields to search within.
  * @returns {Function} Middleware function for retrieving all documents.
  */
-exports.getAll = (Model, additionalFilter = {}, popOptions = [], search = [], attribute) =>
+exports.getAll = (
+  Model,
+  additionalFilter = {},
+  popOptions = [],
+  search = [],
+  attribute
+) =>
   catchAsync(async (req, res, next) => {
     let filter = { ...additionalFilter, active: 1 };
 
@@ -174,7 +180,14 @@ exports.deleteOne = (Model, idField) =>
     });
   });
 
-// Restore Data
+/**
+ * Middleware for marking a document as active.
+ * Responds with a success message or an error if not found.
+ *
+ * @param {Model} Model - The model to mark the document in.
+ * @param {string} idField - The field used to identify the document.
+ * @returns {Function} Middleware function for marking document inactive.
+ */
 exports.restoreOne = (Model, idField) =>
   catchAsync(async (req, res, next) => {
     console.log(
@@ -201,5 +214,43 @@ exports.restoreOne = (Model, idField) =>
     res.status(200).json({
       status: 'success',
       message: `Record with ${idField}: ${req.params.id} successfully restored`,
+    });
+  });
+
+/**
+ * Middleware for marking an array of selected -
+ * row of the documents to turn it into inactive status.
+ * Responds with a success message or an error if not found.
+ *
+ * @param {Model} Model - The model to mark the document in.
+ * @param {string} idField - The field used to identify the document.
+ * @returns {Function} Middleware function for marking document inactive.
+ */
+exports.deleteMany = (Model, idField) =>
+  catchAsync(async (req, res, next) => {
+    console.log(
+      `Attempting to set active to false for records with ${idField}: ${req.body.ids}`
+    );
+
+    // Update the active field to false instead of deleting the record
+    const docs = await Model.update(
+      { active: false }, // Set active to false
+      { where: { [idField]: req.body.ids, active: true } }
+    );
+
+    // Check if any document was found and updated
+    if (docs[0] === 0) {
+      console.error(
+        `No active document found with ${idField}: ${req.body.ids}`
+      );
+      return next(
+        new AppError(`No active document found with that ${idField}`, 404)
+      );
+    }
+
+    // Respond with a success message
+    res.status(200).json({
+      status: 'success',
+      message: `${docs[0]} records with ${idField}: ${req.body.ids} successfully marked as inactive`,
     });
   });

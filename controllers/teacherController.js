@@ -129,7 +129,7 @@ exports.deleteTeacher = factory.deleteOne(Teacher, 'teacher_id');
 exports.signupTeacher = catchAsync(async (req, res, next) => {
   const school_admin_id = req.school_admin_id;
 
-  // 1. Check the subscription plan and limit
+  // 1. Check the subscription plan and teacher limit
   try {
     await checkTeacherLimit(school_admin_id);
   } catch (error) {
@@ -166,24 +166,99 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
 
   // 4. Check if the email is already registered
   const existingUser = await User.findOne({ where: { email } });
+
   if (existingUser) {
-    return next(new AppError('Email is already registered', 400));
+    if (!existingUser.emailVerified) {
+      // If the user exists but is not verified, resend verification email
+      const { token: verificationToken, hashedToken } =
+        createVerificationToken();
+
+      // Create a temporary JWT token with user data and the hashed verification token
+      const tempToken = jwt.sign(
+        {
+          email,
+          address,
+          dob: new Date(dob),
+          first_name,
+          last_name,
+          gender,
+          phone_number,
+          school_admin_id,
+          emailVerificationToken: hashedToken,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
+      );
+
+      const verificationUrl =
+        `http://localhost:5173/auth/verify-teacher-email/${verificationToken}?token=${tempToken}` ||
+        `${req.headers.origin}/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
+
+      try {
+        await sendVerificationEmail(email, verificationUrl);
+      } catch (error) {
+        return next(new AppError('Failed to send verification email', 500));
+      }
+
+      return res.status(200).json({
+        status: 'success',
+        message:
+          'A new verification email has been sent. Please verify your email to complete registration.',
+        token: tempToken,
+      });
+    }
+    return next(new AppError('Email is already registered and verified.', 400));
   }
 
-  // 5. Generate a verification token and its hashed version
+  // 5. Create the user record with emailVerified = false
+  const transaction = await sequelize.transaction();
+  let user;
+  try {
+    user = await User.create(
+      {
+        email,
+        password,
+        emailVerified: false,
+        role: 'teacher',
+      },
+      { transaction }
+    );
+
+    // Create associated Info and Teacher records
+    const info = await Info.create(
+      {
+        first_name,
+        last_name,
+        phone_number,
+        address,
+        dob: new Date(dob),
+        gender,
+      },
+      { transaction }
+    );
+
+    await Teacher.create(
+      {
+        user_id: user.user_id,
+        info_id: info.info_id,
+        school_admin_id,
+      },
+      { transaction }
+    );
+
+    await transaction.commit();
+  } catch (err) {
+    await transaction.rollback();
+    return next(new AppError('Failed to create teacher record', 500));
+  }
+
+  // 6. Generate a verification token for the new user
   const { token: verificationToken, hashedToken } = createVerificationToken();
 
-  // 6. Create a temporary JWT token with user data and the hashed verification token
+  // Create a temporary JWT token with user data and the hashed verification token
   const tempToken = jwt.sign(
     {
       email,
-      password,
-      address,
-      dob: new Date(dob),
-      first_name,
-      last_name,
-      gender,
-      phone_number,
       school_admin_id,
       emailVerificationToken: hashedToken,
     },
@@ -191,18 +266,13 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
   );
 
-  // 6. Construct the verification URL and send it via email.
-  const verificationUrl =
-    `http://localhost:5173/auth/verify-teacher-email/${verificationToken}?token=${tempToken}` ||
-    `${req.headers.origin}/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
-
   try {
     await sendVerificationEmail(email, verificationUrl);
   } catch (error) {
     return next(new AppError('Failed to send verification email', 500));
   }
 
-  // 8. Respond with a success message and the temporary token
+  // 7. Respond with a success message and the temporary token
   res.status(200).json({
     status: 'success',
     message:
@@ -219,7 +289,6 @@ exports.verifyTeacherEmail = catchAsync(async (req, res, next) => {
     .createHash('sha256')
     .update(req.params.token)
     .digest('hex');
-
   const tempToken = req.query.token;
 
   try {
@@ -231,60 +300,19 @@ exports.verifyTeacherEmail = catchAsync(async (req, res, next) => {
       return next(new AppError('Token is invalid or has expired.', 400));
     }
 
-    // Destructure the required values from the decoded token
-    const {
-      email,
-      password,
-      address,
-      dob,
-      gender,
-      first_name,
-      last_name,
-      phone_number,
-      school_admin_id,
-    } = decoded;
+    // 1. Update the user's emailVerified field to true
+    const user = await User.findOne({ where: { email: decoded.email } });
 
-    const transaction = await sequelize.transaction();
+    if (!user) return next(new AppError('User not found.', 404));
 
-    try {
-      // Create the User
-      const user = await User.create(
-        { email, password, emailVerified: true, role: 'teacher' },
-        { transaction }
-      );
+    user.emailVerified = true;
+    await user.save();
 
-      // Create the Info record
-      const info = await Info.create(
-        { first_name, last_name, phone_number, address, dob, gender },
-        { transaction }
-      );
-
-      // Create the Teacher record
-      await Teacher.create(
-        {
-          user_id: user.user_id,
-          info_id: info.info_id,
-          school_admin_id,
-        },
-        { transaction }
-      );
-
-      // Commit the transaction if all operations are successful
-      await transaction.commit();
-
-      res.status(200).json({
-        status: 'success',
-        message: 'Email verified and teacher account created successfully!',
-      });
-    } catch (err) {
-      // Rollback the transaction in case of any error
-      await transaction.rollback();
-      console.error('Transaction Error:', err);
-      return next(new AppError('Failed to create teacher account', 500));
-    }
+    res.status(200).json({
+      status: 'success',
+      message: 'Email verified successfully! Your account is now active.',
+    });
   } catch (err) {
-    // Handle token verification error
-    console.error('JWT Error:', err);
     return next(new AppError('Failed to verify token', 400));
   }
 });
