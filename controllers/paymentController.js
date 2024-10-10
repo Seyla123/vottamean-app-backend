@@ -141,15 +141,49 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
     });
   }
 
-  try {
-    await checkActiveSubscription(admin_id);
-  } catch (error) {
-    return res.status(400).json({
-      status: 'fail',
-      message: error.message,
-    });
+  // Fetch the active subscription of the user
+  const activeSubscription = await Subscription.findOne({
+    where: { admin_id, status: 'active' },
+    order: [['createdAt', 'DESC']],
+  });
+
+  if (activeSubscription) {
+    const { plan_type: currentPlanType } = activeSubscription;
+
+    // Check if the current subscription is "basic" or "trial"
+    if (currentPlanType === 'basic' || currentPlanType === 'trial') {
+      // Allow user to subscribe to a new plan even with an active "basic" or "trial"
+      console.log(`User with basic/trial plan switching to ${plan_type}`);
+    } else if (currentPlanType === plan_type) {
+      // Extend the current subscription's end date if it's the same plan
+      let newEndDate;
+      if (duration === 'monthly') {
+        newEndDate = addMonths(activeSubscription.end_date, 1);
+      } else if (duration === 'yearly') {
+        newEndDate = addYears(activeSubscription.end_date, 1);
+      }
+
+      // Update subscription with the new end date
+      await Subscription.update(
+        { end_date: newEndDate },
+        { where: { subscription_id: activeSubscription.subscription_id } }
+      );
+
+      return res.status(200).json({
+        status: 'success',
+        message: `Subscription extended until ${newEndDate}`,
+      });
+    } else {
+      // Prevent subscribing to a different plan type without canceling the current subscription
+      return res.status(400).json({
+        status: 'fail',
+        message:
+          'You must cancel your current plan before subscribing to a new plan.',
+      });
+    }
   }
 
+  // No active subscription or user is on "basic" or "trial", proceed with creating a new one
   const amount = getPlanAmount(plan_type, duration);
   if (!amount) {
     return next(new AppError('Invalid plan type or duration', 400));
@@ -174,12 +208,7 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
             },
             unit_amount: amount,
             recurring: {
-              interval:
-                duration === 'monthly'
-                  ? 'month'
-                  : duration === 'yearly'
-                  ? 'year'
-                  : undefined,
+              interval: duration === 'monthly' ? 'month' : 'year',
             },
           },
           quantity: 1,
@@ -198,106 +227,6 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
     res.status(200).json({ status: 'success', url: session.url });
   } catch (error) {
     return next(new AppError(error.message, 400));
-  }
-});
-
-// ---------------------------------
-// CREATE PAYMENT INTENT : Custom UI
-// ---------------------------------
-exports.createPaymentIntent = catchAsync(async (req, res, next) => {
-  const { admin_id, plan_type, payment_method_id } = req.body;
-
-  if (!admin_id || !plan_type || !payment_method_id) {
-    return res.status(400).json({
-      status: 'fail',
-      message:
-        'Missing required fields: admin_id, plan_type, or payment_method_id',
-    });
-  }
-
-  // Check if the admin has an active subscription
-  try {
-    await checkActiveSubscription(admin_id);
-  } catch (error) {
-    return res.status(400).json({
-      status: 'fail',
-      message: error.message,
-    });
-  }
-
-  const amount = getPlanAmount(plan_type);
-  if (!amount) {
-    return next(new AppError('Invalid plan type', 400));
-  }
-
-  // Create a Stripe PaymentIntent
-  let paymentIntent;
-  try {
-    paymentIntent = await stripe.paymentIntents.create({
-      amount: amount,
-      currency: 'USD',
-      payment_method: payment_method_id,
-      confirm: false,
-      automatic_payment_methods: {
-        enabled: true,
-        allow_redirects: 'never',
-      },
-    });
-    console.log('Payment Intent Created:', paymentIntent);
-  } catch (error) {
-    console.error('Error creating payment intent:', error);
-    return next(new AppError(error.message, error.statusCode || 500));
-  }
-
-  // Respond with the client_secret immediately after creating the PaymentIntent
-  res.status(200).json({
-    status: 'success',
-    client_secret: paymentIntent.client_secret,
-  });
-
-  // Confirm the PaymentIntent in the background to avoid sending multiple responses
-  try {
-    const confirmedIntent = await stripe.paymentIntents.confirm(
-      paymentIntent.id
-    );
-    console.log('Confirmed Payment Intent:', confirmedIntent);
-
-    // Check the confirmed intent status
-    if (confirmedIntent.status === 'succeeded') {
-      // Handle successful payment and create records
-      const subscription = await Subscription.create({
-        admin_id: admin_id,
-        plan_type: plan_type,
-        start_date: new Date(),
-        end_date:
-          plan_type === 'monthly'
-            ? addMonths(new Date(), 1)
-            : addYears(new Date(), 1),
-        status: 'active',
-      });
-
-      await Payment.create({
-        admin_id: admin_id,
-        subscription_id: subscription.subscription_id,
-        amount: (amount / 100).toFixed(2),
-        payment_method: confirmedIntent.payment_method,
-        payment_status: 'successful',
-      });
-
-      // Note: cannot send another response here because one has already been sent
-      // Instead, can log or handle any additional operations needed.
-      console.log('Payment successful, subscription activated:', subscription);
-    } else if (confirmedIntent.status === 'requires_action') {
-      console.log('Payment requires additional authentication.');
-    } else if (confirmedIntent.status === 'requires_payment_method') {
-      console.error(
-        'Payment failed, please try with a different payment method.'
-      );
-    } else {
-      console.error('Payment not successful, please try again.');
-    }
-  } catch (error) {
-    console.error('Error confirming payment intent:', error);
   }
 });
 

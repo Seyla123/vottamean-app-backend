@@ -38,7 +38,7 @@ router.get('/get-all-subscriptions', paymentController.getAllSubscriptions);
 router.post('/cancel-subscription', paymentController.cancelSubscription);
 
 // Create a payment intent (for creating subscriptions)
-router.post('/create-payment-intent', paymentController.createPaymentIntent);
+// router.post('/create-payment-intent', paymentController.createPaymentIntent);
 
 router.post(
   '/create-checkout-session',
