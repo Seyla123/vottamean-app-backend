@@ -1,38 +1,26 @@
-// Import Stripe instance from the config file
 const stripe = require('../config/stripe');
-
-// Database models
 const { Subscription, Payment, Admin } = require('../models');
-
-// Error handling utilities
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
-
-// Helper functions for date manipulation
 const {
   checkActiveSubscription,
   addMonths,
   addYears,
 } = require('../utils/paymentHelper');
 
-//
-
 // -----------------------------------
 // GET ALL SUBSCRIPTION PLAN TO CHECK
 // -----------------------------------
 exports.getAllSubscriptions = catchAsync(async (req, res, next) => {
-  // Query the Subscription model to retrieve all subscription data
   const subscriptions = await Subscription.findAll({
     include: [{ model: Admin, as: 'Admin' }],
     order: [['subscription_id', 'ASC']],
   });
 
-  // If no subscriptions found, return an error
   if (!subscriptions || subscriptions.length === 0) {
     return next(new AppError('No subscriptions found', 404));
   }
 
-  // Return the subscription data in the response
   res.status(200).json({
     status: 'success',
     results: subscriptions.length,
@@ -46,18 +34,15 @@ exports.getAllSubscriptions = catchAsync(async (req, res, next) => {
 // GET ALL PAYMENT PURCHASE TO CHECK
 // -----------------------------------
 exports.getAllPayments = catchAsync(async (req, res, next) => {
-  // Query the Payment model to retrieve all payment data
   const payments = await Payment.findAll({
     include: [{ model: Admin, as: 'Admin' }],
     order: [['payment_id', 'ASC']],
   });
 
-  // If no payments found, return an error
   if (!payments || payments.length === 0) {
     return next(new AppError('No payments found', 404));
   }
 
-  // Return the payment data in the response
   res.status(200).json({
     status: 'success',
     results: payments.length,
@@ -81,10 +66,7 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
   }
 
   const activeSubscription = await Subscription.findOne({
-    where: {
-      admin_id: admin_id,
-      status: 'active',
-    },
+    where: { admin_id, status: 'active' },
     order: [['createdAt', 'DESC']],
   });
 
@@ -95,21 +77,13 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
     });
   }
 
-  // Check if the subscription is a free one
-  if (activeSubscription.plan_type && activeSubscription.plan_type === 'free') {
+  if (activeSubscription.plan_type === 'trial') {
     return res.status(400).json({
       status: 'fail',
-      message: 'Cannot cancel a free subscription.',
+      message: 'Cannot cancel a free trial subscription.',
     });
   }
 
-  // Log the stripe_subscription_id for debugging
-  console.log(
-    'Stripe Subscription ID:',
-    activeSubscription.stripe_subscription_id
-  );
-
-  // Validate if stripe_subscription_id exists
   if (!activeSubscription.stripe_subscription_id) {
     return res.status(400).json({
       status: 'fail',
@@ -117,7 +91,6 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
     });
   }
 
-  // Cancel the subscription in Stripe
   try {
     await stripe.subscriptions.cancel(
       activeSubscription.stripe_subscription_id
@@ -146,31 +119,76 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
 // CREATE CHECKOUT SESSION : Stripe UI
 // -----------------------------------
 exports.createCheckoutSession = catchAsync(async (req, res, next) => {
-  const { admin_id, plan_type } = req.body;
+  const { admin_id, plan_type, duration } = req.body;
 
-  if (!admin_id || !plan_type) {
+  if (!admin_id || !plan_type || !duration) {
     return res.status(400).json({
       status: 'fail',
-      message: 'Missing required fields: admin_id or plan_type',
+      message: 'Missing required fields: admin_id, plan_type, or duration',
     });
   }
 
-  // Check if the admin has an active subscription
-  try {
-    await checkActiveSubscription(admin_id);
-  } catch (error) {
+  const validPlanTypes = ['basic', 'standard', 'premium'];
+  const validDurations = ['trial', 'monthly', 'yearly'];
+
+  if (
+    !validPlanTypes.includes(plan_type) ||
+    !validDurations.includes(duration)
+  ) {
     return res.status(400).json({
       status: 'fail',
-      message: error.message,
+      message: 'Invalid plan_type or duration',
     });
   }
 
-  const amount = getPlanAmount(plan_type);
+  // Fetch the active subscription of the user
+  const activeSubscription = await Subscription.findOne({
+    where: { admin_id, status: 'active' },
+    order: [['createdAt', 'DESC']],
+  });
+
+  if (activeSubscription) {
+    const { plan_type: currentPlanType } = activeSubscription;
+
+    // Check if the current subscription is "basic" or "trial"
+    if (currentPlanType === 'basic' || currentPlanType === 'trial') {
+      // Allow user to subscribe to a new plan even with an active "basic" or "trial"
+      console.log(`User with basic/trial plan switching to ${plan_type}`);
+    } else if (currentPlanType === plan_type) {
+      // Extend the current subscription's end date if it's the same plan
+      let newEndDate;
+      if (duration === 'monthly') {
+        newEndDate = addMonths(activeSubscription.end_date, 1);
+      } else if (duration === 'yearly') {
+        newEndDate = addYears(activeSubscription.end_date, 1);
+      }
+
+      // Update subscription with the new end date
+      await Subscription.update(
+        { end_date: newEndDate },
+        { where: { subscription_id: activeSubscription.subscription_id } }
+      );
+
+      return res.status(200).json({
+        status: 'success',
+        message: `Subscription extended until ${newEndDate}`,
+      });
+    } else {
+      // Prevent subscribing to a different plan type without canceling the current subscription
+      return res.status(400).json({
+        status: 'fail',
+        message:
+          'You must cancel your current plan before subscribing to a new plan.',
+      });
+    }
+  }
+
+  // No active subscription or user is on "basic" or "trial", proceed with creating a new one
+  const amount = getPlanAmount(plan_type, duration);
   if (!amount) {
-    return next(new AppError('Invalid plan type', 400));
+    return next(new AppError('Invalid plan type or duration', 400));
   }
 
-  // Create a new Stripe Checkout Session
   const successUrl =
     process.env.CLIENT_PAYMENT_SUCCESS_URL ||
     `${req.protocol}://${req.get('host')}/payment/success`;
@@ -186,11 +204,11 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `Subscription - ${plan_type}`,
+              name: `Subscription - ${plan_type} (${duration})`,
             },
             unit_amount: amount,
             recurring: {
-              interval: plan_type === 'monthly' ? 'month' : 'year',
+              interval: duration === 'monthly' ? 'month' : 'year',
             },
           },
           quantity: 1,
@@ -200,118 +218,15 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
       success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
       metadata: {
-        admin_id: admin_id,
-        plan_type: plan_type,
+        admin_id,
+        plan_type,
+        duration,
       },
     });
 
-    res.status(200).json({
-      status: 'success',
-      url: session.url,
-    });
+    res.status(200).json({ status: 'success', url: session.url });
   } catch (error) {
-    console.error('Error creating checkout session:', error);
     return next(new AppError(error.message, 400));
-  }
-});
-
-// ---------------------------------
-// CREATE PAYMENT INTENT : Custom UI
-// ---------------------------------
-exports.createPaymentIntent = catchAsync(async (req, res, next) => {
-  const { admin_id, plan_type, payment_method_id } = req.body;
-
-  if (!admin_id || !plan_type || !payment_method_id) {
-    return res.status(400).json({
-      status: 'fail',
-      message:
-        'Missing required fields: admin_id, plan_type, or payment_method_id',
-    });
-  }
-
-  // Check if the admin has an active subscription
-  try {
-    await checkActiveSubscription(admin_id);
-  } catch (error) {
-    return res.status(400).json({
-      status: 'fail',
-      message: error.message,
-    });
-  }
-
-  const amount = getPlanAmount(plan_type);
-  if (!amount) {
-    return next(new AppError('Invalid plan type', 400));
-  }
-
-  // Create a Stripe PaymentIntent
-  let paymentIntent;
-  try {
-    paymentIntent = await stripe.paymentIntents.create({
-      amount: amount,
-      currency: 'USD',
-      payment_method: payment_method_id,
-      confirm: false,
-      automatic_payment_methods: {
-        enabled: true,
-        allow_redirects: 'never',
-      },
-    });
-    console.log('Payment Intent Created:', paymentIntent);
-  } catch (error) {
-    console.error('Error creating payment intent:', error);
-    return next(new AppError(error.message, error.statusCode || 500));
-  }
-
-  // Respond with the client_secret immediately after creating the PaymentIntent
-  res.status(200).json({
-    status: 'success',
-    client_secret: paymentIntent.client_secret,
-  });
-
-  // Confirm the PaymentIntent in the background to avoid sending multiple responses
-  try {
-    const confirmedIntent = await stripe.paymentIntents.confirm(
-      paymentIntent.id
-    );
-    console.log('Confirmed Payment Intent:', confirmedIntent);
-
-    // Check the confirmed intent status
-    if (confirmedIntent.status === 'succeeded') {
-      // Handle successful payment and create records
-      const subscription = await Subscription.create({
-        admin_id: admin_id,
-        plan_type: plan_type,
-        start_date: new Date(),
-        end_date:
-          plan_type === 'monthly'
-            ? addMonths(new Date(), 1)
-            : addYears(new Date(), 1),
-        status: 'active',
-      });
-
-      await Payment.create({
-        admin_id: admin_id,
-        subscription_id: subscription.subscription_id,
-        amount: (amount / 100).toFixed(2),
-        payment_method: confirmedIntent.payment_method,
-        payment_status: 'successful',
-      });
-
-      // Note: cannot send another response here because one has already been sent
-      // Instead, can log or handle any additional operations needed.
-      console.log('Payment successful, subscription activated:', subscription);
-    } else if (confirmedIntent.status === 'requires_action') {
-      console.log('Payment requires additional authentication.');
-    } else if (confirmedIntent.status === 'requires_payment_method') {
-      console.error(
-        'Payment failed, please try with a different payment method.'
-      );
-    } else {
-      console.error('Payment not successful, please try again.');
-    }
-  } catch (error) {
-    console.error('Error confirming payment intent:', error);
   }
 });
 
@@ -339,7 +254,6 @@ exports.handleStripeWebhook = catchAsync(async (req, res, next) => {
 
   switch (type) {
     case 'checkout.session.completed':
-      // Handle successful checkout session
       await handleCheckoutSessionCompleted(session);
       break;
     case 'invoice.payment_failed':
@@ -355,43 +269,35 @@ exports.handleStripeWebhook = catchAsync(async (req, res, next) => {
 // ----------------------------
 // HELPER FUNCTIONS
 // ----------------------------
-const getPlanAmount = (plan_type) => {
-  if (plan_type === 'monthly') {
-    return 10 * 100; // $10 in cents
-  } else if (plan_type === 'yearly') {
-    return 100 * 100; // $100 in cents
-  } else {
-    return null;
-  }
+const getPlanAmount = (plan_type, duration) => {
+  if (plan_type === 'standard' && duration === 'monthly') return 20 * 100;
+  if (plan_type === 'standard' && duration === 'yearly') return 200 * 100;
+  if (plan_type === 'premium' && duration === 'monthly') return 50 * 100;
+  if (plan_type === 'premium' && duration === 'yearly') return 500 * 100;
+  if (duration === 'trial') return 0;
+  return null;
 };
 
-// Function to handle successful checkout session
 const handleCheckoutSessionCompleted = async (session) => {
-  // Get the admin ID from the session object
-  const admin_id = session.metadata.admin_id;
-
-  // Get the plan type from the session object
-  const plan_type = session.metadata.plan_type;
-
-  // Get the subscription ID from the session object
+  const { admin_id, plan_type, duration } = session.metadata;
   const subscriptionId = session.subscription;
 
-  // Create a subscription record in the database
+  // Calculate the end date based on the subscription duration
+  const end_date =
+    duration === 'monthly' ? addMonths(new Date(), 1) : addYears(new Date(), 1);
+
   const subscription = await Subscription.create({
-    admin_id: admin_id,
-    plan_type: plan_type,
+    admin_id,
+    plan_type,
+    duration, // Store the duration directly to the subscription record
     stripe_subscription_id: subscriptionId,
     start_date: new Date(),
-    end_date:
-      plan_type === 'monthly'
-        ? addMonths(new Date(), 1)
-        : addYears(new Date(), 1),
+    end_date,
     status: 'active',
   });
 
-  // Create a payment record in the database
   await Payment.create({
-    admin_id: admin_id,
+    admin_id,
     subscription_id: subscription.subscription_id,
     amount: (session.amount_total / 100).toFixed(2),
     payment_method: session.payment_method_types[0],
@@ -401,12 +307,11 @@ const handleCheckoutSessionCompleted = async (session) => {
   console.log(`Payment and subscription recorded for admin_id: ${admin_id}`);
 };
 
-// Function to handle failed payment
 const handlePaymentFailed = async (session) => {
-  const admin_id = session.metadata.admin_id;
+  const { admin_id } = session.metadata;
 
   const subscription = await Subscription.findOne({
-    where: { admin_id: admin_id },
+    where: { admin_id },
   });
 
   if (subscription) {
@@ -419,5 +324,6 @@ const handlePaymentFailed = async (session) => {
       { where: { subscription_id: subscription.subscription_id } }
     );
   }
+
   console.error(`Payment failed for admin_id: ${admin_id}`);
 };

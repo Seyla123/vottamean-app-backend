@@ -24,7 +24,7 @@ const checkLimit = async (school_admin_id, type) => {
     throw new AppError('No active subscription found for this admin', 403);
   }
 
-  const { plan_type } = schoolAdmin.Subscriptions[0];
+  const { plan_type, duration } = schoolAdmin.Subscriptions[0];
 
   // 2. Count the number of entities (teachers or students)
   const entityCount =
@@ -33,14 +33,23 @@ const checkLimit = async (school_admin_id, type) => {
       : await Student.count({ where: { school_admin_id } });
 
   // 3. Check plan type and entity limit
-  if (plan_type === 'free') {
+  if (plan_type === 'basic' && duration === 'trial') {
+    // Basic Free Trial Plan
     const limit = type === 'teacher' ? 5 : 50;
     if (entityCount >= limit) {
-      throw new AppError(`Free plan allows only ${limit} ${type}s`, 403);
+      throw new AppError(`Basic Free plan allows only ${limit} ${type}s`, 403);
     }
+  } else if (plan_type === 'standard') {
+    // Standard Plan (Monthly or Yearly)
+    const limit = type === 'teacher' ? 100 : 1000;
+    if (entityCount >= limit) {
+      throw new AppError(`Standard plan allows only ${limit} ${type}s`, 403);
+    }
+  } else if (plan_type === 'premium') {
+    // Premium Plan (Monthly or Yearly) - No Limits
+    return true;
   }
 
-  // Unlimited for paid plans
   return true;
 };
 
@@ -74,18 +83,18 @@ exports.checkActiveSubscription = async (admin_id, newPlanType) => {
   // Check the type of the current active subscription
   const currentPlanType = activeSubscription.plan_type;
 
-  // If the user has a free plan and is upgrading, allow the upgrade
+  // If the user has a basic free plan and is upgrading, allow the upgrade
   if (
-    currentPlanType === 'free' &&
-    (newPlanType === 'monthly' || newPlanType === 'yearly')
+    currentPlanType === 'basic' &&
+    (newPlanType === 'standard' || newPlanType === 'premium')
   ) {
     // No error, allow the new subscription
     return false;
   }
 
-  // If the user has a paid plan (monthly or yearly), they need to cancel it first
+  // If the user has a paid plan (standard or premium), they need to cancel it first
   if (
-    (currentPlanType === 'monthly' || currentPlanType === 'yearly') &&
+    (currentPlanType === 'standard' || currentPlanType === 'premium') &&
     newPlanType !== currentPlanType
   ) {
     throw new AppError(
@@ -94,7 +103,7 @@ exports.checkActiveSubscription = async (admin_id, newPlanType) => {
     );
   }
 
-  // No need to cancel the same paid plan type (monthly -> monthly or yearly -> yearly)
+  // No need to cancel the same paid plan type (standard -> standard or premium -> premium)
   return false;
 };
 
