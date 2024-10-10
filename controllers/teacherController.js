@@ -172,7 +172,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
       // Calculate the time since the last verification request
       const timeSinceLastRequest =
         new Date() - new Date(existingUser.verificationRequestedAt);
-      const tenMinutes = 1 * 60 * 1000; // 10 minutes in milliseconds
+      const tenMinutes = 10 * 60 * 1000; // 10 minutes in milliseconds
 
       // If less than 10 minutes have passed, do not allow another request.
       if (timeSinceLastRequest < tenMinutes) {
@@ -202,7 +202,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
           emailVerificationToken: hashedToken,
         },
         process.env.JWT_SECRET,
-        { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '1m' }
+        { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
       );
 
       const verificationUrl =
@@ -284,7 +284,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
       emailVerificationToken: hashedToken,
     },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '1m' }
+    { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
   );
 
   const verificationUrl =
