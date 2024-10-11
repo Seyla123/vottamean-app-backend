@@ -74,18 +74,89 @@ exports.signup = catchAsync(async (req, res, next) => {
 
   // 3. Check if the email is already registered.
   const existingUser = await User.findOne({ where: { email } });
+
+  // If the user exists but is not verified, check the time since the last verification request.
   if (existingUser) {
-    return next(new AppError('Email is already registered', 400));
+    if (!existingUser.emailVerified) {
+      const timeSinceLastRequest =
+        new Date() - new Date(existingUser.verificationRequestedAt);
+      const tenMinutes = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+      // If less than 10 minutes have passed, do not allow another request.
+      if (timeSinceLastRequest < tenMinutes) {
+        return next(
+          new AppError(
+            `You must wait 10 minutes before requesting another verification email.`,
+            400
+          )
+        );
+      }
+
+      // 4. Generate a new verification token and its hashed version.
+      const { token: verificationToken, hashedToken } =
+        createVerificationToken();
+
+      // 5. Create a new temporary JWT token with user data and the hashed verification token.
+      const tempToken = jwt.sign(
+        {
+          email,
+          password,
+          address,
+          dob: new Date(dob),
+          first_name,
+          last_name,
+          gender,
+          phone_number,
+          school_name,
+          school_address,
+          school_phone_number,
+          emailVerificationToken: hashedToken,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
+      );
+
+      // 6. Construct the verification URL and send it via email.
+      const verificationUrl =
+        `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}` ||
+        `${req.headers.origin}/auth/verify-email/${verificationToken}?token=${tempToken}`;
+
+      try {
+        await sendVerificationEmail(email, verificationUrl);
+        // Update the `verificationRequestedAt` field
+        existingUser.verificationRequestedAt = new Date();
+        await existingUser.save();
+      } catch (error) {
+        return next(new AppError('Failed to send verification email', 500));
+      }
+
+      // 7. Respond with a message indicating the email was already registered and a new verification email has been sent.
+      return res.status(200).json({
+        status: 'success',
+        message:
+          'This email is already registered but not verified. A new verification email has been sent. Please verify your email to complete registration.',
+      });
+    }
+
+    // If the email is verified, return an error
+    return next(new AppError('Email is already registered and verified.', 400));
   }
 
-  // 4. Generate a verification token and its hashed version.
+  // 8. If no existing user, create a new user with emailVerified set to false and set verificationRequestedAt to now.
+  const newUser = await User.create({
+    email,
+    password,
+    emailVerified: false,
+    verificationRequestedAt: new Date(),
+  });
+
+  // 9. Generate a new temporary JWT token for the new user
   const { token: verificationToken, hashedToken } = createVerificationToken();
 
-  // 5. Create a temporary JWT token with user data and the hashed verification token.
   const tempToken = jwt.sign(
     {
-      email,
-      password,
+      email: newUser.email,
+      password: newUser.password,
       address,
       dob: new Date(dob),
       first_name,
@@ -101,7 +172,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
   );
 
-  // 6. Construct the verification URL and send it via email.
+  // Construct the verification URL and send it via email.
   const verificationUrl =
     `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}` ||
     `${req.headers.origin}/auth/verify-email/${verificationToken}?token=${tempToken}`;
@@ -112,7 +183,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     return next(new AppError('Failed to send verification email', 500));
   }
 
-  // 7. Respond with a success message and the temporary token.
+  // 10. Respond with a success message and the temporary token.
   res.status(200).json({
     status: 'success',
     message:
@@ -157,13 +228,17 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
       school_phone_number,
     } = decoded;
 
-    // 4. Create the user
-    const user = await User.create(
-      { email, password, emailVerified: true },
-      { transaction }
-    );
+    // 4. Find the user and update emailVerified to true
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
 
-    // 5. Create the info record
+    // 5. Update the user's emailVerified status
+    user.emailVerified = true; // Set emailVerified to true
+    await user.save({ transaction }); // Save changes in transaction
+
+    // 6. Create the info record
     const info = await Info.create(
       {
         first_name,
@@ -176,51 +251,55 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
       { transaction }
     );
 
-    // 6. Create the school record
+    // 7. Create the school record
     const school = await School.create(
       { school_name, school_address, school_phone_number },
       { transaction }
     );
 
-    // 7. Create the admin record with the user and info ID
+    // 8. Create the admin record with the user and info ID
     const admin = await Admin.create(
       { user_id: user.user_id, info_id: info.info_id },
       { transaction }
     );
 
-    // 8. Create the SchoolAdmin record and capture the instance
+    // 9. Create the SchoolAdmin record and capture the instance
     const schoolAdmin = await SchoolAdmin.create(
       { admin_id: admin.admin_id, school_id: school.school_id },
       { transaction }
     );
 
-    // 9. Create the subscription for the school admin (free tier)
+    // 10. Create the subscription for the school admin (free tier)
     await Subscription.create(
       {
         admin_id: admin.admin_id,
-        plan_type: 'free',
+        plan_type: 'basic',
         start_date: new Date(),
         // 14-day free trial
         end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        trial_period: true,
         // testing subscription expired in 1 minute
         // end_date: new Date(Date.now() + 60 * 1000),
       },
       { transaction }
     );
 
-    // 10. Commit the transaction
+    // 11. Commit the transaction
     await transaction.commit();
 
-    // 11. Respond with a success message
+    // 12. Respond with a success message
     res.status(200).json({
       status: 'success',
-      message: 'Email verified and account created successfully!',
+      message: 'Email verified and account activated successfully!',
     });
   } catch (err) {
-    // 12. Rollback the transaction if any error occurs
+    // 13. Rollback the transaction if any error occurs
     await transaction.rollback();
     return next(
-      new AppError(`Failed to create user and school: ${err.message}`, 500)
+      new AppError(
+        `Failed to verify email and update user: ${err.message}`,
+        500
+      )
     );
   }
 });
@@ -265,6 +344,16 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(
       new AppError(
         'Your account is inactive. Please contact support for further assistance.',
+        403
+      )
+    );
+  }
+
+  // Check if the email is verified
+  if (!user.emailVerified) {
+    return next(
+      new AppError(
+        'Please verify your email before logging in. If you did not receive a verification email, please sign up again.',
         403
       )
     );
@@ -525,24 +614,4 @@ exports.changePassword = catchAsync(async (req, res, next) => {
 
   // 6. Generate and send JWT token to the client
   createSendToken(user, 200, req, res);
-});
-
-// ----------------------------
-// CHECK IF THE EMAIL IS AVAILABLE
-// ----------------------------
-exports.checkAvailableEmail = catchAsync(async (req, res, next) => {
-  const { email } = req.query;
-
-  const existingUser = await User.findOne({ where: { email } });
-  if (existingUser) {
-    return res.status(400).json({
-      status: 'fail',
-      message: 'Email already exists',
-    });
-  }
-
-  res.status(200).json({
-    status: 'success',
-    message: 'Email is available',
-  });
 });
