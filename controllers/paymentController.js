@@ -270,12 +270,12 @@ exports.handleStripeWebhook = catchAsync(async (req, res, next) => {
 // HELPER FUNCTIONS
 // ----------------------------
 const getPlanAmount = (plan_type, duration) => {
-  if (plan_type === 'standard' && duration === 'monthly') return 20 * 100;
-  if (plan_type === 'standard' && duration === 'yearly') return 200 * 100;
-  if (plan_type === 'premium' && duration === 'monthly') return 50 * 100;
-  if (plan_type === 'premium' && duration === 'yearly') return 500 * 100;
-  if (duration === 'trial') return 0;
-  return null;
+  if (plan_type === 'standard' && duration === 'monthly') return 3.99 * 100; // $3.99 monthly
+  if (plan_type === 'standard' && duration === 'yearly') return 39.99 * 100; // $39.99 yearly
+  if (plan_type === 'premium' && duration === 'monthly') return 9.99 * 100; // $9.99 monthly
+  if (plan_type === 'premium' && duration === 'yearly') return 99.99 * 100; // $99.99 yearly
+  if (duration === 'trial') return 0; // Free trial
+  return null; // Invalid plan type or duration
 };
 
 const handleCheckoutSessionCompleted = async (session) => {
