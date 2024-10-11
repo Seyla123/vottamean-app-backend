@@ -121,6 +121,7 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
 exports.createCheckoutSession = catchAsync(async (req, res, next) => {
   const { admin_id, plan_type, duration } = req.body;
 
+  // Check for missing required fields
   if (!admin_id || !plan_type || !duration) {
     return res.status(400).json({
       status: 'fail',
@@ -131,6 +132,7 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
   const validPlanTypes = ['basic', 'standard', 'premium'];
   const validDurations = ['trial', 'monthly', 'yearly'];
 
+  // Validate the plan type and duration
   if (
     !validPlanTypes.includes(plan_type) ||
     !validDurations.includes(duration)
@@ -142,53 +144,31 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
   }
 
   // Fetch the active subscription of the user
-  const activeSubscription = await Subscription.findOne({
+  const currentSubscription = await Subscription.findOne({
     where: { admin_id, status: 'active' },
     order: [['createdAt', 'DESC']],
   });
 
-  if (activeSubscription) {
-    const { plan_type: currentPlanType } = activeSubscription;
+  // Check if the user already has an active plan and if they are trying to switch to a different plan
+  if (currentSubscription) {
+    const { plan_type: currentPlanType } = currentSubscription;
 
-    // Check if the current subscription is "basic" or "trial"
-    if (currentPlanType === 'basic' || currentPlanType === 'trial') {
-      // Allow user to subscribe to a new plan even with an active "basic" or "trial"
-      console.log(`User with basic/trial plan switching to ${plan_type}`);
-    } else if (currentPlanType === plan_type) {
-      // Extend the current subscription's end date if it's the same plan
-      let newEndDate;
-      if (duration === 'monthly') {
-        newEndDate = addMonths(activeSubscription.end_date, 1);
-      } else if (duration === 'yearly') {
-        newEndDate = addYears(activeSubscription.end_date, 1);
-      }
-
-      // Update subscription with the new end date
-      await Subscription.update(
-        { end_date: newEndDate },
-        { where: { subscription_id: activeSubscription.subscription_id } }
-      );
-
-      return res.status(200).json({
-        status: 'success',
-        message: `Subscription extended until ${newEndDate}`,
-      });
-    } else {
-      // Prevent subscribing to a different plan type without canceling the current subscription
+    // Allow upgrade only from 'basic' to other plans
+    if (currentPlanType !== 'basic' && currentPlanType !== plan_type) {
       return res.status(400).json({
         status: 'fail',
-        message:
-          'You must cancel your current plan before subscribing to a new plan.',
+        message: `You are currently subscribed to the ${currentPlanType} plan. Please cancel your current subscription before switching to the ${plan_type} plan.`,
       });
     }
   }
 
-  // No active subscription or user is on "basic" or "trial", proceed with creating a new one
+  // Calculate the plan amount based on plan type and duration
   const amount = getPlanAmount(plan_type, duration);
   if (!amount) {
     return next(new AppError('Invalid plan type or duration', 400));
   }
 
+  // Define success and cancel URLs for the Stripe checkout session
   const successUrl =
     process.env.CLIENT_PAYMENT_SUCCESS_URL ||
     `${req.protocol}://${req.get('host')}/payment/success`;
@@ -197,6 +177,7 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
     `${req.protocol}://${req.get('host')}/payment/failure`;
 
   try {
+    // Create a new Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -224,8 +205,10 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
       },
     });
 
+    // Return the checkout session URL to the client
     res.status(200).json({ status: 'success', url: session.url });
   } catch (error) {
+    // Handle Stripe errors
     return next(new AppError(error.message, 400));
   }
 });
@@ -270,11 +253,11 @@ exports.handleStripeWebhook = catchAsync(async (req, res, next) => {
 // HELPER FUNCTIONS
 // ----------------------------
 const getPlanAmount = (plan_type, duration) => {
-  if (plan_type === 'standard' && duration === 'monthly') return 20 * 100;
-  if (plan_type === 'standard' && duration === 'yearly') return 200 * 100;
-  if (plan_type === 'premium' && duration === 'monthly') return 50 * 100;
-  if (plan_type === 'premium' && duration === 'yearly') return 500 * 100;
-  if (duration === 'trial') return 0;
+  if (plan_type === 'standard' && duration === 'monthly') return 399; // $3.99 in cents
+  if (plan_type === 'standard' && duration === 'yearly') return 3999; // $39.99 in cents
+  if (plan_type === 'premium' && duration === 'monthly') return 999; // $9.99 in cents
+  if (plan_type === 'premium' && duration === 'yearly') return 9999; // $99.99 in cents
+  if (duration === 'trial') return 0; // Free trial
   return null;
 };
 
@@ -282,29 +265,104 @@ const handleCheckoutSessionCompleted = async (session) => {
   const { admin_id, plan_type, duration } = session.metadata;
   const subscriptionId = session.subscription;
 
-  // Calculate the end date based on the subscription duration
-  const end_date =
-    duration === 'monthly' ? addMonths(new Date(), 1) : addYears(new Date(), 1);
-
-  const subscription = await Subscription.create({
-    admin_id,
-    plan_type,
-    duration, // Store the duration directly to the subscription record
-    stripe_subscription_id: subscriptionId,
-    start_date: new Date(),
-    end_date,
-    status: 'active',
+  // Fetch the active subscription for the admin
+  const activeSubscription = await Subscription.findOne({
+    where: { admin_id, status: 'active' },
+    order: [['createdAt', 'DESC']],
   });
 
+  let newEndDate;
+  let newSubscription;
+
+  if (activeSubscription) {
+    const { plan_type: currentPlanType, end_date: currentEndDate } =
+      activeSubscription;
+
+    // If current plan is basic, create a new subscription without extending the existing one
+    if (currentPlanType === 'basic') {
+      console.log(
+        `Admin with admin_id: ${admin_id} is currently on the basic plan. Creating a new subscription for the ${plan_type} plan.`
+      );
+
+      // Create a new subscription with the new plan type
+      const end_date =
+        duration === 'monthly'
+          ? addMonths(new Date(), 1)
+          : addYears(new Date(), 1);
+
+      newSubscription = await Subscription.create({
+        admin_id,
+        plan_type,
+        duration,
+        stripe_subscription_id: subscriptionId,
+        start_date: new Date(),
+        end_date,
+        status: 'active',
+      });
+
+      console.log(
+        `New subscription created for admin_id: ${admin_id} with plan type: ${plan_type}`
+      );
+    } else {
+      // For non-basic plans, check if they are trying to switch plans
+      if (currentPlanType !== plan_type) {
+        return console.error(
+          `Admin with admin_id: ${admin_id} is currently on the ${currentPlanType} plan. They must cancel this plan before switching to ${plan_type}.`
+        );
+      }
+
+      // Extend the current subscription based on duration
+      if (duration === 'monthly') {
+        newEndDate = addMonths(currentEndDate, 1);
+      } else if (duration === 'yearly') {
+        newEndDate = addYears(currentEndDate, 1);
+      }
+
+      // Update the existing subscription with the new end date and Stripe subscription ID
+      await Subscription.update(
+        {
+          end_date: newEndDate,
+          stripe_subscription_id: subscriptionId,
+        },
+        { where: { subscription_id: activeSubscription.subscription_id } }
+      );
+
+      console.log(
+        `Subscription extended for admin_id: ${admin_id} until ${newEndDate}`
+      );
+    }
+  } else {
+    // If no active subscription, create a new one
+    const end_date =
+      duration === 'monthly'
+        ? addMonths(new Date(), 1)
+        : addYears(new Date(), 1);
+
+    newSubscription = await Subscription.create({
+      admin_id,
+      plan_type,
+      duration,
+      stripe_subscription_id: subscriptionId,
+      start_date: new Date(),
+      end_date,
+      status: 'active',
+    });
+
+    console.log(`New subscription created for admin_id: ${admin_id}`);
+  }
+
+  // Record the payment
   await Payment.create({
     admin_id,
-    subscription_id: subscription.subscription_id,
+    subscription_id: activeSubscription
+      ? activeSubscription.subscription_id
+      : newSubscription.subscription_id,
     amount: (session.amount_total / 100).toFixed(2),
     payment_method: session.payment_method_types[0],
     payment_status: 'successful',
   });
 
-  console.log(`Payment and subscription recorded for admin_id: ${admin_id}`);
+  console.log(`Payment recorded for admin_id: ${admin_id}`);
 };
 
 const handlePaymentFailed = async (session) => {
