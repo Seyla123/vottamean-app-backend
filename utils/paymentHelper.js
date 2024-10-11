@@ -1,6 +1,5 @@
 const { Admin, Subscription, Teacher, Student } = require('../models');
 const AppError = require('./appError');
-const { Op } = require('sequelize');
 
 // Helper function to check subscription limits for teachers and students
 const checkLimit = async (school_admin_id, type) => {
@@ -53,6 +52,20 @@ const checkLimit = async (school_admin_id, type) => {
   return true;
 };
 
+// Helper functions for date manipulation in the payment process
+const addMonths = (date, months) => {
+  const result = new Date(date);
+  result.setMonth(result.getMonth() + months);
+  return result;
+};
+
+// Helper functions for date manipulation in the payment process
+const addYears = (date, years) => {
+  const result = new Date(date);
+  result.setFullYear(result.getFullYear() + years);
+  return result;
+};
+
 // Helper function to check teacher limit
 exports.checkTeacherLimit = async (school_admin_id) => {
   return await checkLimit(school_admin_id, 'teacher');
@@ -63,59 +76,138 @@ exports.checkStudentLimit = async (school_admin_id) => {
   return await checkLimit(school_admin_id, 'student');
 };
 
-// Helper function to check if an admin has an active subscription
-exports.checkActiveSubscription = async (admin_id, newPlanType) => {
+// Helper function to get the plan amount
+exports.getPlanAmount = (plan_type, duration) => {
+  if (plan_type === 'standard' && duration === 'monthly') return 399; // $3.99 in cents
+  if (plan_type === 'standard' && duration === 'yearly') return 3999; // $39.99 in cents
+  if (plan_type === 'premium' && duration === 'monthly') return 999; // $9.99 in cents
+  if (plan_type === 'premium' && duration === 'yearly') return 9999; // $99.99 in cents
+  if (duration === 'trial') return 0; // Free trial
+  return null;
+};
+
+// Helper function to handle checkout session completed
+exports.handleCheckoutSessionCompleted = async (session) => {
+  const { admin_id, plan_type, duration } = session.metadata;
+  const subscriptionId = session.subscription;
+
+  // Fetch the active subscription for the admin
   const activeSubscription = await Subscription.findOne({
-    where: {
-      admin_id: admin_id,
-      status: 'active',
-      end_date: {
-        [Op.gt]: new Date(),
-      },
-    },
+    where: { admin_id, status: 'active' },
+    order: [['createdAt', 'DESC']],
   });
 
-  // If no active subscription is found, allow the subscription
-  if (!activeSubscription) {
-    return false;
+  let newEndDate;
+  let newSubscription;
+
+  if (activeSubscription) {
+    const { plan_type: currentPlanType, end_date: currentEndDate } =
+      activeSubscription;
+
+    // If current plan is basic, create a new subscription without extending the existing one
+    if (currentPlanType === 'basic') {
+      console.log(
+        `Admin with admin_id: ${admin_id} is currently on the basic plan. Creating a new subscription for the ${plan_type} plan.`
+      );
+
+      // Create a new subscription with the new plan type
+      const end_date =
+        duration === 'monthly'
+          ? addMonths(new Date(), 1)
+          : addYears(new Date(), 1);
+
+      newSubscription = await Subscription.create({
+        admin_id,
+        plan_type,
+        duration,
+        stripe_subscription_id: subscriptionId,
+        start_date: new Date(),
+        end_date,
+        status: 'active',
+      });
+
+      console.log(
+        `New subscription created for admin_id: ${admin_id} with plan type: ${plan_type}`
+      );
+    } else {
+      // For non-basic plans, check if they are trying to switch plans
+      if (currentPlanType !== plan_type) {
+        return console.error(
+          `Admin with admin_id: ${admin_id} is currently on the ${currentPlanType} plan. They must cancel this plan before switching to ${plan_type}.`
+        );
+      }
+
+      // Extend the current subscription based on duration
+      if (duration === 'monthly') {
+        newEndDate = addMonths(currentEndDate, 1);
+      } else if (duration === 'yearly') {
+        newEndDate = addYears(currentEndDate, 1);
+      }
+
+      // Update the existing subscription with the new end date and Stripe subscription ID
+      await Subscription.update(
+        {
+          end_date: newEndDate,
+          stripe_subscription_id: subscriptionId,
+        },
+        { where: { subscription_id: activeSubscription.subscription_id } }
+      );
+
+      console.log(
+        `Subscription extended for admin_id: ${admin_id} until ${newEndDate}`
+      );
+    }
+  } else {
+    // If no active subscription, create a new one
+    const end_date =
+      duration === 'monthly'
+        ? addMonths(new Date(), 1)
+        : addYears(new Date(), 1);
+
+    newSubscription = await Subscription.create({
+      admin_id,
+      plan_type,
+      duration,
+      stripe_subscription_id: subscriptionId,
+      start_date: new Date(),
+      end_date,
+      status: 'active',
+    });
+
+    console.log(`New subscription created for admin_id: ${admin_id}`);
   }
 
-  // Check the type of the current active subscription
-  const currentPlanType = activeSubscription.plan_type;
+  // Record the payment
+  await Payment.create({
+    admin_id,
+    subscription_id: activeSubscription
+      ? activeSubscription.subscription_id
+      : newSubscription.subscription_id,
+    amount: (session.amount_total / 100).toFixed(2),
+    payment_method: session.payment_method_types[0],
+    payment_status: 'successful',
+  });
 
-  // If the user has a basic free plan and is upgrading, allow the upgrade
-  if (
-    currentPlanType === 'basic' &&
-    (newPlanType === 'standard' || newPlanType === 'premium')
-  ) {
-    // No error, allow the new subscription
-    return false;
-  }
+  console.log(`Payment recorded for admin_id: ${admin_id}`);
+};
 
-  // If the user has a paid plan (standard or premium), they need to cancel it first
-  if (
-    (currentPlanType === 'standard' || currentPlanType === 'premium') &&
-    newPlanType !== currentPlanType
-  ) {
-    throw new AppError(
-      `You already have an active ${currentPlanType} subscription. Please cancel it before purchasing a new ${newPlanType} plan.`,
-      400
+exports.handlePaymentFailed = async (session) => {
+  const { admin_id } = session.metadata;
+
+  const subscription = await Subscription.findOne({
+    where: { admin_id },
+  });
+
+  if (subscription) {
+    await Payment.update(
+      { payment_status: 'failed' },
+      { where: { subscription_id: subscription.subscription_id } }
+    );
+    await Subscription.update(
+      { status: 'expired' },
+      { where: { subscription_id: subscription.subscription_id } }
     );
   }
 
-  // No need to cancel the same paid plan type (standard -> standard or premium -> premium)
-  return false;
-};
-
-// Helper functions for date manipulation in the payment process
-exports.addMonths = (date, months) => {
-  const result = new Date(date);
-  result.setMonth(result.getMonth() + months);
-  return result;
-};
-
-exports.addYears = (date, years) => {
-  const result = new Date(date);
-  result.setFullYear(result.getFullYear() + years);
-  return result;
+  console.error(`Payment failed for admin_id: ${admin_id}`);
 };
