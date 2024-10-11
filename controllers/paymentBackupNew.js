@@ -69,7 +69,7 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
     });
   }
 
-  if (activeSubscription.plan_type === 'trial') {
+  if (activeSubscription.plan_type === 'basic') {
     return res.status(400).json({
       status: 'fail',
       message: 'Cannot cancel a free trial subscription.',
@@ -344,4 +344,25 @@ const handleCheckoutSessionCompleted = async (session) => {
       status: 'succeeded',
     });
   }
+};
+
+// Function to handle failed payment
+const handlePaymentFailed = async (session) => {
+  const admin_id = session.metadata.admin_id;
+
+  const subscription = await Subscription.findOne({
+    where: { admin_id: admin_id },
+  });
+
+  if (subscription) {
+    await Payment.update(
+      { payment_status: 'failed' },
+      { where: { subscription_id: subscription.subscription_id } }
+    );
+    await Subscription.update(
+      { status: 'expired' },
+      { where: { subscription_id: subscription.subscription_id } }
+    );
+  }
+  console.error(`Payment failed for admin_id: ${admin_id}`);
 };
