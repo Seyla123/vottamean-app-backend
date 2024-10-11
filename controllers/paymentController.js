@@ -69,7 +69,7 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
     });
   }
 
-  if (activeSubscription.plan_type === 'trial') {
+  if (activeSubscription.plan_type === 'basic') {
     return res.status(400).json({
       status: 'fail',
       message: 'Cannot cancel a free trial subscription.',
