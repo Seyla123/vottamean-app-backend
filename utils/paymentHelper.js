@@ -52,20 +52,6 @@ const checkLimit = async (school_admin_id, type) => {
   return true;
 };
 
-// Helper functions for date manipulation in the payment process
-const addMonths = (date, months) => {
-  const result = new Date(date);
-  result.setMonth(result.getMonth() + months);
-  return result;
-};
-
-// Helper functions for date manipulation in the payment process
-const addYears = (date, years) => {
-  const result = new Date(date);
-  result.setFullYear(result.getFullYear() + years);
-  return result;
-};
-
 // Helper function to check teacher limit
 exports.checkTeacherLimit = async (school_admin_id) => {
   return await checkLimit(school_admin_id, 'teacher');
@@ -84,6 +70,20 @@ exports.getPlanAmount = (plan_type, duration) => {
   if (plan_type === 'premium' && duration === 'yearly') return 9999; // $99.99 in cents
   if (duration === 'trial') return 0; // Free trial
   return null;
+};
+
+// Helper functions for date manipulation in the payment process
+const addMonths = (date, months) => {
+  const result = new Date(date);
+  result.setMonth(result.getMonth() + months);
+  return result;
+};
+
+// Helper functions for date manipulation in the payment process
+const addYears = (date, years) => {
+  const result = new Date(date);
+  result.setFullYear(result.getFullYear() + years);
+  return result;
 };
 
 // Helper function to handle checkout session completed
