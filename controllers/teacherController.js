@@ -164,73 +164,52 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     return next(new AppError(error.message, 400));
   }
 
-  // 4. Check if the email is already registered
+  // 4. Check if the email is already registered.
   const existingUser = await User.findOne({ where: { email } });
 
-  if (existingUser) {
-    if (!existingUser.emailVerified) {
-      // Calculate the time since the last verification request
-      const timeSinceLastRequest =
-        new Date() - new Date(existingUser.verificationRequestedAt);
-      const tenMinutes = 10 * 60 * 1000; // 10 minutes in milliseconds
+  // 5. If the user exists but is not verified, allow re-verification.
+  if (existingUser && !existingUser.emailVerified) {
+    const { token: verificationToken, hashedToken } = createVerificationToken();
 
-      // If less than 10 minutes have passed, do not allow another request.
-      if (timeSinceLastRequest < tenMinutes) {
-        return next(
-          new AppError(
-            `You must wait 10 minutes before requesting another verification email.`,
-            400
-          )
-        );
-      }
+    // Create a temporary JWT token with user data and the hashed verification token.
+    const tempToken = jwt.sign(
+      {
+        email,
+        password,
+        address,
+        dob: new Date(dob),
+        first_name,
+        last_name,
+        gender,
+        phone_number,
+        school_admin_id,
+        emailVerificationToken: hashedToken,
+      },
+      process.env.JWT_SECRET
+    );
 
-      // If more than 10 minutes have passed, resend verification email
-      const { token: verificationToken, hashedToken } =
-        createVerificationToken();
+    const verificationUrl =
+      `http://localhost:5173/auth/verify-teacher-email/${verificationToken}?token=${tempToken}` ||
+      `${req.headers.origin}/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
 
-      // Create a temporary JWT token with user data and the hashed verification token
-      const tempToken = jwt.sign(
-        {
-          email,
-          address,
-          dob: new Date(dob),
-          first_name,
-          last_name,
-          gender,
-          phone_number,
-          school_admin_id,
-          emailVerificationToken: hashedToken,
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
-      );
+    try {
+      await sendVerificationEmail(email, verificationUrl);
 
-      const verificationUrl =
-        `http://localhost:5173/auth/verify-teacher-email/${verificationToken}?token=${tempToken}` ||
-        `${req.headers.origin}/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
-
-      try {
-        await sendVerificationEmail(email, verificationUrl);
-        // Update the `verificationRequestedAt` field
-        existingUser.verificationRequestedAt = new Date();
-        await existingUser.save();
-      } catch (error) {
-        return next(new AppError('Failed to send verification email', 500));
-      }
+      existingUser.verificationRequestedAt = new Date();
+      existingUser.emailVerificationToken = hashedToken;
+      await existingUser.save();
 
       return res.status(200).json({
         status: 'success',
         message:
-          'A new verification email has been sent. Please verify your email to complete registration.',
-        token: tempToken,
+          'Re-sent verification email. Please verify to complete registration.',
       });
+    } catch (error) {
+      return next(new AppError('Failed to send verification email', 500));
     }
-
-    // If the email is verified, return an error
-    return next(new AppError('Email is already registered and verified.', 400));
   }
 
-  // 5. Create the user record with emailVerified = false
+  // 6. If no existing user, create a new one
   const transaction = await sequelize.transaction();
   let user;
   try {
@@ -245,7 +224,6 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
       { transaction }
     );
 
-    // Create associated Info and Teacher records
     const info = await Info.create(
       {
         first_name,
@@ -273,18 +251,16 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     return next(new AppError('Failed to create teacher record', 500));
   }
 
-  // 6. Generate a verification token for the new user
+  // 7. Generate a verification token and send the email
   const { token: verificationToken, hashedToken } = createVerificationToken();
 
-  // Create a temporary JWT token with user data and the hashed verification token
   const tempToken = jwt.sign(
     {
       email,
       school_admin_id,
       emailVerificationToken: hashedToken,
     },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
+    process.env.JWT_SECRET
   );
 
   const verificationUrl =
@@ -297,11 +273,9 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     return next(new AppError('Failed to send verification email', 500));
   }
 
-  // 7. Respond with a success message and the temporary token
   res.status(200).json({
     status: 'success',
-    message:
-      'Verification email sent. Please verify your email to complete registration.',
+    message: 'Verification email sent. Please verify to complete registration.',
     token: tempToken,
   });
 });
@@ -310,34 +284,43 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
 // VERIFY EMAIL FUNCTION FOR TEACHERS
 // ----------------------------
 exports.verifyTeacherEmail = catchAsync(async (req, res, next) => {
+  // 1. Extract the token from the URL
+  const { token: urlToken } = req.params;
+
+  // 2. Hash the token for comparison
   const hashedToken = crypto
     .createHash('sha256')
-    .update(req.params.token)
+    .update(urlToken)
     .digest('hex');
+
+  // 3. Extract the temporary JWT token from the query string
   const tempToken = req.query.token;
 
-  try {
-    // Verify the JWT token
-    const decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+  // 4. Verify the temporary token and extract the decoded data
+  const decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
 
-    // Check if the hashed tokens match
-    if (decoded.emailVerificationToken !== hashedToken) {
-      return next(new AppError('Token is invalid or has expired.', 400));
-    }
+  // 5. Find the user using the email and check for matching tokens
+  const user = await User.findOne({
+    where: { email: decoded.email },
+    attributes: ['email', 'emailVerificationToken', 'user_id'],
+  });
 
-    // 1. Update the user's emailVerified field to true
-    const user = await User.findOne({ where: { email: decoded.email } });
-
-    if (!user) return next(new AppError('User not found.', 404));
-
-    user.emailVerified = true;
-    await user.save();
-
-    res.status(200).json({
-      status: 'success',
-      message: 'Email verified successfully! Your account is now active.',
-    });
-  } catch (err) {
-    return next(new AppError('Failed to verify token', 400));
+  if (!user) {
+    return next(new AppError('User not found', 404));
   }
+
+  // 6. Compare the hashed token with the stored token
+  if (user.emailVerificationToken !== hashedToken) {
+    return next(new AppError('Invalid or expired token.', 400));
+  }
+
+  // 7. Update user to verified status
+  user.emailVerified = true;
+  user.emailVerificationToken = null;
+  await user.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Email verified successfully! Your account is now active.',
+  });
 });
