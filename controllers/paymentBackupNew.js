@@ -345,24 +345,3 @@ const handleCheckoutSessionCompleted = async (session) => {
     });
   }
 };
-
-// Function to handle failed payment
-const handlePaymentFailed = async (session) => {
-  const admin_id = session.metadata.admin_id;
-
-  const subscription = await Subscription.findOne({
-    where: { admin_id: admin_id },
-  });
-
-  if (subscription) {
-    await Payment.update(
-      { payment_status: 'failed' },
-      { where: { subscription_id: subscription.subscription_id } }
-    );
-    await Subscription.update(
-      { status: 'expired' },
-      { where: { subscription_id: subscription.subscription_id } }
-    );
-  }
-  console.error(`Payment failed for admin_id: ${admin_id}`);
-};

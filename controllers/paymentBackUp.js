@@ -15,8 +15,6 @@ const {
   addYears,
 } = require('../utils/paymentHelper');
 
-//
-
 // -----------------------------------
 // GET ALL SUBSCRIPTION PLAN TO CHECK
 // -----------------------------------
