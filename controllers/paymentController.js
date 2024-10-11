@@ -175,7 +175,7 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
     `${req.protocol}://${req.get('host')}/payment/success`;
   const cancelUrl =
     process.env.CLIENT_PAYMENT_FAILURE_URL ||
-    `${req.protocol}://${req.get('host')}/payment/failure`;
+    `${req.protocol}://${req.get('host')}/payment`;
 
   try {
     // Create a new Stripe checkout session
