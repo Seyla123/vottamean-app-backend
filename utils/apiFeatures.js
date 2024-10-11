@@ -9,32 +9,57 @@ class APIFeatures {
   }
   static getDateFilters(dateRange) {
     const now = dayjs();
-    
+
     switch (dateRange) {
-        case 'today':
-            return {
-                [Op.gte]: now.startOf('day').toDate(),
-                [Op.lt]: now.endOf('day').toDate(),
-            };
-        case 'lastWeek':
-            return {
-                [Op.gte]: now.subtract(7, 'day').startOf('day').toDate(),
-                [Op.lt]: now.startOf('day').toDate(),
-            };
-        case 'lastMonth':
-            return {
-                [Op.gte]: now.subtract(1, 'month').startOf('month').toDate(),
-                [Op.lt]: now.startOf('month').toDate(),
-            };
-        case 'lastYear':
-            return {
-                [Op.gte]: now.subtract(1, 'year').startOf('year').toDate(),
-                [Op.lt]: now.startOf('year').toDate(),
-            };
-        default:
-            return null;
+      case 'today':
+        return {
+          [Op.gte]: now.startOf('day').toDate(),
+          [Op.lt]: now.endOf('day').toDate(),
+        };
+      case 'thisWeek':
+        return {
+          [Op.gte]: now.startOf('week').toDate(),
+          [Op.lt]: now.endOf('week').toDate(),
+        };
+      case 'thisMonth':
+        return {
+          [Op.gte]: now.startOf('month').toDate(),
+          [Op.lt]: now.endOf('month').toDate(),
+        };
+      case 'thisYear':
+        return {
+          [Op.gte]: now.startOf('year').toDate(),
+          [Op.lt]: now.endOf('year').toDate(),
+        };
+      case 'lastWeek':
+        return {
+          [Op.gte]: now.subtract(7, 'day').startOf('week').toDate(),
+          [Op.lt]: now.subtract(7, 'day').endOf('week').toDate(),
+        };
+      case 'lastMonth':
+        return {
+          [Op.gte]: now.subtract(1, 'month').startOf('month').toDate(),
+          [Op.lt]: now.subtract(1, 'month').endOf('month').toDate(),
+        };
+      case 'lastYear':
+        return {
+          [Op.gte]: now.subtract(1, 'year').startOf('year').toDate(),
+          [Op.lt]: now.subtract(1, 'year').endOf('year').toDate(),
+        };
+      case 'last7days':
+        return {
+          [Op.gte]: now.subtract(7, 'days').startOf('day').toDate(), // 7 days ago
+          [Op.lt]: now.endOf('day').toDate(),                        // up to today
+        };
+      case 'last30days':
+        return {
+          [Op.gte]: now.subtract(30, 'days').startOf('day').toDate(), // 30 days ago
+          [Op.lt]: now.endOf('day').toDate(),                         // up to today
+        };
+      default:
+        return null;
     }
-}
+  }
 
   filter() {
     const queryObj = { ...this.queryString };
@@ -46,12 +71,12 @@ class APIFeatures {
       if (/\b(gte|gt|lte|lt)\b/.test(key)) {
         const [field, operator] = key.split('_');
         filters[field] = { [Op[operator]]: queryObj[key] };
-      }if (key === "filter") {
+      } if (key === "filter") {
         const dateRange = queryObj[key];
-        if(APIFeatures.getDateFilters(dateRange)!== null){
+        if (APIFeatures.getDateFilters(dateRange) !== null) {
           filters.created_at = APIFeatures.getDateFilters(dateRange);
         }
-    }
+      }
       else {
         filters[key] = queryObj[key];
       }

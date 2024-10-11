@@ -17,18 +17,31 @@ router
   .get(authController.restrictTo('admin'), attendanceController.getAllAttendances);
 
 router
+  .route('/export-attendance')
+  .get(
+    authController.restrictTo('admin'),
+    attendanceController.exportAttendance
+  )
+router
+  .route('/reports')
+  .get(
+    authController.restrictTo('admin'),
+    attendanceController.getFormattedAttendanceData
+  )
+
+router
   .route('/:id')
   .put(
     authController.restrictTo('admin'),
-    attendanceMiddleware.checkAttendanceExists, 
+    attendanceMiddleware.checkAttendanceExists,
     attendanceController.updateAttendance)
   .delete(
     authController.restrictTo('admin'),
-    attendanceMiddleware.checkAttendanceExists, 
+    attendanceMiddleware.checkAttendanceExists,
     attendanceController.deleteAttendance)
   .get(
     authController.restrictTo('admin'),
-    attendanceMiddleware.checkAttendanceExists, 
+    attendanceMiddleware.checkAttendanceExists,
     attendanceController.getAttendance);
 
 // Restrict routes to teacher only

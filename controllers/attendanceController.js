@@ -4,7 +4,6 @@ const {
   Student,
   Info,
   Class,
-  SchoolAdmin,
   Status,
   Session,
   DayOfWeek,
@@ -17,99 +16,32 @@ const {
 const catchAsync = require('../utils/catchAsync');
 const { filterObj } = require('../utils/filterObj');
 const factory = require('./handlerFactory');
-const { Op } = require('sequelize');
-const { formatDataSessionfForAttendance, sendAttendanceEmail, formattedStudentAttendance } = require('../utils/attendanceUtils');
-// Get all attendances
+const {
+  formatDataSessionfForAttendance,
+  sendAttendanceEmail,
+  formattedStudentAttendance,
+  exportCsv,
+  getAllAttendancesData,
+  getStudentCount,
+  getSchoolInfo,
+  formatAttendanceReportData,
+  getAttendanceReportDateRange
+} = require('../utils/attendanceUtils');
+const AppError = require('../utils/appError');
+
+// get all attendance records 
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
-  const school_admin_id = req.school_admin_id;
-  const { subject_id, search, class_id } = req.query;
+  // Call the getAllAttendancesData utility function to get all attendance records
+  const data = await getAllAttendancesData(req, res, next);
 
-  // associations for attendance
-  const associations = [
-    {
-      model: Student,
-      as: 'Student',
-      where: class_id && { class_id },
-      include: [
-        {
-          model: Info,
-          as: 'Info',
-          attributes: [
-            'info_id',
-            'first_name',
-            'last_name',
-            'gender',
-            'phone_number',
-            'address',
-            'dob',
-            'photo',
-          ],
-          where: search && {
-            [Op.or]: [
-              { first_name: { [Op.like]: `%${search}%` } },
-              { last_name: { [Op.like]: `%${search}%` } },
-            ],
-          },
-        },
-        {
-          model: Class,
-          as: 'Class',
-          attributes: ['class_id', 'class_name'],
-        },
-      ],
-    },
-    {
-      model: Status,
-      as: 'Status',
-      attributes: ['status'],
-    },
-    {
-      model: Session,
-      as: 'Sessions',
-      required: true,
-      include: [
-        {
-          model: DayOfWeek,
-          as: 'DayOfWeek',
-          attributes: ['day_id', 'day'],
-        },
-        {
-          model: Period,
-          as: 'Period',
-          attributes: ['period_id', 'start_time', 'end_time'],
-        },
-        {
-          model: Subject,
-          as: 'Subject',
-          where: subject_id && { subject_id },
-          attributes: ['subject_id', 'subject_name'],
-          required: !!subject_id,
-        },
-        {
-          model: SchoolAdmin,
-          as: 'SchoolAdmin',
-          where: { school_admin_id },
-          required: !!school_admin_id,
-        },
-      ],
-    },
-  ];
-
-  // filter allow fields
-  const allowedFields = [
-    'filter',
-    'student_id',
-    'session_id',
-    'status_id',
-    'page',
-    'sort',
-    'limit',
-    'fields',
-  ];
-  req.query = filterObj(req.query, ...allowedFields);
-
-  factory.getAll(Attendance, {}, associations, [])(req, res, next);
+  // Send a successful response with the retrieved attendance records
+  res.status(200).json({
+    status: 'success',
+    results: data.length,
+    data: data,
+  });
 });
+
 //Creates attendance for a student in a specific session.
 exports.createAttendance = catchAsync(async (req, res, next) => {
   // Get today's date for attendance record
@@ -118,42 +50,49 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
 
   // get session data formatted for sending attendance status email notification
   const sessionData = await formatDataSessionfForAttendance(session_id);
-  
+
   // Fetch existing attendance for the session and today
   const existingAttendance = await Attendance.findAll({
     where: {
       session_id,
-      date: today
-    }
-  })
-  
+      date: today,
+    },
+  });
+
   // Create a map for quick lookup
   const existingRecordsMap = {};
-  existingAttendance.forEach(record => {
+  existingAttendance.forEach((record) => {
     existingRecordsMap[record.student_id] = record;
   });
 
   // Process attendance records
   const promises = attendance.map(async ({ student_id, status_id }) => {
-
     // get formatted student attendance data for sending notification email to their gardian
-   const data = await formattedStudentAttendance(student_id, sessionData)
+    const data = await formattedStudentAttendance(student_id, sessionData);
 
     // send email notification to student's gardian
     await sendAttendanceEmail(data, status_id);
 
     if (existingRecordsMap[student_id]) {
       // Update existing record
-      return Attendance.update({ status_id }, {
-        where: {
-          student_id,
-          session_id,
-          date: today
+      return Attendance.update(
+        { status_id },
+        {
+          where: {
+            student_id,
+            session_id,
+            date: today,
+          },
         }
-      });
+      );
     } else {
       // Create a new attendance record
-      return Attendance.create({ student_id, session_id, status_id, date: today });
+      return Attendance.create({
+        student_id,
+        session_id,
+        status_id,
+        date: today,
+      });
     }
   });
 
@@ -162,15 +101,17 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
 
   return res.status(200).json({
     status: 'success',
-    message: 'Attendance has been marked/updated successfully.'
+    message: 'Attendance has been marked/updated successfully.',
   });
 });
 
+//Delete an attendance record by attendance ID
 exports.deleteAttendance = catchAsync(async (req, res, next) => {
   // Use factory to delete attendance
   factory.deleteOne(Attendance, 'attendance_id')(req, res, next);
 });
 
+//Update an attendance record by attendance ID
 exports.updateAttendance = catchAsync(async (req, res, next) => {
   // Filter out only allowed fields from req.body
   req.body = filterObj(req.body, 'status_id');
@@ -179,8 +120,9 @@ exports.updateAttendance = catchAsync(async (req, res, next) => {
   factory.updateOne(Attendance, 'attendance_id')(req, res, next);
 });
 
+// Get a single attendance record by attendance ID
 exports.getAttendance = catchAsync(async (req, res, next) => {
-  // Use factory to get attendance
+  // Get all associations
   const associations = [
     {
       model: Student,
@@ -204,7 +146,7 @@ exports.getAttendance = catchAsync(async (req, res, next) => {
       include: [
         {
           model: Class,
-          as: 'Class'
+          as: 'Class',
         },
         {
           model: DayOfWeek,
@@ -231,11 +173,100 @@ exports.getAttendance = catchAsync(async (req, res, next) => {
             {
               model: User,
               as: 'User',
-            }
-          ]
+            },
+          ],
         },
       ],
     },
   ];
+  // Use factory to get attendance
   factory.getOne(Attendance, 'attendance_id', associations)(req, res, next);
+});
+
+// export to csv file
+exports.exportAttendance = catchAsync(async (req, res, next) => {
+  // use getAllAttendance function from attendanceUlit to get all attendances
+  const data = await getAllAttendancesData(req, res, next);
+  // use exportCsv to export data to csv
+  exportCsv(data)(res);
+});
+
+exports.getFormattedAttendanceData = catchAsync(async (req, res, next) => {
+  // Get class id and subject id from the query
+  const { class_id, subject_id } = req.query;
+
+  // Validate class id
+  if (!class_id) {
+    return next(new AppError('Class id is required', 400));
+  }
+
+  // Get sessions that belong to the school admin and the class
+  const getSessionClass = await Session.findAll({
+    where: {
+      school_admin_id: req.school_admin_id,
+      class_id: class_id || null,
+    },
+    attributes: [], // exclude Session columns
+    include: [
+      {
+        model: Subject,
+        as: 'Subject',
+        attributes: ['subject_name'], // only include subject_name column
+        where: subject_id ? { subject_id } : {}, // filter by subject id if provided
+      },
+      {
+        model: Class,
+        as: 'Class',
+        attributes: ['class_name'], // only include class_name column
+      },
+    ],
+  });
+
+  // Check if any classes were found
+  if (getSessionClass && getSessionClass.length > 0) {
+    // Get the subject names and class names
+    const subjectNames = getSessionClass.map(session => session.Subject.subject_name);
+    const classNames = getSessionClass.map(session => session.Class.class_name);
+
+    // Fetch student count, school information, and attendance records
+    const [studentCount, schoolAdmin, attendanceRecords] = await Promise.all([
+      getStudentCount(req.school_admin_id, class_id),
+      getSchoolInfo(req.school_admin_id),
+      getAllAttendancesData(req, res, next),
+    ]);
+
+    // use ultis to Format attendance data for the report
+    const formattedData = formatAttendanceReportData(attendanceRecords);
+
+    // Get the unique dates from the attendance records, and their corresponding day of the week
+    const datesWithDays = getAttendanceReportDateRange(formattedData);
+
+    // Send the formatted result as JSON
+    res.status(200).json({
+      status: 'success',
+      results: formattedData.length,
+      data: {
+        school: schoolAdmin.School,
+        class: {
+          class_name: classNames[0],
+          date_range: {
+            start_date: datesWithDays[0]?.date,
+            end_date: datesWithDays[datesWithDays.length - 1]?.date
+          },
+          student_count: studentCount
+        },
+        subjects: subjectNames,
+        dates: datesWithDays,
+        result: formattedData
+      },
+    });
+  } else {
+    // Send a success response with no classes found message
+    res.status(200).json({
+      status: 'success',
+      results: 0,
+      message: 'No data found',
+      data: {},
+    });
+  }
 });
