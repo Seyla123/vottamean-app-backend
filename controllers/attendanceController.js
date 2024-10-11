@@ -22,9 +22,12 @@ const {
   formattedStudentAttendance,
   exportCsv,
   getAllAttendancesData,
+  getStudentCount,
+  getSchoolInfo,
+  formatAttendanceReportData,
+  getAttendanceReportDateRange
 } = require('../utils/attendanceUtils');
-
-const dayjs = require('dayjs');
+const AppError = require('../utils/appError');
 
 // get all attendance records 
 exports.getAllAttendances = catchAsync(async (req, res, next) => {
@@ -189,89 +192,81 @@ exports.exportAttendance = catchAsync(async (req, res, next) => {
 });
 
 exports.getFormattedAttendanceData = catchAsync(async (req, res, next) => {
-  const { class_id } = req.query;
-  if(!class_id) {
-    return res.status(400).json({
-      status: 'fail',
-      message: 'Class ID is required'
-    });
+  // Get class id and subject id from the query
+  const { class_id, subject_id } = req.query;
+
+  // Validate class id
+  if (!class_id) {
+    return next(new AppError('Class id is required', 400));
   }
+
+  // Get sessions that belong to the school admin and the class
   const getSessionClass = await Session.findAll({
-    where: { school_admin_id: req.school_admin_id, class_id: class_id || null },
-    attributes: [],
+    where: {
+      school_admin_id: req.school_admin_id,
+      class_id: class_id || null,
+    },
+    attributes: [], // exclude Session columns
     include: [
       {
         model: Subject,
         as: 'Subject',
-        attributes: ['subject_name']
+        attributes: ['subject_name'], // only include subject_name column
+        where: subject_id ? { subject_id } : {}, // filter by subject id if provided
       },
-      
-    ]
+      {
+        model: Class,
+        as: 'Class',
+        attributes: ['class_name'], // only include class_name column
+      },
+    ],
   });
-  
-  const subjectNames = getSessionClass.map(session => session.Subject.subject_name);
-  // Fetch all attendance records with related data
-  const attendanceRecords = await getAllAttendancesData(req, res, next);
 
+  // Check if any classes were found
+  if (getSessionClass && getSessionClass.length > 0) {
+    // Get the subject names and class names
+    const subjectNames = getSessionClass.map(session => session.Subject.subject_name);
+    const classNames = getSessionClass.map(session => session.Class.class_name);
 
-  // Step 2: Group and format the data using JavaScript
-  const formattedData = attendanceRecords.reduce((acc, record) => {
-    const { Student, Sessions, Status } = record;
-    const student_id = Student.student_id;
-    const student_name = `${Student.Info.first_name} ${Student.Info.last_name}`;
-    const gender = Student.Info.gender;
-    const attendance_date = record.date;
-    const subject_name = Sessions.Subject.subject_name;
+    // Fetch student count, school information, and attendance records
+    const [studentCount, schoolAdmin, attendanceRecords] = await Promise.all([
+      getStudentCount(req.school_admin_id, class_id),
+      getSchoolInfo(req.school_admin_id),
+      getAllAttendancesData(req, res, next),
+    ]);
 
-    // Initialize student if not already present
-    if (!acc[student_id]) {
-      acc[student_id] = {
-        id: student_id,
-        fullName: student_name,
-        gender: gender,
-        attendance: {}
-      };
-    }
+    // use ultis to Format attendance data for the report
+    const formattedData = formatAttendanceReportData(attendanceRecords);
 
-    // Initialize date for the student if not already present
-    if (!acc[student_id].attendance[attendance_date]) {
-      acc[student_id].attendance[attendance_date] = {};
-    }
+    // Get the unique dates from the attendance records, and their corresponding day of the week
+    const datesWithDays = getAttendanceReportDateRange(formattedData);
 
-    // Add the subject attendance status for the given date
-    acc[student_id].attendance[attendance_date][subject_name] = Status.status;
-
-    return acc;
-  }, {});
-  // Convert the object into an array format for easier frontend consumption
-  const result = Object.values(formattedData).map(student => ({
-    id: student.id,
-    fullName: student.fullName,
-    gender: student.gender,
-    attendance: student.attendance
-  }));
- // Helper function to check if a string is a valid date
-const isValidDate = (dateString) => {
-  return dayjs(dateString, 'YYYY-MM-DD', true).isValid();
-};
-
-// Extract unique valid dates and map them to their respective day of the week
-const datesWithDays = Array.from(new Set(
-  result.flatMap(item => Object.keys(item.attendance))
-)).filter(isValidDate) // Only keep valid dates
-.map(date => ({
-  date,
-  day: dayjs(date).format('dddd').toUpperCase()
-}));
-
-  // Send the formatted result as JSON
-  res.status(200).json({
-    status: 'success',
-    results: result.length,
-    data: {
-      subjects: subjectNames,
-      dates : datesWithDays,
-      result
-    },
-  });
+    // Send the formatted result as JSON
+    res.status(200).json({
+      status: 'success',
+      results: formattedData.length,
+      data: {
+        school: schoolAdmin.School,
+        class: {
+          class_name: classNames[0],
+          date_range: {
+            start_date: datesWithDays[0]?.date,
+            end_date: datesWithDays[datesWithDays.length - 1]?.date
+          },
+          student_count: studentCount
+        },
+        subjects: subjectNames,
+        dates: datesWithDays,
+        result: formattedData
+      },
+    });
+  } else {
+    // Send a success response with no classes found message
+    res.status(200).json({
+      status: 'success',
+      results: 0,
+      message: 'No data found',
+      data: {},
+    });
+  }
 });
