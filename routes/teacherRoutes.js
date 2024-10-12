@@ -13,6 +13,12 @@ const router = express.Router();
 // Teacher verify email
 router.get('/verify-email/:token', teacherController.verifyTeacherEmail);
 
+// Teacher Complete Registration
+router.post(
+  '/complete-registration/:token',
+  teacherController.completeRegistration
+);
+
 // Protect all routes
 router.use(authController.protect);
 
@@ -20,16 +26,23 @@ router.use(authController.protect);
 router.use(authController.requireEmailVerification);
 
 //Teacher teaching schedule session
-router.get('/sessions',
-  authController.restrictTo('teacher'), 
-  sessionController.getAllTeacherSessions);
+router.get(
+  '/sessions',
+  authController.restrictTo('teacher'),
+  sessionController.getAllTeacherSessions
+);
 
-router.get('/sessions/:id',
-  authController.restrictTo('teacher'), 
-  studentController.getAllStudentsByClassInSession);
+router.get(
+  '/sessions/:id',
+  authController.restrictTo('teacher'),
+  studentController.getAllStudentsByClassInSession
+);
 
 // Restrict all routes to admin only
 router.use(authController.restrictTo('admin'));
+
+// Send invitation email
+router.post('/send-invitation', teacherController.sendInvitationToTeacher);
 
 // Teacher signup route
 router

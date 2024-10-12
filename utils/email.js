@@ -117,6 +117,11 @@ class Email {
       throw new Error('Attendance email sending failed :', error);
     }
   }
+
+  // Send Teacher Verification Email
+  async sendTeacherVerification() {
+    await this.send('teacherVerification', 'Verify Your Teacher Account');
+  }
 }
 
 module.exports = Email;

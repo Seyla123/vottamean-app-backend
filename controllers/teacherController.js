@@ -324,3 +324,129 @@ exports.verifyTeacherEmail = catchAsync(async (req, res, next) => {
     message: 'Email verified successfully! Your account is now active.',
   });
 });
+
+// ----------------------------
+// SEND INVITATION TO TEACHER
+// ----------------------------
+exports.sendInvitationToTeacher = catchAsync(async (req, res, next) => {
+  const school_admin_id = req.school_admin_id;
+  const { email, address, dob, first_name, last_name, gender, phone_number } =
+    req.body;
+
+  // 1. Check the subscription plan and teacher limit
+  try {
+    await checkTeacherLimit(school_admin_id);
+  } catch (error) {
+    return next(error);
+  }
+
+  // 2. Validate input fields using custom validators
+  try {
+    isValidEmail(email);
+    isValidDOB(dob);
+    isValidName(first_name);
+    isValidName(last_name);
+    isValidGender(gender);
+    isValidPhoneNumber(phone_number);
+    isValidAddress(address);
+  } catch (error) {
+    return next(new AppError(error.message, 400));
+  }
+
+  // 3. Check if the email is already registered
+  const existingUser = await User.findOne({ where: { email } });
+
+  if (existingUser && existingUser.emailVerified) {
+    return next(new AppError('This email is already registered.', 400));
+  }
+
+  // 4. Generate a verification token
+  const { token: verificationToken, hashedToken } = createVerificationToken();
+
+  // 5. Create a temporary JWT token containing user data
+  const tempToken = jwt.sign(
+    {
+      email,
+      address,
+      dob: new Date(dob),
+      first_name,
+      last_name,
+      gender,
+      phone_number,
+      school_admin_id,
+      emailVerificationToken: hashedToken,
+    },
+    process.env.JWT_SECRET
+  );
+
+  // 6. Construct the verification URL
+  const verificationUrl =
+    `http://localhost:5173/auth/complete-registration/${verificationToken}?token=${tempToken}` ||
+    `${req.headers.origin}/auth/complete-registration/${verificationToken}?token=${tempToken}`;
+
+  // 7. Send the invitation email
+  try {
+    await sendVerificationEmail(email, verificationUrl);
+    return res.status(200).json({
+      status: 'success',
+      message:
+        'Invitation link sent to the teacher. Please ask them to complete registration.',
+    });
+  } catch (error) {
+    return next(new AppError('Failed to send invitation email', 500));
+  }
+});
+
+// ----------------------------
+// COMPLETE REGISTRATION FOR TEACHER
+// ----------------------------
+exports.completeRegistration = catchAsync(async (req, res, next) => {
+  const { token: urlToken } = req.params;
+  const { password, passwordConfirm } = req.body;
+
+  // 1. Validate password and confirm password
+  try {
+    isValidPassword(password);
+    isPasswordConfirm(passwordConfirm, password);
+  } catch (error) {
+    return next(new AppError(error.message, 400));
+  }
+
+  // 2. Hash the verification token for comparison
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(urlToken)
+    .digest('hex');
+
+  // 3. Extract the temporary JWT token from the query string
+  const tempToken = req.query.token;
+
+  // 4. Verify the temporary token and extract the decoded data
+  const decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+
+  // 5. Find the user using the email and check for matching tokens
+  const user = await User.findOne({
+    where: { email: decoded.email },
+    attributes: ['email', 'emailVerificationToken', 'user_id'],
+  });
+
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
+
+  // 6. Compare the hashed token with the stored token
+  if (user.emailVerificationToken !== hashedToken) {
+    return next(new AppError('Invalid or expired token.', 400));
+  }
+
+  // 7. Update user to verified status and set the password
+  user.emailVerified = true;
+  user.password = password;
+  user.emailVerificationToken = null;
+  await user.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Registration completed successfully! Your account is now active.',
+  });
+});
