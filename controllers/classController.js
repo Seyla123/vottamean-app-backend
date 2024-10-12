@@ -83,3 +83,8 @@ exports.deleteClass = catchAsync(async (req, res, next) => {
   await isBelongsToAdmin(req.params.id, 'class_id', req.school_admin_id, Class);
   factory.deleteOne(Class, 'class_id')(req, res, next);
 });
+
+// Delete many classes
+exports.deleteManyClass = catchAsync(async (req, res, next) => {
+  factory.deleteMany(Class, 'class_id')(req, res, next);
+});

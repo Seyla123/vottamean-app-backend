@@ -14,7 +14,8 @@ router.use(authController.restrictTo('admin'));
 router
   .route('/')
   .post(classController.addClass)
-  .get(classController.getAllClasses);
+  .get(classController.getAllClasses)
+  .delete(classController.deleteManyClass);
 
 router
   .route('/:id')
