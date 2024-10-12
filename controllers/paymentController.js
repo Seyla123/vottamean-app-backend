@@ -3,10 +3,9 @@ const { Subscription, Payment, Admin } = require('../models');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const {
-  checkActiveSubscription,
+  getPlanAmount,
   handleCheckoutSessionCompleted,
   handlePaymentFailed,
-  getPlanAmount,
 } = require('../utils/paymentHelper');
 
 // -----------------------------------
@@ -175,7 +174,7 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
     `${req.protocol}://${req.get('host')}/payment/success`;
   const cancelUrl =
     process.env.CLIENT_PAYMENT_FAILURE_URL ||
-    `${req.protocol}://${req.get('host')}/payment`;
+    `${req.protocol}://${req.get('host')}/payment/failure`;
 
   try {
     // Create a new Stripe checkout session

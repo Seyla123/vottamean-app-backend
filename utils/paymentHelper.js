@@ -1,4 +1,4 @@
-const { Admin, Subscription, Teacher, Student } = require('../models');
+const { Admin, Subscription, Teacher, Student, Payment } = require('../models');
 const AppError = require('./appError');
 
 // Helper function to check subscription limits for teachers and students

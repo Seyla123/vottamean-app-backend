@@ -22,6 +22,7 @@ router.post(
     });
   }
 );
+
 // Protect all routes after this middleware
 router.use(authController.protect);
 
