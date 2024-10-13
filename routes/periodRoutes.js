@@ -18,7 +18,8 @@ router.use(authController.restrictTo('admin'));
 router
   .route('/')
   .get(periodController.getAllPeriod)
-  .post(periodController.createPeriod);
+  .post(periodController.createPeriod)
+  .delete(periodController.deleteManyPeriods);
 
 router
   .route('/:id')

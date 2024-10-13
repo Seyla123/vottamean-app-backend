@@ -450,3 +450,8 @@ exports.completeRegistration = catchAsync(async (req, res, next) => {
     message: 'Registration completed successfully! Your account is now active.',
   });
 });
+
+// Delete many teachers
+exports.deleteManyTeachers = catchAsync(async (req, res, next) => {
+  factory.deleteMany(Teacher, 'teacher_id')(req, res, next);
+});

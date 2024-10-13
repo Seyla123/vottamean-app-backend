@@ -95,3 +95,8 @@ exports.getAllTeacherSessions = catchAsync(async (req, res, next) => {
     data: formattedSessions,
   });
 });
+
+// Delete many sessions
+exports.deleteManySessions = catchAsync(async (req, res, next) => {
+  factory.deleteMany(Session, 'session_id')(req, res, next);
+});

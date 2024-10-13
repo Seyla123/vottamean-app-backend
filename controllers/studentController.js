@@ -254,27 +254,8 @@ exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
 // Mark multiple students as inactive
 exports.deleteSelectedStudents = catchAsync(async (req, res, next) => {
   // Validate the ids array in the request body
-  if (
-    !req.body.ids ||
-    !Array.isArray(req.body.ids) ||
-    req.body.ids.length === 0
-  ) {
-    return next(
-      new AppError(
-        'Please provide an array of student IDs to mark as inactive.',
-        400
-      )
-    );
-  }
-
-  // Check if the request is made by an admin (optional)
-  await isBelongsToAdmin(
-    req.school_admin_id,
-    'school_admin_id',
-    req.school_admin_id,
-    Student
-  );
-
-  // Call the reusable deleteMany function
+  const idArr = req.body.ids;
+  console.log('this ids arr :', idArr);
   factory.deleteMany(Student, 'student_id')(req, res, next);
+
 });

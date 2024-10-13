@@ -26,6 +26,10 @@ router
   .post(studentController.addStudent);
 
 // Routes for individual student operations
+router.route('/').delete(
+  authController.restrictTo('admin'),
+  studentController.deleteSelectedStudents
+);
 router
   .route('/:id')
   .get(studentController.getStudent)
@@ -33,6 +37,5 @@ router
   .delete(studentController.deleteStudent);
 
 // Route for deleting multiple students
-router.route('/delete-many').delete(studentController.deleteSelectedStudents);
 
 module.exports = router;

@@ -12,7 +12,7 @@ exports.isBelongsToAdmin = async (id, field,school_admin_id,Model,field2, ModelN
     });
     if (!isExists) {
       throw new AppError(
-        `No ${ModelName ? ModelName : Model.name} record found or you do not have permission for this record`,
+        `No ${ModelName ? ModelName : Model.name} record found `,
         404
       );
     }

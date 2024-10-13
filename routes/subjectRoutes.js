@@ -17,7 +17,8 @@ router.use(authController.restrictTo('admin'));
 router
   .route('/')
   .post(subjectController.createSubject)
-  .get(subjectController.getAllSubjects);
+  .get(subjectController.getAllSubjects)
+  .delete(subjectController.deleteManySubjects);
 
 // Route to get a single subject by ID
 router
