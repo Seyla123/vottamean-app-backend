@@ -48,7 +48,8 @@ router.post('/send-invitation', teacherController.sendInvitationToTeacher);
 router
   .route('/')
   .post(teacherController.signupTeacher)
-  .get(teacherController.getAllTeachers);
+  .get(teacherController.getAllTeachers)
+  .delete(teacherController.deleteManyTeachers);
 
 router
   .route('/:id')

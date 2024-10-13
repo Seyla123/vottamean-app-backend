@@ -78,3 +78,8 @@ exports.deletePeriod = catchAsync(async (req, res, next) => {
   await checkIfBelongs(req.params.id, req.school_admin_id);
   factory.deleteOne(Period, 'period_id')(req, res, next);
 });
+
+// Delete many periods
+exports.deleteManyPeriods = catchAsync(async (req, res, next) => {
+  factory.deleteMany(Period, 'period_id')(req, res, next);
+});
