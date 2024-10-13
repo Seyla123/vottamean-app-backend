@@ -19,7 +19,8 @@ router
   .post(
     sessionMiddleware.checkExistingSession,
     sessionMiddleware.validateAdminOwnership, 
-    sessionController.createSession).get(sessionController.getAllSessions);
+    sessionController.createSession).get(sessionController.getAllSessions)
+    .delete(sessionController.deleteManySessions);
 
 router
   .route('/:id')

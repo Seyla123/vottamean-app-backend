@@ -86,3 +86,8 @@ exports.deleteSubject = catchAsync(async (req, res, next) => {
   await checkIfBelongs(subjectId, req.school_admin_id);
   factory.deleteOne(Subject, 'subject_id')(req, res, next);
 });
+
+// Delete many subjects
+exports.deleteManySubjects = catchAsync(async (req, res, next) => {
+  factory.deleteMany(Subject, 'subject_id')(req, res, next);
+});
