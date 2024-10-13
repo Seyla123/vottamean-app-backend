@@ -38,6 +38,12 @@ router.get(
   studentController.getAllStudentsByClassInSession
 );
 
+router.get(
+  '/assigned-students',
+  authController.restrictTo('teacher'),
+  studentController.getAllStudentsByTeacher
+);
+
 // Restrict all routes to admin only
 router.use(authController.restrictTo('admin'));
 
