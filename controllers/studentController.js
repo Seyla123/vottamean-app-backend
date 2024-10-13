@@ -24,6 +24,10 @@ const { filterObj } = require('../utils/filterObj');
 // check is belongs to admin function
 const { isBelongsToAdmin } = require('../utils/helper');
 const { checkStudentLimit } = require('../utils/paymentHelper');
+const { fetchTeacherSessions } = require('../utils/sessionUtils');
+
+const { Op } = require('sequelize');
+const dayjs = require('dayjs');
 
 // Add a new student and create default attendance
 exports.addStudent = catchAsync(async (req, res, next) => {
@@ -231,6 +235,7 @@ exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
   // Check if session belongs to the teacher
   const session = await Session.findOne({
     where: { session_id, teacher_id },
+    include: [{ model: Class, as: 'Class' , attributes : ['class_name']}]
   });
 
   if (!session) {
@@ -247,15 +252,43 @@ exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: 'success',
     length: students.length,
+    Class: {
+      class_name : session.Class.class_name,
+      total_students : students.length
+    },
     data: students,
   });
 });
 
+// Get all students for assigned teacher
+exports.getAllStudentsByTeacher = catchAsync(async (req, res, next) => {
+  const filter = req.query.filter;
+  const currentDay = dayjs().isoWeekday();
+
+  // Get all teacher session and get all classes
+  const teacherSessions = await fetchTeacherSessions(req.teacher_id, filter, currentDay);
+  const getAllTeacherClasses = teacherSessions.map(session => session.class_id)
+
+  // Find all students in teacher assigned class
+  const getStudents = await Student.findAll({
+    where: {
+     class_id : {
+      [Op.in]: getAllTeacherClasses,
+     }
+    },
+    include: [{ model: Info, as: 'Info' }],
+  });
+  
+  // Respond successfully with students
+  res.status(200).json({
+    status: 'success',
+    length: getStudents.length,
+    data: getStudents,
+  })
+})
+
 // Mark multiple students as inactive
 exports.deleteSelectedStudents = catchAsync(async (req, res, next) => {
-  // Validate the ids array in the request body
-  const idArr = req.body.ids;
-  console.log('this ids arr :', idArr);
   factory.deleteMany(Student, 'student_id')(req, res, next);
 
 });

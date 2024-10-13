@@ -47,7 +47,7 @@ exports.formatTeacherSessions = async (sessions) => {
   ]
 
 // Excluded session field
-  exports.ExcludedSessionField = [
+  exports.AllowedSessionField = [
     'class_id',
     'subject_id',
     'day_id',

@@ -11,7 +11,7 @@ const factory = require('./handlerFactory');
 // Utils
 const { filterObj } = require('../utils/filterObj');
 const { isBelongsToAdmin } = require('../utils/helper');
-const { fetchTeacherSessions, formatTeacherSessions, includedSession, ExcludedSessionField } = require('../utils/sessionUtils');
+const { fetchTeacherSessions, formatTeacherSessions, includedSession, AllowedSessionField } = require('../utils/sessionUtils');
 
 // day js 
 const dayjs = require('dayjs');
@@ -21,7 +21,7 @@ dayjs.extend(isoWeek);;
 // create session
 exports.createSession = catchAsync(async (req, res, next) => {
   // filter the request body to only include 'class_id', 'subject_id','day_id','period_id','teacher_id'
-  req.body = filterObj( req.body, ...ExcludedSessionField );
+  req.body = filterObj( req.body, ...AllowedSessionField );
   req.body.school_admin_id = req.school_admin_id;
   console.log(req.body);
   
@@ -58,7 +58,7 @@ exports.updateSession = catchAsync(async (req, res, next) => {
     Session
   );
   //  filter the request body to only include 'class_id', 'subject_id','day_id','period_id','teacher_id'
-  req.body = filterObj(req.body, ...ExcludedSessionField);
+  req.body = filterObj(req.body, ...AllowedSessionField);
 
   // update session
   factory.updateOne(Session, 'session_id')(req, res, next);
@@ -85,7 +85,7 @@ exports.getAllTeacherSessions = catchAsync(async (req, res, next) => {
 
   // Fetch all teacher sessions
   const sessions = await fetchTeacherSessions(req.teacher_id, filter, currentDay);
-
+  
   // Format the sessions
   const formattedSessions = await formatTeacherSessions(sessions);
 
