@@ -24,6 +24,7 @@ const { filterObj } = require('../utils/filterObj');
 // check is belongs to admin function
 const { isBelongsToAdmin } = require('../utils/helper');
 const { checkStudentLimit } = require('../utils/paymentHelper');
+const { ObjectAttributes } = require('@aws-sdk/client-s3');
 
 // Add a new student and create default attendance
 exports.addStudent = catchAsync(async (req, res, next) => {
@@ -231,6 +232,7 @@ exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
   // Check if session belongs to the teacher
   const session = await Session.findOne({
     where: { session_id, teacher_id },
+    include: [{ model: Class, as: 'Class' , attributes : ['class_name']}]
   });
 
   if (!session) {
@@ -247,6 +249,10 @@ exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: 'success',
     length: students.length,
+    Class: {
+      class_name : session.Class.class_name,
+      total_students : students.length
+    },
     data: students,
   });
 });
