@@ -3,11 +3,11 @@ stages:
   - test
   - deploy
 
-before-script:
-  - echo "Hello, $GITLAB_USER_LOGIN!"
+# before-script:
+#   - echo "Hello, $GITLAB_USER_LOGIN!"
 
-after-script:
-  - echo "Bye, $GITLAB_USER_LOGIN!"
+# after-script:
+#   - echo "Bye, $GITLAB_USER_LOGIN!"
 
 build-job:
   stage: build
