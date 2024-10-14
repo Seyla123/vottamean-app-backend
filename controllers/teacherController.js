@@ -35,6 +35,7 @@ const AppError = require('../utils/appError');
 const factory = require('./handlerFactory');
 const { filterObj } = require('../utils/filterObj');
 
+
 // Get one teacher
 exports.getTeacher = factory.getOne(Teacher, 'teacher_id', [
   {
@@ -98,14 +99,17 @@ exports.updateTeacher = catchAsync(async (req, res, next) => {
   }
 
   // 4. Extract necessary fields from the request body
-  const { first_name, last_name, gender, phone_number, dob, address } =
-    req.body;
+  const { 
+    first_name, 
+    last_name, 
+    gender, 
+    phone_number, 
+    dob, 
+    address 
+  } = req.body;
+  const photo = req.file ? req.file.location : info.photo; // Keep the existing photo if none is uploaded
 
-  // 5. Handle photo upload if it exists
-  const photo = req.file ? `/uploads/photos/${req.file.filename}` : info.photo;
-  // Keep the existing photo if none is uploaded
-
-  // 6. Filter out allowed fields for the update
+  // 5. Filter out allowed fields for the update
   const updatedFields = {
     first_name,
     last_name,
@@ -115,11 +119,9 @@ exports.updateTeacher = catchAsync(async (req, res, next) => {
     address,
     photo,
   };
-
-  // 7. Update the Info record
+  // 6. Update the Info record
   await Info.update(updatedFields, { where: { info_id: teacher.info_id } });
-
-  // 8. Retrieve the updated Info record
+  // 7. Retrieve the updated Info record
   const updatedInfo = await Info.findByPk(teacher.info_id);
 
   res.status(200).json({
