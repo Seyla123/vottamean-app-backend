@@ -91,6 +91,9 @@ exports.getAll = (
       .paginate()
       .includeAssociations(popOptions);
     if (attribute) features.options.attributes = attribute;
+
+    const totalCount = await features.count();
+
     const doc = await features.exec({
       where: filter,
       include: popOptions,
@@ -102,7 +105,7 @@ exports.getAll = (
 
     res.status(200).json({
       status: 'success',
-      results: doc.length,
+      results: totalCount,
       data: doc,
     });
   });

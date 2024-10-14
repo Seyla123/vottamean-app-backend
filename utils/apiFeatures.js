@@ -106,7 +106,20 @@ class APIFeatures {
     }
     return this;
   }
+  async count(additionalOptions = {}) {
+    const countOptions = {
+      ...this.options 
+    };
+    countOptions.where = { ...countOptions.where, ...additionalOptions.where };
 
+    try {
+      const totalCount = await this.query.count(countOptions);
+      return totalCount;
+    } catch (error) {
+      console.error('Error counting records:', error);
+      throw new Error(`Error counting records: ${error.message}`);
+    }
+  }
   paginate() {
     const page = this.queryString.page * 1 || 1;
     const limit = this.queryString.limit * 1 || 100;
