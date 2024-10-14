@@ -84,39 +84,48 @@ exports.updateTeacher = catchAsync(async (req, res, next) => {
     req.school_admin_id,
     Teacher
   );
+
   // 2. Find the teacher by primary key
   const teacher = await Teacher.findByPk(req.params.id);
   if (!teacher) {
     return next(new AppError('Teacher not found', 404));
   }
+
   // 3. Find the Info record related to the teacher
   const info = await Info.findByPk(teacher.info_id);
   if (!info) {
     return next(new AppError('Teacher info not found', 404));
   }
-  // 4. Filter out allowed fields from the request body
-  const updatedFields = filterObj(
-    req.body,
-    'first_name',
-    'last_name',
-    'gender',
-    'phone_number',
-    'dob',
-    'address'
-  );
-  // 5. Update the Info record
-  await Info.update(updatedFields, {
-    where: { info_id: teacher.info_id },
-  });
-  // 6. Retrieve the updated Info record
-  // After updating, fetch the updated data
+
+  // 4. Extract necessary fields from the request body
+  const { first_name, last_name, gender, phone_number, dob, address } =
+    req.body;
+
+  // 5. Handle photo upload if it exists
+  const photo = req.file ? `/uploads/photos/${req.file.filename}` : info.photo;
+  // Keep the existing photo if none is uploaded
+
+  // 6. Filter out allowed fields for the update
+  const updatedFields = {
+    first_name,
+    last_name,
+    gender,
+    phone_number,
+    dob,
+    address,
+    photo,
+  };
+
+  // 7. Update the Info record
+  await Info.update(updatedFields, { where: { info_id: teacher.info_id } });
+
+  // 8. Retrieve the updated Info record
   const updatedInfo = await Info.findByPk(teacher.info_id);
+
   res.status(200).json({
     status: 'success',
     message: 'Teacher info updated successfully',
-    data: {
-      info: updatedInfo,
-    },
+    data: { info: updatedInfo },
   });
 });
 
@@ -148,6 +157,9 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     gender,
     phone_number,
   } = req.body;
+
+  // add photo
+  const photo = req.file ? req.file.location : null;
 
   // 3. Validate input fields using custom validators
   try {
@@ -232,6 +244,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
         address,
         dob: new Date(dob),
         gender,
+        photo,
       },
       { transaction }
     );
