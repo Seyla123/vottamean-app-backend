@@ -6,7 +6,7 @@ const teacherController = require('../controllers/teacherController');
 const authController = require('../controllers/authController');
 const sessionController = require('../controllers/sessionController');
 const studentController = require('../controllers/studentController');
-
+const photoController = require('../controllers/photoController');
 // Define Express Router
 const router = express.Router();
 
@@ -53,7 +53,10 @@ router.post('/send-invitation', teacherController.sendInvitationToTeacher);
 // Teacher signup route
 router
   .route('/')
-  .post(teacherController.signupTeacher)
+  .post(
+    photoController.uploadUserPhoto,
+    photoController.resizeUserPhoto,
+    teacherController.signupTeacher)
   .get(teacherController.getAllTeachers)
   .delete(teacherController.deleteManyTeachers);
 
