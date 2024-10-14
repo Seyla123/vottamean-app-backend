@@ -221,6 +221,10 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     }
   }
 
+  
+  // 7. Generate a verification token and send the email
+  const { token: verificationToken, hashedToken } = createVerificationToken();
+  
   // 6. If no existing user, create a new one
   const transaction = await sequelize.transaction();
   let user;
@@ -230,6 +234,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
         email,
         password,
         emailVerified: false,
+        emailVerificationToken: hashedToken,
         role: 'teacher',
         verificationRequestedAt: new Date(),
       },
@@ -263,10 +268,6 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     await transaction.rollback();
     return next(new AppError('Failed to create teacher record', 500));
   }
-
-  // 7. Generate a verification token and send the email
-  const { token: verificationToken, hashedToken } = createVerificationToken();
-
   const tempToken = jwt.sign(
     {
       email,
