@@ -56,14 +56,19 @@ router
   .post(
     photoController.uploadUserPhoto,
     photoController.resizeUserPhoto,
-    teacherController.signupTeacher)
+    teacherController.signupTeacher
+  )
   .get(teacherController.getAllTeachers)
   .delete(teacherController.deleteManyTeachers);
 
 router
   .route('/:id')
   .get(teacherController.getTeacher)
-  .put(teacherController.updateTeacher)
+  .put(
+    photoController.uploadUserPhoto,
+    photoController.resizeUserPhoto,
+    teacherController.updateTeacher
+  )
   .delete(teacherController.deleteTeacher);
 
 module.exports = router;
