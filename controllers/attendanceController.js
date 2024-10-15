@@ -25,7 +25,8 @@ const {
   getStudentCount,
   getSchoolInfo,
   formatAttendanceReportData,
-  getAttendanceReportDateRange
+  getAttendanceReportDateRange,
+  deleteAttendance
 } = require('../utils/attendanceUtils');
 const AppError = require('../utils/appError');
 
@@ -37,8 +38,8 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
   // Send a successful response with the retrieved attendance records
   res.status(200).json({
     status: 'success',
-    results: data.length,
-    data: data,
+    results: data.attendanceCount,
+    data: data.attendance,
   });
 });
 
@@ -71,7 +72,7 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
     const data = await formattedStudentAttendance(student_id, sessionData);
 
     // send email notification to student's gardian
-    await sendAttendanceEmail(data, status_id);
+    // await sendAttendanceEmail(data, status_id);
 
     if (existingRecordsMap[student_id]) {
       // Update existing record
@@ -103,12 +104,6 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
     status: 'success',
     message: 'Attendance has been marked/updated successfully.',
   });
-});
-
-//Delete an attendance record by attendance ID
-exports.deleteAttendance = catchAsync(async (req, res, next) => {
-  // Use factory to delete attendance
-  factory.deleteOne(Attendance, 'attendance_id')(req, res, next);
 });
 
 //Update an attendance record by attendance ID
@@ -188,7 +183,7 @@ exports.exportAttendance = catchAsync(async (req, res, next) => {
   // use getAllAttendance function from attendanceUlit to get all attendances
   const data = await getAllAttendancesData(req, res, next);
   // use exportCsv to export data to csv
-  exportCsv(data)(res);
+  exportCsv(data.attendance)(res);
 });
 
 exports.getFormattedAttendanceData = catchAsync(async (req, res, next) => {
@@ -269,4 +264,17 @@ exports.getFormattedAttendanceData = catchAsync(async (req, res, next) => {
       data: {},
     });
   }
+});
+
+//Delete an attendance record by attendance ID
+exports.deleteAttendance = catchAsync(async (req, res, next) => {
+  const idArr = req.params.id;
+  // delete attendance
+  deleteAttendance(idArr)(req, res, next);
+});
+// Delete many attendances
+exports.deleteManyAttendances = catchAsync(async (req, res, next) => {
+  const idArr = req.body.ids;
+  // delete array attendance
+  deleteAttendance(idArr)(req, res, next);
 });

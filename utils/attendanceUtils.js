@@ -17,7 +17,8 @@ const Email = require('./email');
 const { filterObj } = require('../utils/filterObj');
 const AppError = require('../utils/appError');
 const APIFeatures = require('../utils/apiFeatures');
-const { Op} = require('sequelize')
+const catchAsync = require('../utils/catchAsync');
+const { Op } = require('sequelize')
 const sequelize = require('sequelize')
 /**
  * formatDataSessionfForAttendance
@@ -85,9 +86,10 @@ exports.sendAttendanceEmail = async (data, status) => {
  */
 exports.formattedStudentAttendance = async (student_id, sessionDa) => {
   const student = await Student.findByPk(student_id, {
-    include: { model: Info, as: 'Info',
+    include: {
+      model: Info, as: 'Info',
       attributes: ['first_name', 'last_name'],
-     },
+    },
 
   });
 
@@ -106,11 +108,11 @@ exports.formattedStudentAttendance = async (student_id, sessionDa) => {
  * @param {Object} data - data for exporting csv
  * @returns {Function}
  */
-exports.exportCsv = (data) =>(res) => {
+exports.exportCsv = (data) => (res) => {
   // Create CSV rows
   const csvRows = [];
   // add headers
-  const headers = ['Student ID', 'Full Name', 'Start time', 'End time', 'Subject', 'Class', 'Address','Status','Date',];
+  const headers = ['Student ID', 'Full Name', 'Start time', 'End time', 'Subject', 'Class', 'Address', 'Status', 'Date',];
   csvRows.push(headers.join(','));
 
   // format data and add to csv rows
@@ -118,11 +120,11 @@ exports.exportCsv = (data) =>(res) => {
     const row = [
       item.Student.student_id,
       item.Student.Info.first_name + ' ' + item.Student.Info.last_name,
-      item.Sessions.Period.start_time ,
-       item.Sessions.Period.end_time,       
+      item.Sessions.Period.start_time,
+      item.Sessions.Period.end_time,
       item.Sessions.Subject.subject_name,
       item.Student.Class.class_name,
-      `"${item.Student.Info.address}"`, 
+      `"${item.Student.Info.address}"`,
       item.Status.status,
       item.date
     ];
@@ -212,7 +214,12 @@ const getAssociations = (school_admin_id, class_id, subject_id, search) => {
           as: 'SchoolAdmin',
           where: { school_admin_id },
           required: !!school_admin_id,
-        },
+        },{
+          model: Teacher,
+          as: 'Teacher',
+          include: [{ model: Info, as: 'Info' }],
+          required:!!school_admin_id,
+        }
       ],
     },
   ];
@@ -242,7 +249,7 @@ exports.getAllAttendancesData = async (req) => {
   ];
   req.query = filterObj(req.query, ...allowedFields);
   const filter = { active: 1 };
-  const features = new APIFeatures(Attendance, req.query )
+  const features = new APIFeatures(Attendance, req.query)
     .filter()
     .sort()
     .limitFields()
@@ -253,10 +260,17 @@ exports.getAllAttendancesData = async (req) => {
     include: associations,
   });
 
+  const attendanceCount = await Attendance.count({
+    where: filter,
+    include: associations,
+  })
   if (!attendance) {
     throw new AppError('No attendances found', 404);
   }
-  return attendance
+  return {
+    attendance,
+    attendanceCount,
+  }
 };
 
 /**
@@ -388,3 +402,47 @@ exports.getAttendanceReportDateRange = (result) => {
 
   return datesWithDays;
 };
+
+/**
+ * deleteAttendance
+ * @description Delete one or many attendance records
+ * @param {Number|Number[]} idArr - attendance id or array of attendance ids
+ * @returns {Function} - express middleware function
+ */
+exports.deleteAttendance = (idArr) =>
+  catchAsync(async (req, res, next) => {
+    try {
+      const attendance = await Attendance.update(
+        { active: false },
+        {
+          where: {
+            attendance_id: idArr,
+            active: true,
+            student_id: {
+              [Op.in]: sequelize.literal(`(
+            SELECT student_id FROM \`Students\` WHERE \`school_admin_id\` = ${req.school_admin_id}
+          )`),
+            },
+          },
+        }
+      );
+      console.log('--------------------------------');
+      console.log('this attendace :', attendance);
+      console.log('--------------------------------');
+      
+      if (attendance[0] === 0) {
+        console.error(`No active attendance found with attendance_id: ${idArr}`);
+        return next(new AppError(`No active attendance found with that attendance_id`, 404))
+      }
+      return res.status(200).json({
+        status: 'success',
+        message: `${attendance} attendance records successfully marked as inactive`,
+      });
+    } catch (error) {
+      console.log('error :', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to delete attendance records',
+      })
+    }
+  })

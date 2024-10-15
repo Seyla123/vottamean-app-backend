@@ -91,8 +91,7 @@ exports.getAll = (
       .paginate()
       .includeAssociations(popOptions);
     if (attribute) features.options.attributes = attribute;
-
-    const totalCount = await features.count();
+    const totalCount = await features.count({ where: filter });
 
     const doc = await features.exec({
       where: filter,
@@ -235,24 +234,24 @@ exports.deleteMany = (Model, idField) =>
     console.log(
       `Attempting to set active to false for records with ${idField}: ${idArr}`
     );
-    
+
     // Update the active field to false instead of deleting the record
     try {
       const docs = await Model.update(
         { active: false }, // Set active to false
-        { where: { [idField]: idArr, active: true , school_admin_id: req.school_admin_id } }
+        { where: { [idField]: idArr, active: true, school_admin_id: req.school_admin_id } }
       );
 
       // Check if the document exists and was updated
-      if(docs[0] === 0) {
+      if (docs[0] === 0) {
         console.error(`No active document found with ${idField}: ${idArr}`);
         return next(new AppError(`No active document found with that ${idField}`, 404));
       }
-          // Respond with a success message
-    res.status(200).json({
-      status: 'success',
-      message: `${docs[0]} records with ${idField}: ${idArr} successfully marked as inactive`,
-    });
+      // Respond with a success message
+      res.status(200).json({
+        status: 'success',
+        message: `${docs[0]} records with ${idField}: ${idArr} successfully marked as inactive`,
+      });
     } catch (error) {
       return next(new AppError(`No active document found with that ${idField}`, 404));
     }

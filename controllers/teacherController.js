@@ -33,8 +33,6 @@ const AppError = require('../utils/appError');
 
 // Factory Handler
 const factory = require('./handlerFactory');
-const { filterObj } = require('../utils/filterObj');
-
 
 // Get one teacher
 exports.getTeacher = factory.getOne(Teacher, 'teacher_id', [
@@ -180,6 +178,10 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
 
   // 4. Check if the email is already registered.
   const existingUser = await User.findOne({ where: { email } });
+
+  if(existingUser && existingUser.emailVerified) {
+    return next(new AppError('Email is already registered', 400));
+  }
 
   // 5. If the user exists but is not verified, allow re-verification.
   if (existingUser && !existingUser.emailVerified) {

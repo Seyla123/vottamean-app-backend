@@ -14,7 +14,8 @@ router.use(authController.protect); // Applied globally
 // Restrict routes to admin only
 router
   .route('/')
-  .get(authController.restrictTo('admin'), attendanceController.getAllAttendances);
+  .get(authController.restrictTo('admin'), attendanceController.getAllAttendances)
+  .delete(authController.restrictTo('admin'), attendanceController.deleteManyAttendances);
 
 router
   .route('/export-attendance')
