@@ -42,3 +42,4 @@ deploy-backend:
     url: https://web.vottamean.com/api/v1
   only:
     - main
+    - develop
