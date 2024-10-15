@@ -26,7 +26,7 @@ build-backend:
 # Deploy job
 deploy-backend:
   stage: deploy
-  image: docker:24.0.5 # Pin to a specific version for stability
+  image: docker:24.0.5 
   services:
     - docker:dind # Docker-in-Docker service
   variables:
