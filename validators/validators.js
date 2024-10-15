@@ -52,9 +52,6 @@ module.exports = {
     if (validator.isEmpty(value)) {
       throw new Error('Class name is required');
     }
-    if (!validator.isLength(value, { min: 3, max: 50 })) {
-      throw new Error('Class name must be between 3 and 50 characters');
-    }
     return true;
   },
 
