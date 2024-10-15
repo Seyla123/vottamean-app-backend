@@ -56,11 +56,5 @@ deploy-backend:
   only:
     - main
     - develop
-  tags:
-    - docker 
   retry:
     max: 2
-  before_script:
-    - echo "nameserver 8.8.8.8" > /etc/resolv.conf
-  after_script:
-    - docker logout
