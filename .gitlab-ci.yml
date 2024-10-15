@@ -1,3 +1,31 @@
+stages:
+  - build
+  - test
+  - deploy
+
+build_job:
+  stage: build
+  image: alpine:latest
+  script:
+    - echo "Building the project..."
+    - apk update && apk add --no-cache git
+    - git --version
+
+test_job:
+  stage: test
+  image: alpine:latest
+  script:
+    - echo "Running tests..."
+    - echo "Tests are successful!"
+
+deploy_job:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - echo "Deploying the project..."
+    - echo "Deployment complete!"
+
+
 # # Define pipeline stages
 # stages:
 #   - build
@@ -58,29 +86,3 @@
 #   only:
 #     - main
 
-stages:
-  - build
-  - test
-  - deploy
-
-build_job:
-  stage: build
-  image: alpine:latest
-  script:
-    - echo "Building the project..."
-    - apk update && apk add --no-cache git
-    - git --version
-
-test_job:
-  stage: test
-  image: alpine:latest
-  script:
-    - echo "Running tests..."
-    - echo "Tests are successful!"
-
-deploy_job:
-  stage: deploy
-  image: alpine:latest
-  script:
-    - echo "Deploying the project..."
-    - echo "Deployment complete!"
