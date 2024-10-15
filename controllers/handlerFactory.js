@@ -91,8 +91,7 @@ exports.getAll = (
       .paginate()
       .includeAssociations(popOptions);
     if (attribute) features.options.attributes = attribute;
-
-    const totalCount = await features.count({ where: { school_admin_id: req.school_admin_id , active : 1 } });
+    const totalCount = await features.count({ where: filter });
 
     const doc = await features.exec({
       where: filter,
