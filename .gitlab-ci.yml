@@ -22,6 +22,7 @@ build-backend:
   only:
     - main
     - develop
+    - feature/cicd
 
 # Deploy job
 deploy-backend:
@@ -58,5 +59,6 @@ deploy-backend:
   only:
     - main
     - develop
+    - feature/cicd
   retry:
     max: 2
