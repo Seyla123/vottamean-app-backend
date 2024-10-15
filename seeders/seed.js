@@ -11,9 +11,9 @@ const seedDatabase = async () => {
     });
     await insertDays();
     await insertStatuses();
-    await insertPeriods();
-    await insertSubjects();
-    await insertClasses();
+    // await insertPeriods();
+    // await insertSubjects();
+    // await insertClasses();
     console.log('All data seeded successfully!');
   } catch (error) {
     console.error('Error seeding database: ', error);
