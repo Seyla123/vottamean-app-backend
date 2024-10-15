@@ -1,88 +1,44 @@
+# Define pipeline stages
 stages:
   - build
-  - test
   - deploy
 
-build_job:
+# Cache node_modules to speed up subsequent builds
+cache:
+  paths:
+    - node_modules/
+
+# Build job
+build-backend:
   stage: build
-  image: alpine:latest
+  image: node:20
   script:
-    - echo "Building the project..."
-    - apk update && apk add --no-cache git
-    - git --version
+    - echo "Installing backend dependencies..."
+    - npm install
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 week
+  only:
+    - main
+    - develop
 
-test_job:
-  stage: test
-  image: alpine:latest
-  script:
-    - echo "Running tests..."
-    - echo "Tests are successful!"
-
-deploy_job:
+# Deploy job
+deploy-backend:
   stage: deploy
-  image: alpine:latest
+  image: docker:latest
   script:
-    - echo "Deploying the project..."
-    - echo "Deployment complete!"
-
-
-# # Define pipeline stages
-# stages:
-#   - build
-#   - test
-#   - deploy
-
-# # Cache node_modules to speed up subsequent builds
-# cache:
-#   paths:
-#     - node_modules/
-
-# # Build job
-# build-job:
-#   stage: build
-#   image: node:16 # Use appropriate Node.js version
-#    script:
-#     - echo "Installing backend dependencies..."
-#     - npm ci # or npm install 
-#   artifacts:
-#     paths:
-#       - src/
-#     expire_in: 1 week
-#   only:
-#     - main
-
-# # Test job
-# test-job:
-#   stage: test
-#   image: node:16
-#   services:
-#     - name: mysql:5.7 # Include MySQL service for backend testing
-#       alias: db
-#   script:
-#     - echo "Running backend tests..."
-#     - npm run test # Adjust based on your backend test setup
-#   dependencies:
-#     - build-job
-#   artifacts:
-#     when: always
-#     paths:
-#       - test-results/
-#     expire_in: 1 week
-#   only:
-#     - merge_requests
-
-# # Deploy job
-# deploy-job:
-#   stage: deploy
-#   image: docker:latest
-#   script:
-#     - echo "Deploying backend..."
-#     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-#     - docker build -t $CI_REGISTRY_IMAGE/backend:latest .
-#     - docker push $CI_REGISTRY_IMAGE/backend:latest
-#   environment:
-#     name: production
-#     url: https://your-backend-production-url.com
-#   only:
-#     - main
-
+    - echo "Deploying backend to EC2..."
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE/backend:latest .
+    - docker push $CI_REGISTRY_IMAGE/backend:latest
+    - ssh -o StrictHostKeyChecking=no ubuntu@ec2-184-73-16-169.compute-1.amazonaws.com "
+      cd /home/ubuntu/wavetrack-server &&
+      git pull origin main &&
+      docker pull $CI_REGISTRY_IMAGE/backend:latest &&
+      docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d"
+  environment:
+    name: production
+    url: https://web.vottamean.com/api/v1
+  only:
+    - main

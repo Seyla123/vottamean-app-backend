@@ -7,7 +7,7 @@ const seedDatabase = require('./seeders/seed');
 dotenv.config({ path: `.env.${process.env.NODE_ENV || 'development'}` });
 
 // Define port
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 8000;
 
 // Connect to the database
 sequelize
