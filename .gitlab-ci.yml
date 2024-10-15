@@ -26,20 +26,41 @@ build-backend:
 # Deploy job
 deploy-backend:
   stage: deploy
-  image: docker:latest
+  image: docker:24.0.5 # Pin to a specific version for stability
+  services:
+    - docker:dind # Docker-in-Docker service
+  variables:
+    DOCKER_HOST: tcp://docker:2375 # Required for Docker-in-Docker
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: '' # Disable TLS for DinD
   script:
     - echo "Deploying backend to EC2..."
+
+    # Docker login
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+
+    # Build and push Docker image
     - docker build -t $CI_REGISTRY_IMAGE/backend:latest .
     - docker push $CI_REGISTRY_IMAGE/backend:latest
+
+    # SSH to EC2 and deploy the updated backend
     - ssh -o StrictHostKeyChecking=no ubuntu@ec2-184-73-16-169.compute-1.amazonaws.com "
       cd /home/ubuntu/wavetrack-server &&
       git pull origin main &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
-      docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d"
+      docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build"
+
   environment:
     name: production
     url: https://web.vottamean.com/api/v1
   only:
     - main
     - develop
+  tags:
+    - docker 
+  retry:
+    max: 2
+  before_script:
+    - echo "nameserver 8.8.8.8" > /etc/resolv.conf
+  after_script:
+    - docker logout

@@ -21,14 +21,6 @@ sequelize
       console.log(
         `Server is running on port ${PORT} in ${process.env.NODE_ENV} mode...`
       );
-      // console to check stripe web hook
-      console.log('stripe webhook secret :', process.env.STRIPE_WEBHOOK_SECRET);
-      console.log(
-        'stripe secret key access :',
-        process.env.NODE_ENV === 'production'
-          ? process.env.STRIPE_SECRET_KEY
-          : process.env.STRIPE_TEST_SECRET_KEY
-      );
     });
   })
   .catch((err) => {
