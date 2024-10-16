@@ -117,8 +117,8 @@ exports.signup = catchAsync(async (req, res, next) => {
 
     // 7. Construct the verification URL and send it via email.
     const verificationUrl =
-      `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}` ||
-      `${req.headers.origin}/auth/verify-email/${verificationToken}?token=${tempToken}`;
+      `${req.headers.origin}/auth/verify-email/${verificationToken}?token=${tempToken}` ||
+      `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}`;
 
     try {
       await sendVerificationEmail(email, verificationUrl);
@@ -172,8 +172,8 @@ exports.signup = catchAsync(async (req, res, next) => {
 
   // 11. Construct the verification URL and send it via email.
   const verificationUrl =
-    `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}` ||
-    `${req.headers.origin}/auth/verify-email/${verificationToken}?token=${tempToken}`;
+    `${req.headers.origin}/auth/verify-email/${verificationToken}?token=${tempToken}` ||
+    `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}`;
 
   try {
     await sendVerificationEmail(email, verificationUrl);

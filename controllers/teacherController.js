@@ -97,14 +97,8 @@ exports.updateTeacher = catchAsync(async (req, res, next) => {
   }
 
   // 4. Extract necessary fields from the request body
-  const { 
-    first_name, 
-    last_name, 
-    gender, 
-    phone_number, 
-    dob, 
-    address 
-  } = req.body;
+  const { first_name, last_name, gender, phone_number, dob, address } =
+    req.body;
   const photo = req.file ? req.file.location : info.photo; // Keep the existing photo if none is uploaded
 
   // 5. Filter out allowed fields for the update
@@ -179,7 +173,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
   // 4. Check if the email is already registered.
   const existingUser = await User.findOne({ where: { email } });
 
-  if(existingUser && existingUser.emailVerified) {
+  if (existingUser && existingUser.emailVerified) {
     return next(new AppError('Email is already registered', 400));
   }
 
@@ -205,9 +199,8 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     );
 
     const verificationUrl =
-      `http://localhost:5173/auth/verify-teacher-email/${verificationToken}?token=${tempToken}` ||
-      `${req.headers.origin}/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
-
+      `${req.headers.origin}/auth/verify-teacher-email/${verificationToken}?token=${tempToken}` ||
+      `http://localhost:5173/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
     try {
       await sendVerificationEmail(email, verificationUrl);
 
@@ -225,10 +218,9 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     }
   }
 
-  
   // 7. Generate a verification token and send the email
   const { token: verificationToken, hashedToken } = createVerificationToken();
-  
+
   // 6. If no existing user, create a new one
   const transaction = await sequelize.transaction();
   let user;
@@ -282,8 +274,8 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
   );
 
   const verificationUrl =
-    `http://localhost:5173/auth/verify-teacher-email/${verificationToken}?token=${tempToken}` ||
-    `${req.headers.origin}/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
+    `${req.headers.origin}/auth/verify-teacher-email/${verificationToken}?token=${tempToken}` ||
+    `http://localhost:5173/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
 
   try {
     await sendVerificationEmail(email, verificationUrl);
