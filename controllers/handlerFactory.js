@@ -91,12 +91,12 @@ exports.getAll = (
       .paginate()
       .includeAssociations(popOptions);
     if (attribute) features.options.attributes = attribute;
-    const totalCount = await features.count({ where: filter });
-
+    
     const doc = await features.exec({
       where: filter,
       include: popOptions,
     });
+    const totalCount = await features.count();
 
     if (!doc) {
       return next(new AppError('No documents found', 404));
