@@ -26,11 +26,12 @@ build-backend:
 # Deploy job
 deploy-backend:
   stage: deploy
+  image: docker:latest
   before_script:
     - echo "Preparing for deployment..."
-    - apt-get update -y
-    - apt-get install -y openssh-client
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - apk update
+    - apk add openssh
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
     - ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
