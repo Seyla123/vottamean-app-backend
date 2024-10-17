@@ -30,12 +30,13 @@ deploy-backend:
   before_script:
     - echo "Preparing for deployment..."
     - apk update
-    - apk add openssh
-    - eval $(ssh-agent -s) 
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - apk add --no-cache openssh-client
     - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa  # Create the SSH key file
+    - chmod 600 ~/.ssh/id_rsa                   # Set appropriate permissions
+    - eval $(ssh-agent -s)                      # Start the SSH agent
+    - ssh-add ~/.ssh/id_rsa                     # Add the SSH key to the agent
+    - ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts  # Add EC2 host to known_hosts
   script:
     - echo "Deploying backend to EC2..."
     - ssh -o StrictHostKeyChecking=no ubuntu@$EC2_HOST "
