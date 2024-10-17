@@ -521,8 +521,8 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
   // 4. Construct the password reset URL.
   const resetURL =
-    `http://localhost:5173/auth/verify-reset-password/${resetToken}` ||
-    `${req.headers.origin}/auth/verify-reset-password/${resetToken}`;
+    `${req.headers.origin}/auth/verify-reset-password/${resetToken}` ||
+    `http://localhost:5173/auth/verify-reset-password/${resetToken}`;
 
   // 5. Attempt to send the password reset email.
   try {

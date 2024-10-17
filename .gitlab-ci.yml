@@ -6,7 +6,7 @@ stages:
 # Cache node_modules to speed up subsequent builds
 cache:
   paths:
-    - node_modules/
+    - node_nmodules/
 
 # Build job
 build-backend:
@@ -28,7 +28,7 @@ deploy-backend:
   stage: deploy
   image: docker:24.0.5
   services:
-    - name: docker:dind # Docker-in-Docker service
+    - name: docker:24.0.5-dind # Docker-in-Docker service
       command: ['--privileged'] # Run in privileged mode
   variables:
     DOCKER_HOST: tcp://docker:2375 # Required for Docker-in-Docker
@@ -46,9 +46,9 @@ deploy-backend:
     - docker push $CI_REGISTRY_IMAGE/backend:latest
 
     # SSH to EC2 and deploy the updated backend
-    - ssh -o StrictHostKeyChecking=no ubuntu@ec2-184-73-16-169.compute-1.amazonaws.com "
+    - ssh -o StrictHostKeyChecking=no ubuntu@ec2-34-207-85-212.compute-1.amazonaws.com "
       cd /home/ubuntu/wavetrack-server &&
-      git pull origin main &&
+      git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
       docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build"
 
