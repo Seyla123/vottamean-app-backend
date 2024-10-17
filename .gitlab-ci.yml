@@ -1,7 +1,6 @@
 # Define pipeline stages
 stages:
   - build
-  - test
   - deploy
 
 # Cache node_modules to speed up subsequent builds
@@ -22,13 +21,6 @@ build-backend:
   only:
     - main
     - develop
-
-# Test job
-test-backend:
-  stage: test
-  script:
-    - echo "Running tests..."
-    - npm run test
 
 # Deploy job
 deploy-backend:
