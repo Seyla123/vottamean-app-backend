@@ -28,22 +28,23 @@ deploy-backend:
   stage: deploy
   image: docker:latest
   before_script:
-    - echo "Preparing for deployment..."
-    - apk update
-    - apk add --no-cache openssh-client
+    - echo "Preparing to deploy app"
+    - 'which ssh-agent || ( apt-get update -y && apt-get install -y openssh-client git )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa  # Create the SSH key file
-    - chmod 600 ~/.ssh/id_rsa                   # Set appropriate permissions
-    - eval $(ssh-agent -s)                      # Start the SSH agent
-    - ssh-add ~/.ssh/id_rsa                     # Add the SSH key to the agent
-    - ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts  # Add EC2 host to known_hosts
+    - chmod 700 ~/.ssh
+    - ssh-keyscan $SSH_HOST >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+
   script:
     - echo "Deploying backend to EC2..."
-    - ssh -o StrictHostKeyChecking=no ubuntu@$EC2_HOST "
+    - ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$SSH_HOST "
       cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
       npm install &&
       sudo systemctl restart wavetrack-server.service"
+
   environment:
     name: production
     url: https://web.vottamean.com/api/v1
