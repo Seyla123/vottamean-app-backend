@@ -51,15 +51,12 @@ deploy-backend:
   services:
     - name: docker:24.0.5-dind
       command: ['--privileged']
-      healthcheck:
-        test: ['CMD', 'docker', 'info']
-        interval: 30s
-        timeout: 10s
-        retries: 3
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ''
+  before_script:
+    - docker info
   script:
     - echo "Deploying backend to EC2..."
 
@@ -76,8 +73,6 @@ deploy-backend:
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
       docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build"
-  volumes:
-    - /var/run/docker.sock:/var/run/docker.sock
   environment:
     name: production
     url: https://web.vottamean.com/api/v1
