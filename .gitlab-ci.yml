@@ -49,5 +49,3 @@ deploy-backend:
   only:
     - main
     - develop
-  retry:
-    max: 2
