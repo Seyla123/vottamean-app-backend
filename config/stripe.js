@@ -5,7 +5,5 @@ const stripe = Stripe(
     ? process.env.STRIPE_SECRET_KEY
     : process.env.STRIPE_TEST_SECRET_KEY
 );
-console.log('Stripe Secret Key:', process.env.STRIPE_SECRET_KEY);
-console.log('Stripe Test Secret Key:', process.env.STRIPE_TEST_SECRET_KEY);
 
 module.exports = stripe;

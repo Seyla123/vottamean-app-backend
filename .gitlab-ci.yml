@@ -6,7 +6,7 @@ stages:
 # Cache node_modules to speed up subsequent builds
 cache:
   paths:
-    - node_nmodules/
+    - node_modules/
 
 # Build job
 build-backend:
@@ -26,32 +26,21 @@ build-backend:
 # Deploy job
 deploy-backend:
   stage: deploy
-  image: docker:24.0.5
-  services:
-    - name: docker:24.0.5-dind # Docker-in-Docker service
-      command: ['--privileged'] # Run in privileged mode
-  variables:
-    DOCKER_HOST: tcp://docker:2375 # Required for Docker-in-Docker
-    DOCKER_DRIVER: overlay2
-    DOCKER_TLS_CERTDIR: '' # Disable TLS for DinD
-    DOCKER_OPTS: '--dns 8.8.8.8 --dns 8.8.4.4' # Use Google's DNS for name resolution
+  before_script:
+    - echo "Preparing for deployment..."
+    - sudo apt-get update -y
+    - sudo apt-get install -y openssh-client
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
   script:
     - echo "Deploying backend to EC2..."
-
-    # Docker login
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-
-    # Build and push Docker image
-    - docker build -t $CI_REGISTRY_IMAGE/backend:latest .
-    - docker push $CI_REGISTRY_IMAGE/backend:latest
-
-    # SSH to EC2 and deploy the updated backend
-    - ssh -o StrictHostKeyChecking=no ubuntu@ec2-34-207-85-212.compute-1.amazonaws.com "
+    - ssh -o StrictHostKeyChecking=no ubuntu@$EC2_HOST "
       cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
-      docker pull $CI_REGISTRY_IMAGE/backend:latest &&
-      docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build"
-
+      npm install &&
+      sudo systemctl restart wavetrack-server.service"
   environment:
     name: production
     url: https://web.vottamean.com/api/v1

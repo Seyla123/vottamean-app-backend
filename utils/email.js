@@ -20,17 +20,17 @@ class Email {
 
   // Create Transporter
   newTransport() {
-    if (process.env.NODE_ENV === 'production') {
-      return nodemailer.createTransport({
-        host: process.env.BREVO_HOST,
-        port: process.env.BREVO_PORT,
-        secure: process.env.BREVO_PORT === '465',
-        auth: {
-          user: process.env.BREVO_USERNAME,
-          pass: process.env.BREVO_PASSWORD,
-        },
-      });
-    }
+    // if (process.env.NODE_ENV === 'production') {
+    //   return nodemailer.createTransport({
+    //     host: process.env.BREVO_HOST,
+    //     port: process.env.BREVO_PORT,
+    //     secure: process.env.BREVO_PORT === '465',
+    //     auth: {
+    //       user: process.env.BREVO_USERNAME,
+    //       pass: process.env.BREVO_PASSWORD,
+    //     },
+    //   });
+    // }
 
     return nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
