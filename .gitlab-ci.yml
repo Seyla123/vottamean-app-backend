@@ -29,12 +29,12 @@ deploy-backend:
   image: docker:24.0.5
   services:
     - name: docker:24.0.5-dind # Docker-in-Docker service
-      command: ['--privileged'] # Run in privileged mode
+      command: ["--privileged"] # Run in privileged mode
   variables:
     DOCKER_HOST: tcp://docker:2375 # Required for Docker-in-Docker
     DOCKER_DRIVER: overlay2
-    DOCKER_TLS_CERTDIR: '' # Disable TLS for DinD
-    DOCKER_OPTS: '--dns 8.8.8.8 --dns 8.8.4.4' # Use Google's DNS for name resolution
+    DOCKER_TLS_CERTDIR: "" # Disable TLS for DinD
+    DOCKER_OPTS: "--dns 8.8.8.8 --dns 8.8.4.4" # Use Google's DNS for name resolution
   script:
     - echo "Deploying backend to EC2..."
 
