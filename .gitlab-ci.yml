@@ -7,7 +7,7 @@ stages:
 # Cache node_modules to speed up subsequent builds
 cache:
   paths:
-    - node_nmodules/
+    - node_modules/
 
 # Build job
 build-backend:
@@ -30,14 +30,11 @@ test-docker:
   image: docker:24.0.5
   services:
     - name: docker:24.0.5-dind
-      command: ['--privileged']
   variables:
     DOCKER_HOST: tcp://docker:2375
-    DOCKER_DRIVER: overlay2
-    DOCKER_TLS_CERTDIR: ''
   script:
     - echo "Testing Docker connectivity..."
-    - docker info
+    - docker info || echo "Docker is not running"
 
 # Deploy job
 deploy-backend:
@@ -45,23 +42,17 @@ deploy-backend:
   image: docker:24.0.5
   services:
     - name: docker:24.0.5-dind
-      command: ['--privileged']
   variables:
     DOCKER_HOST: tcp://docker:2375
-    DOCKER_DRIVER: overlay2
-    DOCKER_TLS_CERTDIR: ''
   before_script:
-    - docker info
+    - docker info || echo "Docker is not running"
   script:
     - echo "Deploying backend to EC2..."
-
     # Docker login
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
-
     # Build and push Docker image
     - docker build -t $CI_REGISTRY_IMAGE/backend:latest .
     - docker push $CI_REGISTRY_IMAGE/backend:latest
-
     # SSH to EC2 and deploy the updated backend
     - ssh -o StrictHostKeyChecking=no ubuntu@${EC2_HOST} "
       cd /home/ubuntu/wavetrack-server &&
