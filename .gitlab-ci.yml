@@ -31,11 +31,6 @@ test-docker:
   services:
     - name: docker:24.0.5-dind
       command: ['--privileged']
-      healthcheck:
-        test: ['CMD', 'docker', 'info']
-        interval: 30s
-        timeout: 10s
-        retries: 3
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_DRIVER: overlay2
