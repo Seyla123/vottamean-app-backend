@@ -1,6 +1,7 @@
 # Define pipeline stages
 stages:
   - build
+  - test
   - deploy
 
 # Cache node_modules to speed up subsequent builds
@@ -11,6 +12,7 @@ cache:
 # Build job
 build-backend:
   stage: build
+  image: node:20
   script:
     - echo "Installing backend dependencies..."
     - npm install
@@ -21,6 +23,14 @@ build-backend:
   only:
     - main
     - develop
+
+# Test job
+test-backend:
+  stage: test
+  image: node:20
+  script:
+    - echo "Running tests..."
+    - npm run test
 
 # Deploy job
 deploy-backend:
@@ -35,8 +45,6 @@ deploy-backend:
     - ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
   script:
     - echo "Deploying backend to EC2..."
-
-    # SSH to EC2 and deploy the updated backend
     - ssh -o StrictHostKeyChecking=no ubuntu@$EC2_HOST "
       cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
