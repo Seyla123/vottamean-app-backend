@@ -39,6 +39,7 @@ deploy-backend:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
 
     # Build and push Docker image
+    - ls -la ./wavetrack-server
     - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./wavetrack-server/DockerFile .
     - docker push $CI_REGISTRY_IMAGE/backend:latest
 
