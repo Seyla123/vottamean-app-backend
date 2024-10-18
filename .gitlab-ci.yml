@@ -51,9 +51,13 @@ deploy-backend:
 
   script:
     - echo "Building Docker image..."
-    - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./DockerFile .
+    - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./Dockerfile .
     - echo "Pushing Docker image to the registry..."
     - docker push $CI_REGISTRY_IMAGE/backend:latest
+
+    # Test SSH connection before deploying
+    - echo "Testing SSH connection..."
+    - ssh -i /home/gitlab-runner/.ssh/key.pem -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH connection successful!'"
 
     # SSH into EC2 instance and deploy with root privileges
     - echo "Deploying backend to EC2..."
