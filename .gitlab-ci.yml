@@ -23,7 +23,7 @@ build-backend:
 # Deploy job
 deploy-backend:
   stage: deploy
-  image: docker:latest
+  image: ubuntu:latest
   services:
     - name: docker:dind
       command: ["--insecure-registry=git.clp.kr:5050", "--debug"]
