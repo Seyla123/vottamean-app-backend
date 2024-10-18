@@ -26,24 +26,20 @@ deploy-backend:
   image: docker:latest
   services:
     - name: docker:dind
-      command: ['--insecure-registry=git.clp.kr:5050', '--debug'] 
+      command: ["--insecure-registry=git.clp.kr:5050", "--debug"]
   variables:
     DOCKER_HOST: unix:///var/run/docker.sock
     DOCKER_DRIVER: overlay2
-    DOCKER_TLS_CERTDIR: ''
+    DOCKER_TLS_CERTDIR: ""
     DOCKER_STARTUP_TIMEOUT: 120
   script:
     - echo "Deploying backend to EC2..."
 
     # Set up SSH keys
-    # - mkdir -p /home/gitlab-runner/.ssh  
-    # - echo "$SSH_PRIVATE_KEY" > /home/gitlab-runner/.ssh/id_rsa 
-    # - chmod 600 /home/gitlab-runner/.ssh/id_rsa  
-    # - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts  
-    # Set up SSH keys
     - mkdir -p /home/gitlab-runner/.ssh
-    - echo "$SSH_PRIVATE_KEY" > /home/gitlab-runner/.ssh/id_rsa 
-    - chmod 600 /home/gitlab-runner/.ssh/id_rsa  
+    - echo "$SSH_PRIVATE_KEY" > /home/gitlab-runner/.ssh/id_rsa
+    - echo "$SSH_PUBLIC_KEY" > /home/gitlab-runner/.ssh/id_rsa.pub
+    - chmod 600 /home/gitlab-runner/.ssh/id_rsa /home/gitlab-runner/.ssh/id_rsa.pub
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
 
     # Docker login (for private registry login)
