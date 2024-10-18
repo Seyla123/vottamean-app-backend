@@ -67,7 +67,7 @@ deploy-backend:
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
       docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
-      "
+      " 
 
   environment:
     name: production
