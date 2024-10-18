@@ -44,7 +44,6 @@ deploy-backend:
     - mkdir -p /home/gitlab-runner/.ssh
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /home/gitlab-runner/.ssh/key.pem
     - chmod 600 /home/gitlab-runner/.ssh/key.pem
-    - chown -R gitlab-runner:gitlab-runner /home/gitlab-runner/.ssh
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
 
     # Docker login for the private registry
