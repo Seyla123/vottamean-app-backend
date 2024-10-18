@@ -42,8 +42,10 @@ deploy-backend:
 
     # Ensure the .ssh directory exists
     - mkdir -p /home/gitlab-runner/.ssh
-    - chmod 400 /home/gitlab-runner/.ssh/id_rsa
-    - chmod 400 /home/gitlab-runner/.ssh/
+    - mkdir -p /home/gitlab-runner/.ssh/id_rsa
+
+    - chmod 700 /home/gitlab-runner/.ssh
+    - chmod 600 /home/gitlab-runner/.ssh/id_rsa
 
     # Copy existing private key for SSH
     - cat /home/gitlab-runner/.ssh/id_rsa > /home/gitlab-runner/.ssh/key.pem
