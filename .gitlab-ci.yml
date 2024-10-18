@@ -34,13 +34,10 @@ deploy-backend:
     DOCKER_STARTUP_TIMEOUT: 120
   before_script:
     # Install OpenSSH client to avoid libcrypto errors
-    - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
+    - "command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )"
 
     # Start ssh-agent and add the private key
     - eval $(ssh-agent -s)
-    
-    # Ensure SSH_PRIVATE_KEY is properly set
-    - if [ -z "$SSH_PRIVATE_KEY" ]; then echo "SSH_PRIVATE_KEY is not set"; exit 1; fi
 
     # Add SSH private key and handle permissions
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
@@ -62,12 +59,10 @@ deploy-backend:
     # SSH into EC2 instance and deploy with root privileges
     - echo "Deploying backend to EC2..."
     - ssh -vvv -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
-      sudo -i bash <<EOF
       cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
-      sudo docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
-      EOF
+      docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
       "
 
   environment:
