@@ -34,22 +34,17 @@ deploy-backend:
     DOCKER_STARTUP_TIMEOUT: 120
   before_script:
     # Install OpenSSH client to avoid libcrypto errors
+    - echo "Installing OpenSSH client..."
     - "command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )"
 
     # Start ssh-agent and add the private key
     - eval $(ssh-agent -s)
-      # Ensure SSH_PRIVATE_KEY is properly set
     - if [ -z "$SSH_PRIVATE_KEY" ]; then echo "SSH_PRIVATE_KEY is not set"; exit 1; fi
-
-    # Clean and add SSH private key
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/ssh_private_key.pem
     - chmod 600 /tmp/ssh_private_key.pem
     - ssh-add /tmp/ssh_private_key.pem
 
-    # Add SSH private key and handle permissions
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
-
-    # Setup SSH keys for connecting to the EC2 instance
+    # Setup SSH known hosts
     - mkdir -p /home/gitlab-runner/.ssh
     - chmod 700 /home/gitlab-runner/.ssh
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
