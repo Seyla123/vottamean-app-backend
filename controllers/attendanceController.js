@@ -72,7 +72,7 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
     const data = await formattedStudentAttendance(student_id, sessionData);
 
     // send email notification to student's gardian
-    // await sendAttendanceEmail(data, status_id);
+   //  await sendAttendanceEmail(data, status_id);
 
     if (existingRecordsMap[student_id]) {
       // Update existing record
@@ -229,20 +229,23 @@ exports.getFormattedAttendanceData = catchAsync(async (req, res, next) => {
       getSchoolInfo(req.school_admin_id),
       getAllAttendancesData(req, res, next),
     ]);
-
+    
     // use ultis to Format attendance data for the report
-    const formattedData = formatAttendanceReportData(attendanceRecords);
-
+    const formattedData = formatAttendanceReportData(attendanceRecords.attendance);
     // Get the unique dates from the attendance records, and their corresponding day of the week
     const datesWithDays = getAttendanceReportDateRange(formattedData);
+    console.log('this is classid : ', class_id);
+    
+    console.log('this student count:', studentCount);
+    
 
     // Send the formatted result as JSON
     res.status(200).json({
       status: 'success',
-      results: formattedData.length,
+      results: attendanceRecords.attendanceCount,
       data: {
         school: schoolAdmin.School,
-        class: {
+        classes: {
           class_name: classNames[0],
           date_range: {
             start_date: datesWithDays[0]?.date,

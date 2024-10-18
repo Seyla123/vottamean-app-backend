@@ -16,11 +16,15 @@ module.exports = (sequelize, DataTypes) => {
       subject_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: validators.isValidSubject,
+        validate: {
+          isValidSubject: validators.isValidSubject
+        },
       },
       description: {
         type: DataTypes.STRING,
-        validate: validators.isValidDescription,
+        validate: {
+          isValidDescription: validators.isValidDescription
+        },
       },
       active: {
         type: DataTypes.BOOLEAN,

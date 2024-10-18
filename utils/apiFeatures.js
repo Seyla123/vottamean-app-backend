@@ -68,16 +68,19 @@ class APIFeatures {
 
     let filters = {};
     Object.keys(queryObj).forEach((key) => {
-      if (/\b(gte|gt|lte|lt)\b/.test(key)) {
-        const [field, operator] = key.split('_');
-        filters[field] = { [Op[operator]]: queryObj[key] };
-      } if (key === "filter") {
+      if (/\b(gte|gt|lte|lt)_\w+\b/.test(key)) {
+        const [operator, field] = key.split('_');
+        if (field === 'date') {
+          filters.date = { ...filters.date, [Op[operator]]: queryObj[key] };
+        } else {
+          filters[field] = { [Op[operator]]: queryObj[key] };
+        }
+      } else if (key === 'filter') {
         const dateRange = queryObj[key];
         if (APIFeatures.getDateFilters(dateRange) !== null) {
           filters.created_at = APIFeatures.getDateFilters(dateRange);
         }
-      }
-      else {
+      } else {
         filters[key] = queryObj[key];
       }
     });
