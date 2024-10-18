@@ -38,6 +38,13 @@ deploy-backend:
 
     # Start ssh-agent and add the private key
     - eval $(ssh-agent -s)
+      # Ensure SSH_PRIVATE_KEY is properly set
+    - if [ -z "$SSH_PRIVATE_KEY" ]; then echo "SSH_PRIVATE_KEY is not set"; exit 1; fi
+
+    # Clean and add SSH private key
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/ssh_private_key.pem
+    - chmod 600 /tmp/ssh_private_key.pem
+    - ssh-add /tmp/ssh_private_key.pem
 
     # Add SSH private key and handle permissions
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
