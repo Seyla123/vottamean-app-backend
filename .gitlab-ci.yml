@@ -8,7 +8,7 @@ build-backend:
   stage: build
   image: node:20
   script:
-    - echo "Checking for DockerFile..."
+    - echo "Checking for Dockerfile..."
     - ls -la
     - echo "Installing backend dependencies..."
     - npm install
@@ -32,29 +32,30 @@ deploy-backend:
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
     DOCKER_STARTUP_TIMEOUT: 120
-  script:
-    - echo "Deploying backend to EC2..."
-
-    # Set up SSH keys
+  before_script:
+    # Setup SSH keys for connecting to the EC2 instance
     - mkdir -p /home/gitlab-runner/.ssh
     - echo "$SSH_PRIVATE_KEY" > /home/gitlab-runner/.ssh/id_rsa
-    - echo "$SSH_PUBLIC_KEY" > /home/gitlab-runner/.ssh/id_rsa.pub
-    - chmod 600 /home/gitlab-runner/.ssh/id_rsa /home/gitlab-runner/.ssh/id_rsa.pub
+    - chmod 600 /home/gitlab-runner/.ssh/id_rsa
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
 
-    # Docker login (for private registry login)
+    # Docker login for the private registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
 
-    # Build and push Docker image
+  script:
+    - echo "Building Docker image..."
     - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./DockerFile .
+    - echo "Pushing Docker image to the registry..."
     - docker push $CI_REGISTRY_IMAGE/backend:latest
 
-    # SSH to EC2 and deploy the updated backend
+    # SSH into EC2 instance and deploy
+    - echo "Deploying backend to EC2..."
     - ssh -i /home/gitlab-runner/.ssh/id_rsa ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
-      docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build"
+      docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
+      "
 
   environment:
     name: production
