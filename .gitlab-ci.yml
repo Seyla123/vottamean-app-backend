@@ -40,9 +40,8 @@ deploy-backend:
     # Start ssh-agent if not already running
     - eval $(ssh-agent -s)
 
-    # Setup SSH keys for connecting to the EC2 instance
-    - mkdir -p /home/gitlab-runner/.ssh
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /home/gitlab-runner/.ssh/key.pem
+    # Copy existing private key for SSH
+    - cp /home/gitlab-runner/.ssh/id_rsa /home/gitlab-runner/.ssh/key.pem
     - chmod 600 /home/gitlab-runner/.ssh/key.pem
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
 
@@ -67,7 +66,7 @@ deploy-backend:
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
       docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
-      " 
+      "
 
   environment:
     name: production
