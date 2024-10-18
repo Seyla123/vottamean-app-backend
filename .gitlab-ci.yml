@@ -50,8 +50,9 @@ deploy-backend:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
 
   script:
+    # Build and Push Docker
     - echo "Building Docker image..."
-    - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./Dockerfile .
+    - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./DockerFile .
     - echo "Pushing Docker image to the registry..."
     - docker push $CI_REGISTRY_IMAGE/backend:latest
 
@@ -61,7 +62,7 @@ deploy-backend:
 
     # SSH into EC2 instance and deploy with root privileges
     - echo "Deploying backend to EC2..."
-    - ssh -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+    - ssh -i /home/gitlab-runner/key.pem -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
