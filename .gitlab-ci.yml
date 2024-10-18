@@ -1,17 +1,63 @@
-image: docker:latest
-
-services:
-  - docker:dind
-
-variables:
-  DOCKER_HOST: tcp://docker:2375
-  DOCKER_TLS_CERTDIR: ""
-
+# Define pipeline stages
 stages:
-  - test
+  - build
+  - deploy
 
-test-docker:
-  stage: test
+# Cache node_modules to speed up subsequent builds
+cache:
+  paths:
+    - node_nmodules/
+
+# Build job
+build-backend:
+  stage: build
+  image: node:20
   script:
-    - docker info
-    - docker run hello-world
+    - echo "Installing backend dependencies..."
+    - npm install
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 week
+  only:
+    - main
+    - develop
+
+# Deploy job
+deploy-backend:
+  stage: deploy
+  image: docker:24.0.5
+  services:
+    - name: docker:24.0.5-dind
+      command: ["--privileged"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - docker info || echo "No Docker ... "
+  script:
+    - echo "Deploying backend to EC2..."
+
+    # Docker login
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+
+    # Build and push Docker image
+    - docker build -t $CI_REGISTRY_IMAGE/backend:latest .
+    - docker push $CI_REGISTRY_IMAGE/backend:latest
+
+    # SSH to EC2 and deploy the updated backend
+    - ssh -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+      cd /home/ubuntu/wavetrack-server &&
+      git pull origin develop &&
+      docker pull $CI_REGISTRY_IMAGE/backend:latest &&
+      docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build"
+
+  environment:
+    name: production
+    url: https://web.vottamean.com/api/v1
+  only:
+    - main
+    - develop
+  retry:
+    max: 2
