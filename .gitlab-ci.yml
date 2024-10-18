@@ -43,7 +43,7 @@ deploy-backend:
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/ssh_private_key.pem
     - chmod 600 /tmp/ssh_private_key.pem
     - ssh-add /tmp/ssh_private_key.pem
-
+ 
     # Setup SSH known hosts
     - mkdir -p /home/gitlab-runner/.ssh
     - chmod 700 /home/gitlab-runner/.ssh
