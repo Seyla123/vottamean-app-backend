@@ -26,16 +26,15 @@ build-backend:
 # Deploy job
 deploy-backend:
   stage: deploy
-  image: docker:24.0.5
+  image: docker:latest
   services:
-    - name: docker:24.0.5-dind
-      command: ["--privileged"]
+    - name: docker:dind
   variables:
-    DOCKER_HOST: tcp://docker:2375
+    DOCKER_HOST: unix:///var/run/docker.sock
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
   before_script:
-    - docker info || echo "No Docker ... "
+    - docker info || echo "No Docker ..."
   script:
     - echo "Deploying backend to EC2..."
 
