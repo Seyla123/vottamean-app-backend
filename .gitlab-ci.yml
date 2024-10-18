@@ -6,7 +6,7 @@ stages:
 # Cache node_modules to speed up subsequent builds
 cache:
   paths:
-    - node_nmodules/
+    - node_modules/
 
 # Build job
 build-backend:
@@ -29,6 +29,7 @@ deploy-backend:
   image: docker:latest
   services:
     - name: docker:dind
+      command: ["--insecure-registry=docker.io", "--debug"]
   variables:
     DOCKER_HOST: unix:///var/run/docker.sock
     DOCKER_DRIVER: overlay2
