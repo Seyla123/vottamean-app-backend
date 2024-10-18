@@ -33,22 +33,24 @@ deploy-backend:
     DOCKER_TLS_CERTDIR: ""
     DOCKER_STARTUP_TIMEOUT: 120
   before_script:
-    # Install OpenSSH client to avoid libcrypto errors
+    # Install OpenSSH client if not already present
     - echo "Installing OpenSSH client..."
-    - "command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )"
+    - apt-get update -y && apt-get install -y openssh-client
 
-    # Start ssh-agent and add the private key
+    # Start ssh-agent if not already running
     - eval $(ssh-agent -s)
+
+    # Ensure SSH_PRIVATE_KEY is set
     - if [ -z "$SSH_PRIVATE_KEY" ]; then echo "SSH_PRIVATE_KEY is not set"; exit 1; fi
+
+    # Add the SSH key to the agent
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /tmp/ssh_private_key.pem
     - chmod 600 /tmp/ssh_private_key.pem
     - ssh-add /tmp/ssh_private_key.pem
- 
-    # Setup SSH known hosts
+
+    # Setup known hosts for EC2 instance
     - mkdir -p /home/gitlab-runner/.ssh
-    - chmod 700 /home/gitlab-runner/.ssh
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
-    - ssh-add -l
 
     # Docker login for the private registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
@@ -61,7 +63,7 @@ deploy-backend:
 
     # SSH into EC2 instance and deploy with root privileges
     - echo "Deploying backend to EC2..."
-    - ssh -vvv -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+    - ssh -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
