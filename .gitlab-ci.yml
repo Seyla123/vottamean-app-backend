@@ -8,7 +8,7 @@ build-backend:
   stage: build
   image: node:20
   script:
-    - echo "Checking for Dockerfile..."
+    - echo "Checking for DockerFile..."
     - ls -la
     - echo "Installing backend dependencies..."
     - npm install
