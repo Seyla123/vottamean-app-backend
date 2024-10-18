@@ -62,7 +62,7 @@ deploy-backend:
 
     # SSH into EC2 instance and deploy with root privileges
     - echo "Deploying backend to EC2..."
-    - ssh -i /home/gitlab-runner/key.pem -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+    - ssh -i /home/gitlab-runner/.ssh/key.pem -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
