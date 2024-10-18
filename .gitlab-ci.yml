@@ -29,11 +29,17 @@ deploy-backend:
   image: docker:latest
   services:
     - name: docker:dind
-      command: ["--insecure-registry=docker.io", "--debug"]
+      entrypoint:
+        [
+          "/bin/sh",
+          "-c",
+          "dockerd-entrypoint.sh --storage-driver=overlay2 --insecure-registry=0.0.0.0/0",
+        ]
   variables:
     DOCKER_HOST: unix:///var/run/docker.sock
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
+    DOCKER_STARTUP_TIMEOUT: 120
   before_script:
     - docker info || echo "No Docker ..."
   script:
