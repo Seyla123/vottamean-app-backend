@@ -36,19 +36,18 @@ deploy-backend:
     # Install OpenSSH client to avoid libcrypto errors
     - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
 
+    # Start ssh-agent and add the private key
     - eval $(ssh-agent -s)
+    
+    # Ensure SSH_PRIVATE_KEY is properly set
+    - if [ -z "$SSH_PRIVATE_KEY" ]; then echo "SSH_PRIVATE_KEY is not set"; exit 1; fi
 
-    - chmod 400 "$SSH_PRIVATE_KEY"
-    - ssh-add "$SSH_PRIVATE_KEY"
-
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
+    # Add SSH private key and handle permissions
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
 
     # Setup SSH keys for connecting to the EC2 instance
     - mkdir -p /home/gitlab-runner/.ssh
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /home/gitlab-runner/.ssh/id_rsa
     - chmod 700 /home/gitlab-runner/.ssh
-    - chmod 700 /home/gitlab-runner/.ssh/id_rsa
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
 
     # Docker login for the private registry
@@ -62,7 +61,7 @@ deploy-backend:
 
     # SSH into EC2 instance and deploy with root privileges
     - echo "Deploying backend to EC2..."
-    - ssh -vvv -o StrictHostKeyChecking=no -i /home/gitlab-runner/.ssh/id_rsa ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+    - ssh -vvv -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       sudo -i bash <<EOF
       cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
