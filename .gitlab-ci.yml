@@ -3,16 +3,13 @@ stages:
   - build
   - deploy
 
-# Cache node_modules to speed up subsequent builds
-cache:
-  paths:
-    - node_modules/
-
 # Build job
 build-backend:
   stage: build
   image: node:20
   script:
+    - echo "Checking for Dockerfile..."
+    - ls -la 
     - echo "Installing backend dependencies..."
     - npm install
   artifacts:
@@ -29,19 +26,11 @@ deploy-backend:
   image: docker:latest
   services:
     - name: docker:dind
-      entrypoint:
-        [
-          "/bin/sh",
-          "-c",
-          "dockerd-entrypoint.sh --storage-driver=overlay2 --insecure-registry=0.0.0.0/0",
-        ]
+      command: ["--insecure-registry=docker.io", "--debug"]
   variables:
     DOCKER_HOST: unix:///var/run/docker.sock
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
-    DOCKER_STARTUP_TIMEOUT: 120
-  before_script:
-    - docker info || echo "No Docker ..."
   script:
     - echo "Deploying backend to EC2..."
 
@@ -49,7 +38,7 @@ deploy-backend:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
 
     # Build and push Docker image
-    - docker build -t $CI_REGISTRY_IMAGE/backend:latest .
+    - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./Dockerfile .
     - docker push $CI_REGISTRY_IMAGE/backend:latest
 
     # SSH to EC2 and deploy the updated backend
