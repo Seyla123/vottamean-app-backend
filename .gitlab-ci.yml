@@ -44,7 +44,7 @@ deploy-backend:
     - scp /home/gitlab-runner/.ssh/id_rsa /home/gitlab-runner/.ssh/key.pem
     - chmod 600 /home/gitlab-runner/.ssh/key.pem
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
-
+ 
     # Docker login for the private registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
 
