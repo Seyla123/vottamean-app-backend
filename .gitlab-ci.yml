@@ -34,10 +34,10 @@ deploy-backend:
     DOCKER_STARTUP_TIMEOUT: 120
   before_script:
     # Setup SSH keys for connecting to the EC2 instance
-    - sudo mkdir -p /home/gitlab-runner/.ssh
+    - mkdir -p /home/gitlab-runner/.ssh
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /home/gitlab-runner/.ssh/id_rsa 
-    - sudo chmod 600 /home/gitlab-runner/.ssh/id_rsa
-    - sudo ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
+    - chmod 600 /home/gitlab-runner/.ssh/id_rsa
+    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
 
     # Docker login for the private registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
