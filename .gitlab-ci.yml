@@ -49,7 +49,7 @@ deploy-backend:
 
     # Docker login for the private registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
-
+ 
   script:
     - echo "Building Docker image..."
     - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./DockerFile .
