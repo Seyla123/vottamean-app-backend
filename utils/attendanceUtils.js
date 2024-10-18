@@ -262,7 +262,12 @@ exports.getAllAttendancesData = async (req) => {
     include: associations,
   });
 
-  const attendanceCount = await features.count()
+  const attendanceCount = await features.count(
+    {
+      where: filter,
+      include: associations,
+    }
+  )
   if (!attendance) {
     throw new AppError('No attendances found', 404);
   }
@@ -280,28 +285,6 @@ exports.getAllAttendancesData = async (req) => {
  * @returns {Promise<Object>} - promise with total count of students
  */
 exports.getStudentCount = async (schoolAdminId, classId) => {
-  // const studentCount = await Student.findOne({
-  //   where: { school_admin_id: schoolAdminId, class_id: classId || null },
-
-  //   attributes: [
-  //     [sequelize.fn('COUNT', sequelize.col('student_id')), 'total_students'], // Count all students
-  //     [
-  //       sequelize.fn('SUM', sequelize.literal(`CASE WHEN Info.gender = 'Male' THEN 1 ELSE 0 END`)),
-  //       'total_male', // Count male students
-  //     ],
-  //     [
-  //       sequelize.fn('SUM', sequelize.literal(`CASE WHEN Info.gender = 'Female' THEN 1 ELSE 0 END`)),
-  //       'total_female', // Count female students
-  //     ],
-  //   ],
-  //   include: [
-  //     {
-  //       model: Info,
-  //       as: 'Info',
-  //     },
-  //   ],
-  //   group: ['Info.gender'], // Group by gender
-  // });
   const studentCounts = await Student.findAll({
     where: { school_admin_id: schoolAdminId, class_id: classId || null },
     include: [

@@ -96,7 +96,10 @@ exports.getAll = (
       where: filter,
       include: popOptions,
     });
-    const totalCount = await features.count();
+    const totalCount = await features.count({
+      where: filter,
+      include: popOptions,
+    });
 
     if (!doc) {
       return next(new AppError('No documents found', 404));
@@ -144,8 +147,11 @@ exports.updateOne = (Model, idField) =>
     } catch (err) {
       // Return a JSON error response
       console.log('this is error :', err);
+      if(process.env.NODE_ENV !== 'production'){
+      next(new AppError(`${err.message}`, 500));
+      }
 
-      next(new AppError('Server error, please try again later.', 500));
+      next(new AppError(`Server error, please try again later.`, 500));
     }
   });
 
