@@ -26,23 +26,20 @@ deploy-backend:
   image: docker:latest
   services:
     - name: docker:dind
-      command: ["--insecure-registry=docker.io", "--debug"]
+      command: ['--insecure-registry=git.clp.kr:5050', '--debug'] 
   variables:
-    DOCKER_HOST: unix:///var/run/docker.sock
+    DOCKER_HOST: tcp://localhost:2375 
     DOCKER_DRIVER: overlay2
-    DOCKER_TLS_CERTDIR: ""
+    DOCKER_TLS_CERTDIR: ''
     DOCKER_STARTUP_TIMEOUT: 120
   script:
     - echo "Deploying backend to EC2..."
 
-    # Docker login
+    # Docker login (for private registry login)
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
 
     # Build and push Docker image
-    # - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./wavetrack-server/DockerFile .
     - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./DockerFile .
-    # - cd wavetrack-server
-    # - docker build -t $CI_REGISTRY_IMAGE/backend:latest .
     - docker push $CI_REGISTRY_IMAGE/backend:latest
 
     # SSH to EC2 and deploy the updated backend
@@ -58,4 +55,3 @@ deploy-backend:
   only:
     - main
     - develop
- 
