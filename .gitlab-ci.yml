@@ -33,9 +33,12 @@ deploy-backend:
     DOCKER_TLS_CERTDIR: ""
     DOCKER_STARTUP_TIMEOUT: 120
   before_script:
+    # Install OpenSSH client to avoid libcrypto errors
+    - apt-get update && apt-get install -y openssh-client
+
     # Setup SSH keys for connecting to the EC2 instance
     - mkdir -p /home/gitlab-runner/.ssh
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /home/gitlab-runner/.ssh/id_rsa
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | base64 -d > /home/gitlab-runner/.ssh/id_rsa
     - chmod 600 /home/gitlab-runner/.ssh/id_rsa
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
 
