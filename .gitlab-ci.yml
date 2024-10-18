@@ -39,7 +39,10 @@ deploy-backend:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
 
     # Build and push Docker image
-    - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./Dockerfile .
+    # - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./wavetrack-server/DockerFile .
+    - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./DockerFile .
+    # - cd wavetrack-server
+    # - docker build -t $CI_REGISTRY_IMAGE/backend:latest .
     - docker push $CI_REGISTRY_IMAGE/backend:latest
 
     # SSH to EC2 and deploy the updated backend
