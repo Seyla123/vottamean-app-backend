@@ -28,7 +28,7 @@ deploy-backend:
     - name: docker:dind
       command: ['--insecure-registry=git.clp.kr:5050', '--debug'] 
   variables:
-    DOCKER_HOST: tcp://localhost:2375 
+    DOCKER_HOST: unix:///var/run/docker.sock
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ''
     DOCKER_STARTUP_TIMEOUT: 120
