@@ -11,4 +11,3 @@ test-docker:
   script:
     - docker info
     - docker run hello-world
-    
