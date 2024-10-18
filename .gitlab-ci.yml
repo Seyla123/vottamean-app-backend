@@ -36,7 +36,7 @@ deploy-backend:
     # Install OpenSSH client to avoid libcrypto errors
     - echo "Installing OpenSSH client..."
     - "command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )"
- 
+
     # Start ssh-agent and add the private key
     - eval $(ssh-agent -s)
     - if [ -z "$SSH_PRIVATE_KEY" ]; then echo "SSH_PRIVATE_KEY is not set"; exit 1; fi
@@ -48,6 +48,7 @@ deploy-backend:
     - mkdir -p /home/gitlab-runner/.ssh
     - chmod 700 /home/gitlab-runner/.ssh
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
+    - ssh-add -l
 
     # Docker login for the private registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
