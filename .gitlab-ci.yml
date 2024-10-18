@@ -34,6 +34,7 @@ deploy-backend:
     DOCKER_STARTUP_TIMEOUT: 120
   before_script:
     # Setup SSH keys for connecting to the EC2 instance
+    - sudo su
     - mkdir -p /home/gitlab-runner/.ssh
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /home/gitlab-runner/.ssh/id_rsa 
     - chmod 600 /home/gitlab-runner/.ssh/id_rsa
