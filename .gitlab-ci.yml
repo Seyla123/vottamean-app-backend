@@ -51,13 +51,15 @@ deploy-backend:
     - echo "Pushing Docker image to the registry..."
     - docker push $CI_REGISTRY_IMAGE/backend:latest
 
-    # SSH into EC2 instance and deploy
+    # SSH into EC2 instance and deploy with root privileges
     - echo "Deploying backend to EC2..."
     - ssh -vvv -o StrictHostKeyChecking=no -i /home/gitlab-runner/.ssh/id_rsa ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+      sudo -i bash <<EOF
       cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
-      docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
+      sudo docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
+      EOF
       "
 
   environment:
