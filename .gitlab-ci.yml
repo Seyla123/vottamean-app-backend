@@ -42,14 +42,13 @@ deploy-backend:
 
     # Setup SSH keys for connecting to the EC2 instance
     - mkdir -p /home/gitlab-runner/.ssh
-    # - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /home/gitlab-runner/.ssh/key.pem
-    - echo "$SSH_PRIVATE_KEY" > /home/gitlab-runner/.ssh/key.pem
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /home/gitlab-runner/.ssh/key.pem
     - chmod 600 /home/gitlab-runner/.ssh/key.pem
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
 
     # Docker login for the private registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
- 
+
   script:
     - echo "Building Docker image..."
     - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./DockerFile .
