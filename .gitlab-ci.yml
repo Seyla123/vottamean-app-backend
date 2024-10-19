@@ -26,6 +26,7 @@ setup-ssh:
   image: ubuntu:latest # Use Ubuntu for SSH setup
   script:
     - echo "Current User:$(whoami)"
+    - echo "Current Directory:$(pwd)"
     - echo "Installing OpenSSH client..."
     - apt-get update && apt-get install -y openssh-client
     - eval $(ssh-agent -s)
@@ -49,6 +50,8 @@ deploy-backend:
   dependencies:
     - setup-ssh # Ensure the SSH keys are available
   script:
+    - echo "Current Directory:$(pwd)"
+    - echo "Current User:$(whoami)"
     - echo "Login Docker user..."
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
     - echo "Registry Image:$CI_REGISTRY_IMAGE"
