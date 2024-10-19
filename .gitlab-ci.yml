@@ -25,6 +25,7 @@ setup-ssh:
   stage: deploy
   image: ubuntu:latest # Use Ubuntu for SSH setup
   script:
+    - echo "Current User:$(whoami)"
     - echo "Installing OpenSSH client..."
     - apt-get update && apt-get install -y openssh-client
     - eval $(ssh-agent -s)
@@ -56,6 +57,7 @@ deploy-backend:
     - echo "Pushing Docker image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
     - echo "Deploying backend to EC2..."
+    - echo "Current User:$(whoami)"
     - ssh -i /home/gitlab-runner/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       sudo su -c 'cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
