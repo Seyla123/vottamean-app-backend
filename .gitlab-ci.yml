@@ -55,7 +55,7 @@ deploy-backend:
     - chmod 600 /home/gitlab-runner/.ssh/id_rsa
 
     # Add the key to ssh-agent
-    - ssh-add /home/gitlab-runner/.ssh/id_rsa || { echo "Failed to add SSH key"; exit 1; }
+    - ssh -i /home/gitlab-runner/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH connection successful'"
 
     # SSH keyscan for EC2 host to prevent fingerprint prompt
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
@@ -71,7 +71,7 @@ deploy-backend:
 
     # Test SSH connection before deploying
     - echo "Testing SSH connection..."
-    - ssh -i /home/gitlab-runner/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH connection successful!'"
+    - ssh -i /home/gitlab-runner/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH connection successful'"
 
     # SSH into EC2 instance and deploy with root privileges
     - echo "Deploying backend to EC2..."
