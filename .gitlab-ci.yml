@@ -33,10 +33,12 @@ deploy-backend:
     DOCKER_TLS_CERTDIR: ""
     DOCKER_STARTUP_TIMEOUT: 120
   before_script:
-    # Install OpenSSH client if not already present
+    # Check current user
     - echo "Current User:$(whoami)"
+
+    # Install OpenSSH client if not already present
     - echo "Installing OpenSSH client..."
-    - apt-get update -y && apt-get install -y openssh-client
+    - apk add --no-cache openssh-client
 
     # Start ssh-agent if not already running
     - eval $(ssh-agent -s)
@@ -45,7 +47,7 @@ deploy-backend:
     - mkdir -p /home/gitlab-runner/.ssh
 
     # Copy the SSH_PRIVATE_KEY from the variable to a file
-    - cp $SSH_PRIVATE_KEY /home/gitlab-runner/.ssh/new-key.pem # This line now uses the variable
+    - cp $SSH_PRIVATE_KEY /home/gitlab-runner/.ssh/new-key.pem
 
     # Check if the key was copied correctly
     - echo "Checking the SSH private key:"
