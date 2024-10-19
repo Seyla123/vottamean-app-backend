@@ -20,43 +20,23 @@ build-backend:
     - main
     - develop
 
-# # Setup SSH and dependencies job
-# setup-ssh:
-#   stage: deploy
-#   image: ubuntu:latest # Use Ubuntu for SSH setup
-#   script:
-#     - echo "Current Directory:$(pwd)"
-#     - echo "Current User:$(whoami)"
-#     - echo "Installing OpenSSH client..."
-#     - apt-get update && apt-get install -y openssh-client
-#     - eval $(ssh-agent -s)
-#     - mkdir -p ~/.ssh
-#     - echo "$SSH_PRIVATE_KEY" > id_rsa # Save key in the working directory
-#     - chmod 600 id_rsa
-#     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com > known_hosts # Save known_hosts in working directory
-#   artifacts:
-#     paths:
-#       - id_rsa # Use relative paths
-#       - known_hosts
-#     expire_in: 1 hour
+# Setup SSH and dependencies job
 setup-ssh:
   stage: deploy
-  image: ubuntu:latest
+  image: ubuntu:latest # Use Ubuntu for SSH setup
   script:
     - echo "Current Directory:$(pwd)"
+    - echo "Current User:$(whoami)"
     - echo "Installing OpenSSH client..."
     - apt-get update && apt-get install -y openssh-client
     - eval $(ssh-agent -s)
     - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-    - chmod 600 ~/.ssh/id_rsa
-    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
-    - cp ~/.ssh/id_rsa ./id_rsa # Copy the SSH key to the current directory
-    - cp ~/.ssh/known_hosts ./known_hosts # Copy known hosts to the current directory
-
+    - echo "$SSH_PRIVATE_KEY" > id_rsa 
+    - chmod 600 id_rsa
+    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com > known_hosts
   artifacts:
     paths:
-      - id_rsa
+      - id_rsa 
       - known_hosts
     expire_in: 1 hour
 
@@ -71,13 +51,13 @@ deploy-backend:
     - setup-ssh # Ensure the SSH keys are available
   script:
     - echo "Current Directory:$(pwd)"
+    - echo "Current User:$(whoami)"
     - echo "Listing files in the current directory:"
-    - ls -la
+    - ls -la 
     - echo "Restoring SSH keys..."
-    - mkdir -p ~/.ssh
-    - if [ -f id_rsa ]; then mv id_rsa ~/.ssh/id_rsa; else echo "id_rsa not found"; fi
-    - if [ -f known_hosts ]; then mv known_hosts ~/.ssh/known_hosts; else echo "known_hosts not found"; fi
-    - chmod 600 ~/.ssh/id_rsa
+    # - mkdir -p ~/.ssh
+    # - if [ -f id_rsa ]; then mv id_rsa ~/.ssh/id_rsa; else echo "id_rsa not found"; fi # Move if exists
+    # - if [ -f known_hosts ]; then mv known_hosts ~/.ssh/known_hosts; else echo "known_hosts not found"; fi
     - echo "Login Docker user..."
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
     - echo "Registry Image:$CI_REGISTRY_IMAGE"
@@ -86,7 +66,7 @@ deploy-backend:
     - echo "Pushing Docker image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
     - echo "Deploying backend to EC2..."
-    - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+    - ssh -i id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       sudo su -c 'cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
