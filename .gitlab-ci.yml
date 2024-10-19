@@ -34,6 +34,7 @@ deploy-backend:
     DOCKER_STARTUP_TIMEOUT: 120
   before_script:
     # Install OpenSSH client if not already present
+    - echo "Current User:$(whoami)"
     - echo "Installing OpenSSH client..."
     - apt-get update -y && apt-get install -y openssh-client
 
@@ -48,7 +49,7 @@ deploy-backend:
 
     # Check if the key was written correctly
     - echo "Checking the SSH private key:"
-    - cat /home/gitlab-runner/.ssh/new-key.pem # Debugging line (Remove after testing)
+    - cat /home/gitlab-runner/.ssh/new-key.pem 
 
     # Set permissions
     - chmod 600 /home/gitlab-runner/.ssh/new-key.pem
