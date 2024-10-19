@@ -32,11 +32,10 @@ setup-ssh:
     - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
-    - chmod 600 /root/.ssh/id_rsa
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
   artifacts:
     paths:
-      - ~/.ssh/id_rsa # Pass the private key to the next job
+      - ~/.ssh/id_rsa 
       - ~/.ssh/known_hosts
     expire_in: 1 hour
 
@@ -59,7 +58,7 @@ deploy-backend:
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
     - echo "Deploying backend to EC2..."
     - echo "Current User:$(whoami)"
-    - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+    - ssh -i ./ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       sudo su -c 'cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
