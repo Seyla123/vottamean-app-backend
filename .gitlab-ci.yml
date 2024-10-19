@@ -34,10 +34,12 @@ setup-ssh:
     - echo "$SSH_PRIVATE_KEY" > .ssh/id_rsa
     - chmod 600 .ssh/id_rsa
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com > .ssh/known_hosts
+    - cp .ssh/id_rsa id_rsa
+    - cp .ssh/known_hosts known_hosts
   artifacts:
     paths:
-      - .ssh/id_rsa
-      - .ssh/known_hosts
+      - id_rsa
+      - known_hosts
     expire_in: 1 hour
 
 # Deploy job
@@ -56,8 +58,8 @@ deploy-backend:
     - ls -la
     - echo "Restoring SSH keys..."
     - mkdir -p ~/.ssh
-    - mv .ssh/id_rsa ~/.ssh/id_rsa
-    - mv .ssh/known_hosts ~/.ssh/known_hosts
+    - mv id_rsa ~/.ssh/id_rsa
+    - mv known_hosts ~/.ssh/known_hosts
     - chmod 600 ~/.ssh/id_rsa
     - echo "Login Docker user..."
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
