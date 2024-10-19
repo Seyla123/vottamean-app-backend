@@ -42,21 +42,23 @@ deploy-backend:
     - eval $(ssh-agent -s)
 
     # Setup SSH keys for connecting to the EC2 instance
-    - mkdir -p $HOME/.ssh
+    - mkdir -p /home/gitlab-runner/.ssh
 
-    # Copy the SSH_PRIVATE_KEY from the file variable to a new file
-    # $SSH_PRIVATE_KEY already contains the path to the temporary file created by GitLab
-    - cp $SSH_PRIVATE_KEY $HOME/.ssh/new-key.pem
+    # Write the SSH_PRIVATE_KEY to a file
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /home/gitlab-runner/.ssh/new-key.pem
 
-    # Check if the key was copied correctly
+    # Check if the key was written correctly
     - echo "Checking the SSH private key:"
-    - cat $HOME/.ssh/new-key.pem
+    - cat /home/gitlab-runner/.ssh/new-key.pem
 
     # Set permissions
-    - chmod 600 $HOME/.ssh/new-key.pem
+    - chmod 600 /home/gitlab-runner/.ssh/new-key.pem
+
+    # Add the key to ssh-agent
+    - ssh-add /home/gitlab-runner/.ssh/new-key.pem || { echo "Failed to add SSH key"; exit 1; }
 
     # SSH keyscan
-    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> $HOME/.ssh/known_hosts
+    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
 
     # Docker login for the private registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
