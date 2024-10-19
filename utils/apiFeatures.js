@@ -163,11 +163,14 @@ class APIFeatures {
     return this;
   }
 
-  async exec(additionalOptions = {}) {
-    const finalOptions = {
+  async exec(additionalOptions = {}, options=false) {
+    let finalOptions = {
       ...this.options // external filters passed here
     };
     finalOptions.where = { ...finalOptions.where, ...additionalOptions.where };
+    if(options) {
+      finalOptions = { ...finalOptions, ...options };
+    }
     try {
       const result = await this.query.findAll(finalOptions);
       console.log('result :', result);
