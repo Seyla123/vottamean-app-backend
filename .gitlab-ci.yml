@@ -33,31 +33,30 @@ deploy-backend:
     DOCKER_TLS_CERTDIR: ""
     DOCKER_STARTUP_TIMEOUT: 120
   before_script:
-    # Check current user
-    - echo "Current User:$(whoami)"
-
     # Install OpenSSH client if not already present
+    - echo "Current User: $(whoami)"
     - echo "Installing OpenSSH client..."
-    - apk add --no-cache openssh-client
+    - apt-get update -y && apt-get install -y openssh-client
 
     # Start ssh-agent if not already running
     - eval $(ssh-agent -s)
 
     # Setup SSH keys for connecting to the EC2 instance
-    - mkdir -p /home/gitlab-runner/.ssh
+    - mkdir -p $HOME/.ssh
 
-    # Copy the SSH_PRIVATE_KEY from the variable to a file
-    - cp $SSH_PRIVATE_KEY /home/gitlab-runner/.ssh/new-key.pem
+    # Copy the SSH_PRIVATE_KEY from the file variable to a new file
+    # $SSH_PRIVATE_KEY already contains the path to the temporary file created by GitLab
+    - cp $SSH_PRIVATE_KEY $HOME/.ssh/new-key.pem
 
     # Check if the key was copied correctly
     - echo "Checking the SSH private key:"
-    - cat /home/gitlab-runner/.ssh/new-key.pem
+    - cat $HOME/.ssh/new-key.pem
 
     # Set permissions
-    - chmod 600 /home/gitlab-runner/.ssh/new-key.pem
+    - chmod 600 $HOME/.ssh/new-key.pem
 
     # SSH keyscan
-    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
+    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> $HOME/.ssh/known_hosts
 
     # Docker login for the private registry
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
