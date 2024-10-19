@@ -44,20 +44,20 @@ deploy-backend:
     # Setup SSH keys for connecting to the EC2 instance
     - mkdir -p /home/gitlab-runner/.ssh
 
-    # Write the SSH_PRIVATE_KEY to a file
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /home/gitlab-runner/.ssh/new-key.pem
+    # Write the SSH_PRIVATE_KEY to a file from the environment variable
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /home/gitlab-runner/.ssh/id_rsa
 
     # Check if the key was written correctly
     - echo "Checking the SSH private key:"
-    - cat /home/gitlab-runner/.ssh/new-key.pem
+    - cat /home/gitlab-runner/.ssh/id_rsa
 
     # Set permissions
-    - chmod 600 /home/gitlab-runner/.ssh/new-key.pem
+    - chmod 600 /home/gitlab-runner/.ssh/id_rsa
 
     # Add the key to ssh-agent
-    - ssh-add /home/gitlab-runner/.ssh/new-key.pem || { echo "Failed to add SSH key"; exit 1; }
+    - ssh-add /home/gitlab-runner/.ssh/id_rsa || { echo "Failed to add SSH key"; exit 1; }
 
-    # SSH keyscan
+    # SSH keyscan for EC2 host to prevent fingerprint prompt
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
 
     # Docker login for the private registry
@@ -71,11 +71,11 @@ deploy-backend:
 
     # Test SSH connection before deploying
     - echo "Testing SSH connection..."
-    - ssh -i /home/gitlab-runner/.ssh/new-key.pem -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH connection successful!'"
+    - ssh -i /home/gitlab-runner/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH connection successful!'"
 
     # SSH into EC2 instance and deploy with root privileges
     - echo "Deploying backend to EC2..."
-    - ssh -i /home/gitlab-runner/.ssh/new-key.pem -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+    - ssh -i /home/gitlab-runner/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       sudo su -c 'cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
