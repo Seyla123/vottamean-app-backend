@@ -35,7 +35,7 @@ deploy-backend:
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
     - ssh-add ~/.ssh/id_rsa 
-    - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH Connection Successful'" #
+    - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH Connection Successful'" 
 
   script:
     - echo "Current Directory:$(pwd)"
