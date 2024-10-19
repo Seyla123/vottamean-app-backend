@@ -58,8 +58,8 @@ deploy-backend:
     - ls -la
     - echo "Restoring SSH keys..."
     - mkdir -p ~/.ssh
-    - mv id_rsa ~/.ssh/id_rsa
-    - mv known_hosts ~/.ssh/known_hosts
+    - cp id_rsa ~/.ssh/id_rsa
+    - cp known_hosts ~/.ssh/known_hosts
     - chmod 600 ~/.ssh/id_rsa
     - echo "Login Docker user..."
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
