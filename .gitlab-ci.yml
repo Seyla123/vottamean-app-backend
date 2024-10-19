@@ -34,7 +34,7 @@ deploy-backend:
     DOCKER_STARTUP_TIMEOUT: 120
   before_script:
     # Install OpenSSH client if not already present
-    - echo "Current User: $(whoami)"
+    - echo "Current User:$(whoami)"
     - echo "Installing OpenSSH client..."
     - apt-get update -y && apt-get install -y openssh-client
 
