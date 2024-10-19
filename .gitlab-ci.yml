@@ -42,9 +42,21 @@ deploy-backend:
 
     # Setup SSH keys for connecting to the EC2 instance
     - mkdir -p /home/gitlab-runner/.ssh
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /home/gitlab-runner/.ssh/new-key.pem # Ensure no carriage return
+
+    # Write the SSH_PRIVATE_KEY to a file
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /home/gitlab-runner/.ssh/new-key.pem
+
+    # Check if the key was written correctly
+    - echo "Checking the SSH private key:"
+    - cat /home/gitlab-runner/.ssh/new-key.pem # Debugging line (Remove after testing)
+
+    # Set permissions
     - chmod 600 /home/gitlab-runner/.ssh/new-key.pem
-    - ssh-add /home/gitlab-runner/.ssh/new-key.pem || { echo "Failed to add SSH key"; exit 1; } # Error handling
+
+    # Add the key to ssh-agent
+    - ssh-add /home/gitlab-runner/.ssh/new-key.pem || { echo "Failed to add SSH key"; exit 1; }
+
+    # SSH keyscan
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
 
     # Docker login for the private registry
