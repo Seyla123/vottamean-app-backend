@@ -45,7 +45,7 @@ deploy-backend:
     - mkdir -p /home/gitlab-runner/.ssh
 
     # Write the SSH_PRIVATE_KEY to a file from the environment variable
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > /home/gitlab-runner/.ssh/id_rsa
+    - echo "$SSH_PRIVATE_KEY" > /home/gitlab-runner/.ssh/id_rsa
 
     # Check if the key was written correctly
     - echo "Checking the SSH private key:"
