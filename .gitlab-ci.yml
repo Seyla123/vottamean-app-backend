@@ -20,70 +20,40 @@ build-backend:
     - main
     - develop
 
-# Deploy job
-deploy-backend:
+# Setup SSH and dependencies job
+setup-ssh:
   stage: deploy
-  image: ubuntu:latest
-  services:
-    - name: docker:dind
-      command: ["--insecure-registry=git.clp.kr:5050", "--debug"]
-  variables:
-    DOCKER_HOST: unix:///var/run/docker.sock
-    DOCKER_DRIVER: overlay2
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_STARTUP_TIMEOUT: 120
-  # before_script:
-  #   # Install OpenSSH client if not already present
-  #   - echo "Current User:$(whoami)"
-  #   - echo "Installing OpenSSH client..."
-  #   - apt-get update -y && apt-get install -y openssh-client
-
-  #   # Start ssh-agent if not already running
-  #   - eval $(ssh-agent -s)
-
-  #   # Setup SSH keys for connecting to the EC2 instance
-  #   - mkdir -p /home/gitlab-runner/.ssh
-
-  #   # Write the SSH_PRIVATE_KEY to a file from the environment variable
-  #   - echo "$SSH_PRIVATE_KEY" > /home/gitlab-runner/.ssh/id_rsa
-
-  #   # Check if the key was written correctly
-  #   - echo "Checking the SSH private key:"
-  #   - cat /home/gitlab-runner/.ssh/id_rsa
-
-  #   # Set permissions
-  #   - chmod 600 /home/gitlab-runner/.ssh/id_rsa
-
-  #   # Add the key to ssh-agent
-  #   - ssh -i /home/gitlab-runner/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH connection successful'"
-
-  #   # SSH keyscan for EC2 host to prevent fingerprint prompt
-  #   - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
-
-  #   # Docker login for the private registry
-  #   - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
-
-  before_script:
-    - echo "Current User:$(whoami)"
+  image: ubuntu:latest # Use Ubuntu for SSH setup
+  script:
     - echo "Installing OpenSSH client..."
-    - apt-get update -y && apt-get install -y openssh-client
+    - apt-get update && apt-get install -y openssh-client
     - eval $(ssh-agent -s)
     - mkdir -p /home/gitlab-runner/.ssh
     - echo "$SSH_PRIVATE_KEY" > /home/gitlab-runner/.ssh/id_rsa
     - chmod 600 /home/gitlab-runner/.ssh/id_rsa
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
+  artifacts:
+    paths:
+      - /home/gitlab-runner/.ssh/id_rsa # Pass the private key to the next job
+      - /home/gitlab-runner/.ssh/known_hosts
+    expire_in: 1 hour
 
+# Deploy job
+deploy-backend:
+  stage: deploy
+  image: docker:latest # Use Docker image for deployment
+  services:
+    - name: docker:dind
+      command: ["--insecure-registry=git.clp.kr:5050"]
+  dependencies:
+    - setup-ssh # Ensure the SSH keys are available
   script:
     - echo "Building Docker image..."
     - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./DockerFile .
     - echo "Pushing Docker image to the registry..."
     - docker push $CI_REGISTRY_IMAGE/backend:latest
-
-    # Test SSH connection before deploying
     - echo "Testing SSH connection..."
     - ssh -i /home/gitlab-runner/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH connection successful'"
-
-    # SSH into EC2 instance and deploy with root privileges
     - echo "Deploying backend to EC2..."
     - ssh -i /home/gitlab-runner/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       sudo su -c 'cd /home/ubuntu/wavetrack-server &&
@@ -91,7 +61,6 @@ deploy-backend:
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
       docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build'
       "
-
   environment:
     name: production
     url: https://web.vottamean.com/api/v1
