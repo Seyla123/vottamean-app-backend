@@ -27,6 +27,12 @@ deploy-backend:
   services:
     - name: docker:dind
       command: ["--insecure-registry=git.clp.kr:5050"]
+  before_script:
+    - apt-get update && apt-get install -y openssh-client
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
   script:
     - echo "Current Directory:$(pwd)"
     - echo "Current User:$(whoami)"
@@ -39,10 +45,13 @@ deploy-backend:
     - docker build -t "$CI_REGISTRY_IMAGE/backend:latest" -f ./DockerFile .
     - echo "Pushing Docker image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
-    - echo "Deploying backend using Docker..."
-    # Here, you might run a curl command or interact with your deployment platform's API
-    # if you're using ECS, EKS, or similar. This is placeholder logic:
-    - echo "Triggering deployment on remote server or platform (replace with actual command)."
+    - echo "Deploying backend using SSH..."
+    - ssh ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+      cd /home/ubuntu/wavetrack-server &&
+      git pull origin develop &&
+      docker pull $CI_REGISTRY_IMAGE/backend:latest &&
+      docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
+      "
   environment:
     name: production
     url: https://web.vottamean.com/api/v1
