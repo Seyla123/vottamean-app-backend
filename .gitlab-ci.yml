@@ -44,18 +44,15 @@ deploy-backend:
     # Setup SSH keys for connecting to the EC2 instance
     - mkdir -p /home/gitlab-runner/.ssh
 
-    # Write the SSH_PRIVATE_KEY to a file
-    - echo "$SSH_PRIVATE_KEY" > /home/gitlab-runner/.ssh/new-key.pem
+    # Copy the SSH_PRIVATE_KEY from the variable to a file
+    - cp $SSH_PRIVATE_KEY /home/gitlab-runner/.ssh/new-key.pem # This line now uses the variable
 
-    # Check if the key was written correctly
+    # Check if the key was copied correctly
     - echo "Checking the SSH private key:"
-    - cat /home/gitlab-runner/.ssh/new-key.pem 
+    - cat /home/gitlab-runner/.ssh/new-key.pem
 
     # Set permissions
     - chmod 600 /home/gitlab-runner/.ssh/new-key.pem
-
-    # Add the key to ssh-agent
-    - ssh-add /home/gitlab-runner/.ssh/new-key.pem || { echo "Failed to add SSH key"; exit 1; }
 
     # SSH keyscan
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
