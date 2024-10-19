@@ -1,7 +1,30 @@
 # Define pipeline stages
 stages:
+  - setup
   - build
   - deploy
+
+# SSH setup job
+setup-ssh:
+  stage: setup
+  image: ubuntu:latest
+  script:
+    - apt-get update && apt-get install -y openssh-client
+    - eval $(ssh-agent -s)
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY_BASE64" | base64 -d > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
+    - ssh-add ~/.ssh/id_rsa 
+    - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH Connection Successful'"
+  only:
+    - main
+    - develop
+  artifacts:
+    paths:
+      - ~/.ssh/id_rsa
+      - ~/.ssh/known_hosts
+    expire_in: 1 hour
 
 # Build job
 build-backend:
@@ -28,15 +51,8 @@ deploy-backend:
     - name: docker:dind
       command: ["--insecure-registry=git.clp.kr:5050"]
   before_script:
-    - apt-get update && apt-get install -y openssh-client
-    - eval $(ssh-agent -s)
-    - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY_BASE64" | base64 -d > ~/.ssh/id_rsa
-    - chmod 600 ~/.ssh/id_rsa
-    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
-    - ssh-add ~/.ssh/id_rsa 
-    - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH Connection Successful'" 
-
+    - apt-get update && apt-get install -y openssl libssl-dev  # Install libssl to fix SSH libcrypto error
+    - echo "Setting up SSH for deployment..."
   script:
     - echo "Current Directory:$(pwd)"
     - echo "Current User:$(whoami)"
@@ -59,6 +75,8 @@ deploy-backend:
   environment:
     name: production
     url: https://web.vottamean.com/api/v1
+  needs:
+    - job: setup-ssh
   only:
     - main
     - develop
