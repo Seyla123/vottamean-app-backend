@@ -31,13 +31,13 @@ setup-ssh:
     - apt-get update && apt-get install -y openssh-client
     - eval $(ssh-agent -s)
     - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-    - chmod 600 ~/.ssh/id_rsa
-    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
+    - echo "$SSH_PRIVATE_KEY" > id_rsa # Save key in the working directory
+    - chmod 600 id_rsa
+    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com > known_hosts # Save known_hosts in working directory
   artifacts:
     paths:
-      - ~/.ssh/id_rsa 
-      - ~/.ssh/known_hosts
+      - id_rsa # Use relative paths
+      - known_hosts
     expire_in: 1 hour
 
 # Deploy job
@@ -52,6 +52,11 @@ deploy-backend:
   script:
     - echo "Current Directory:$(pwd)"
     - echo "Current User:$(whoami)"
+    - echo "Restoring SSH keys..."
+    - mkdir -p ~/.ssh
+    - mv id_rsa ~/.ssh/id_rsa # Move back to ~/.ssh directory
+    - chmod 600 ~/.ssh/id_rsa
+    - mv known_hosts ~/.ssh/known_hosts
     - echo "Login Docker user..."
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
     - echo "Registry Image:$CI_REGISTRY_IMAGE"
@@ -60,7 +65,6 @@ deploy-backend:
     - echo "Pushing Docker image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
     - echo "Deploying backend to EC2..."
-    - echo "Current User:$(whoami)"
     - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       sudo su -c 'cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
