@@ -23,7 +23,7 @@ build-backend:
 # Deploy job
 deploy-backend:
   stage: deploy
-  image: docker:latest
+  image: ubuntu:latest
   services:
     - name: docker:dind
       command: ["--insecure-registry=git.clp.kr:5050", "--debug"]
@@ -32,36 +32,46 @@ deploy-backend:
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
     DOCKER_STARTUP_TIMEOUT: 120
+  # before_script:
+  #   # Install OpenSSH client if not already present
+  #   - echo "Current User:$(whoami)"
+  #   - echo "Installing OpenSSH client..."
+  #   - apt-get update -y && apt-get install -y openssh-client
+
+  #   # Start ssh-agent if not already running
+  #   - eval $(ssh-agent -s)
+
+  #   # Setup SSH keys for connecting to the EC2 instance
+  #   - mkdir -p /home/gitlab-runner/.ssh
+
+  #   # Write the SSH_PRIVATE_KEY to a file from the environment variable
+  #   - echo "$SSH_PRIVATE_KEY" > /home/gitlab-runner/.ssh/id_rsa
+
+  #   # Check if the key was written correctly
+  #   - echo "Checking the SSH private key:"
+  #   - cat /home/gitlab-runner/.ssh/id_rsa
+
+  #   # Set permissions
+  #   - chmod 600 /home/gitlab-runner/.ssh/id_rsa
+
+  #   # Add the key to ssh-agent
+  #   - ssh -i /home/gitlab-runner/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH connection successful'"
+
+  #   # SSH keyscan for EC2 host to prevent fingerprint prompt
+  #   - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
+
+  #   # Docker login for the private registry
+  #   - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+
   before_script:
-    # Install OpenSSH client if not already present
     - echo "Current User:$(whoami)"
     - echo "Installing OpenSSH client..."
     - apt-get update -y && apt-get install -y openssh-client
-
-    # Start ssh-agent if not already running
     - eval $(ssh-agent -s)
-
-    # Setup SSH keys for connecting to the EC2 instance
     - mkdir -p /home/gitlab-runner/.ssh
-
-    # Write the SSH_PRIVATE_KEY to a file from the environment variable
     - echo "$SSH_PRIVATE_KEY" > /home/gitlab-runner/.ssh/id_rsa
-
-    # Check if the key was written correctly
-    - echo "Checking the SSH private key:"
-    - cat /home/gitlab-runner/.ssh/id_rsa
-
-    # Set permissions
     - chmod 600 /home/gitlab-runner/.ssh/id_rsa
-
-    # Add the key to ssh-agent
-    - ssh -i /home/gitlab-runner/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH connection successful'"
-
-    # SSH keyscan for EC2 host to prevent fingerprint prompt
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
-
-    # Docker login for the private registry
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
 
   script:
     - echo "Building Docker image..."
