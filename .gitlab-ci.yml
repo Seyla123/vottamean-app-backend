@@ -55,9 +55,6 @@ deploy-backend:
     - echo "Listing files in the current directory:"
     - ls -la 
     - echo "Restoring SSH keys..."
-    - mkdir -p ~/.ssh
-    - if [ -f id_rsa ]; then mv id_rsa ~/.ssh/id_rsa; else echo "id_rsa not found"; fi # Move if exists
-    - if [ -f known_hosts ]; then mv known_hosts ~/.ssh/known_hosts; else echo "known_hosts not found"; fi
     - echo "Login Docker user..."
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
     - echo "Registry Image:$CI_REGISTRY_IMAGE"
@@ -66,7 +63,7 @@ deploy-backend:
     - echo "Pushing Docker image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
     - echo "Deploying backend to EC2..."
-    - ssh -i id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+    - ssh -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       sudo su -c 'cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
