@@ -32,6 +32,7 @@ setup-ssh:
     - echo "$SSH_PRIVATE_KEY" > /home/gitlab-runner/.ssh/id_rsa
     - chmod 600 /home/gitlab-runner/.ssh/id_rsa
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> /home/gitlab-runner/.ssh/known_hosts
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
   artifacts:
     paths:
       - /home/gitlab-runner/.ssh/id_rsa # Pass the private key to the next job
