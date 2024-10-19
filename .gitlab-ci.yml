@@ -50,10 +50,11 @@ deploy-backend:
   script:
     - echo "Login Docker user..."
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - echo "Registry Image:$CI_REGISTRY_IMAGE"
     - echo "Building Docker image..."
-    - docker build -t $CI_REGISTRY_IMAGE/backend:latest -f ./DockerFile .
+    - docker build -t "$CI_REGISTRY_IMAGE/backend:latest" -f ./DockerFile .
     - echo "Pushing Docker image to the registry..."
-    - docker push $CI_REGISTRY_IMAGE/backend:latest
+    - docker push "$CI_REGISTRY_IMAGE/backend:latest"
     - echo "Testing SSH connection..."
     - ssh -i /home/gitlab-runner/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH connection successful'"
     - echo "Deploying backend to EC2..."
