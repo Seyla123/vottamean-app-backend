@@ -55,8 +55,6 @@ deploy-backend:
     - docker build -t "$CI_REGISTRY_IMAGE/backend:latest" -f ./DockerFile .
     - echo "Pushing Docker image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
-    - echo "Testing SSH connection..."
-    - ssh -i /home/gitlab-runner/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH connection successful'"
     - echo "Deploying backend to EC2..."
     - ssh -i /home/gitlab-runner/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       sudo su -c 'cd /home/ubuntu/wavetrack-server &&
