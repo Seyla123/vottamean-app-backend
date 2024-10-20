@@ -219,7 +219,8 @@ exports.getFormattedAttendanceData = catchAsync(async (req, res, next) => {
       },
     ],
   });
-
+  // Call the getAllAttendancesData utility function to get all attendance records
+  const data = await getAllAttendancesData(req, res, next);
   // Check if any classes were found
   if (getSessionClass && getSessionClass.length > 0) {
     // Get the subject names and class names
@@ -238,8 +239,7 @@ exports.getFormattedAttendanceData = catchAsync(async (req, res, next) => {
     // Get the unique dates from the attendance records, and their corresponding day of the week
     const datesWithDays = getAttendanceReportDateRange(formattedData);
 
-    // Call the getAllAttendancesData utility function to get all attendance records
-    const data = await getAllAttendancesData(req, res, next);
+
 
     // Send the formatted result as JSON
     res.status(200).json({
@@ -267,6 +267,9 @@ exports.getFormattedAttendanceData = catchAsync(async (req, res, next) => {
     // Send a success response with no classes found message
     res.status(200).json({
       status: 'success',
+      total_summary: [],
+      all_subjects_unique: data.subjects,
+      all_classes_unique: data.classes,
       results: 0,
       message: 'No data found',
       data: {},
