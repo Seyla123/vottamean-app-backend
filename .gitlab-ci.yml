@@ -30,7 +30,7 @@ setup-ssh:
     - eval $(ssh-agent -s)
     - mkdir -p ~/.ssh
     # Check if SSH_PRIVATE_KEY is set and print a message
-    - echo "SSH_PRIVATE_KEY is set:${SSH_PRIVATE_KEY:-not set}"
+    - if [ -z "$SSH_PRIVATE_KEY" ]; then echo "SSH_PRIVATE_KEY is not set!"; exit 1; fi
 
     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
