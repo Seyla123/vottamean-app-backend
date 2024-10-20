@@ -1,7 +1,6 @@
 # Define pipeline stages
 stages:
   - build
-  - print
   - deploy
 
 # Build job
@@ -20,19 +19,6 @@ build-backend:
   only:
     - main
     - develop
-
-# Print job
-print-variable:
-  stage: print
-  image: ubuntu:latest
-  script:
-    - echo "Printing MY_VARIABLE value..."
-    - if [ -z "$MY_VARIABLE" ]; then echo "MY_VARIABLE is not set!"; else echo "MY_VARIABLE is set."; fi
-    - echo "MY_VARIABLE is:$MY_VARIABLE"
-    - echo "MY_VARIABLE is:$SSH_PRIVATE_KEY"
-    - echo "MY_VARIABLE is:$CI_REGISTRY_USER"
-    - echo "MY_VARIABLE is:$CI_REGISTRY"
-    - echo "MY_VARIABLE is:$SSH_PRIVATE_KEY_BASE64"
 
 # Setup SSH and dependencies job
 setup-ssh:
