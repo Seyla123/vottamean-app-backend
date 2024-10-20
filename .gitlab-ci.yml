@@ -42,16 +42,16 @@ deploy-backend:
     - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
-    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
+    - ssh-keyscan -H ec2-44-206-226-251.compute-1.amazonaws.com >> ~/.ssh/known_hosts
     - eval $(ssh-agent -s)
 
     # Deploy the application on the EC2 instance using rsync
     - echo "Deploying backend using rsync..."
-    - rsync -avz --delete --exclude='.git' --exclude='node_modules' ./ ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com:/home/ubuntu/wavetrack-server/
+    - rsync -avz --delete --exclude='.git' --exclude='node_modules' ./ ubuntu@ec2-44-206-226-251.compute-1.amazonaws.com:/home/ubuntu/wavetrack-server/
 
     # SSH into EC2, log in to the Docker registry, and restart the application
     - echo "Logging in to Docker registry and restarting application on EC2..."
-    - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+    - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-206-226-251.compute-1.amazonaws.com "
       echo '$CI_REGISTRY_PASSWORD' | docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY &&
       cd /home/ubuntu/wavetrack-server &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
