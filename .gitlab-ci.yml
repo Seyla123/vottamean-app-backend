@@ -10,7 +10,7 @@ build-backend:
   image: docker:latest
   services:
     - name: docker:dind
-      command: ['--insecure-registry=git.clp.kr:5050']
+      command: ["--insecure-registry=git.clp.kr:5050"]
   variables:
     DOCKER_DRIVER: overlay2
   script:
@@ -51,17 +51,19 @@ deploy-backend:
 
     # SSH into EC2, log in to the Docker registry, and restart the application
     - echo "Logging in to Docker registry and restarting application on EC2..."
+    - echo "CI_REGISTRY_IMAGE=${CI_REGISTRY_IMAGE}" > .env
+    - echo "DATABASE_URL=${DATABASE_URL}" >> .env
+    - docker-compose up
     - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       echo '$CI_REGISTRY_PASSWORD' | docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY &&
       cd /home/ubuntu/wavetrack-server &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
       docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
       "
- 
+
   environment:
     name: production
     url: https://web.vottamean.com/api/v1
   only:
     - main
     - develop
-
