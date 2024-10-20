@@ -29,13 +29,10 @@ setup-ssh:
     - apt-get update && apt-get install -y openssh-client
     - eval $(ssh-agent -s)
     - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
     # Check if SSH_PRIVATE_KEY is set and print a message
     - echo "SSH_PRIVATE_KEY is set:${SSH_PRIVATE_KEY:-not set}"
 
-    # Use printf to write the key to the file
-    - printf "%s\n" "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
     - ls -l ~/.ssh/id_rsa
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
