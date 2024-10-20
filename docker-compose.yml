@@ -12,4 +12,4 @@ services:
     volumes:
       - ./:/usr/src/app
     working_dir: /usr/src/app
-    command: 'npm run start:prod'
+    command: 'npm start'
