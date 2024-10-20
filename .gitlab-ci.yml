@@ -29,9 +29,9 @@ setup-ssh:
     - apt-get update && apt-get install -y openssh-client
     - eval $(ssh-agent -s)
     - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - echo "$SSH_PRIVATE_KEY_BASE64" | base64 -d > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
-    - ls -l ~/.ssh/id_rsa #
+    - ls -l ~/.ssh/id_rsa 
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
     - ssh-add ~/.ssh/id_rsa || { echo "Failed to add SSH key"; exit 1; }
     - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH Connection Successful'"
