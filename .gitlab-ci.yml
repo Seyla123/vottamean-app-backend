@@ -1,3 +1,25 @@
+# Define pipeline stages
+stages:
+  - build
+  - deploy
+
+# Build job
+build-backend:
+  stage: build
+  image: node:20
+  script:
+    - echo "Checking for Dockerfile..."
+    - ls -la
+    - echo "Installing backend dependencies..."
+    - npm install
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 week
+  only:
+    - main
+    - develop
+
 # Deploy job
 deploy-backend:
   stage: deploy
@@ -29,10 +51,12 @@ deploy-backend:
     - echo "Pushing Docker image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
 
-    # Set up Git credentials for HTTPS
-    - echo "Setting up Git credentials..."
-    - echo "https://glpat-uPi_A-qy7yhMTxbubFzf@git.clp.kr" > ~/.git-credentials
-    - git config --global credential.helper store
+    # Set up Git credentials on the EC2 instance
+    - echo "Setting up Git credentials on EC2..."
+    - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+      echo 'https://glpat-uPi_A-qy7yhMTxbubFzf@git.clp.kr' > ~/.git-credentials &&
+      git config --global credential.helper store
+      "
 
     # Deploy the application on the EC2 instance
     - echo "Deploying backend using HTTPS for Git..."
