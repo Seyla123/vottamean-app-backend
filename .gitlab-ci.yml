@@ -31,7 +31,7 @@ build-backend:
 # Deploy job using rsync
 deploy-backend:
   stage: deploy
-  image: ubuntu:20.04 # Use an Ubuntu image that has or can easily install rsync
+  image: ubuntu:20.04
   before_script:
     # Install rsync and SSH client
     - apt-get update && apt-get install -y rsync openssh-client
@@ -49,9 +49,10 @@ deploy-backend:
     - echo "Deploying backend using rsync..."
     - rsync -avz --delete --exclude='.git' --exclude='node_modules' ./ ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com:/home/ubuntu/wavetrack-server/
 
-    # SSH into EC2 and restart the application
-    - echo "Restarting application on EC2..."
+    # SSH into EC2, log in to the Docker registry, and restart the application
+    - echo "Logging in to Docker registry and restarting application on EC2..."
     - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+      echo '$CI_REGISTRY_PASSWORD' | docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY &&
       cd /home/ubuntu/wavetrack-server &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
       docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
