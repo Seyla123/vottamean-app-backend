@@ -57,11 +57,11 @@ deploy-backend:
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
       docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
       "
-
+ 
   environment:
     name: production
     url: https://web.vottamean.com/api/v1
   only:
     - main
     - develop
-    
+
