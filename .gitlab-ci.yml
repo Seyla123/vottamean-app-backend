@@ -69,3 +69,4 @@ deploy-backend:
   only:
     - main
     - develop
+ 
