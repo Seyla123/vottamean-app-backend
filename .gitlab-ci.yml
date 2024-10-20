@@ -20,53 +20,41 @@ build-backend:
     - main
     - develop
 
-# Setup SSH and dependencies job
-setup-ssh:
-  stage: deploy
-  image: ubuntu:latest
-  script:
-    - echo "Installing OpenSSH client..."
-    - apt-get update && apt-get install -y openssh-client
-    - eval $(ssh-agent -s)
-    - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-    - chmod 600 ~/.ssh/id_rsa
-    - ls -l ~/.ssh/id_rsa
-    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
-    - ssh-add ~/.ssh/id_rsa || { echo "Failed to add SSH key"; exit 1; }
-    - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH Connection Successful'"
-
-    # Copy SSH files to the working directory for artifacts
-    - cp ~/.ssh/id_rsa $CI_PROJECT_DIR/id_rsa
-    - cp ~/.ssh/known_hosts $CI_PROJECT_DIR/known_hosts
-
-  artifacts:
-    paths:
-      - id_rsa
-      - known_hosts
-    expire_in: 1 hour
-
 # Deploy job
 deploy-backend:
   stage: deploy
-  image: docker:latest
+  image: docker:latest # Use Docker image
   services:
-    - name: docker:dind
+    - name: docker:dind # Docker-in-Docker service
       command: ["--insecure-registry=git.clp.kr:5050"]
-  dependencies:
-    - setup-ssh
+  variables:
+    DOCKER_DRIVER: overlay2
   script:
-    - echo "Current Directory:$(pwd)"
-    - echo "Current User:$(whoami)"
-    - echo "Listing files in the current directory:"
-    - ls -la
+    # Install SSH client
+    - echo "Installing OpenSSH client..."
+    - apt-get update && apt-get install -y openssh-client
+    - eval $(ssh-agent -s)
+
+    # Set up SSH
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - mkdir -p ~/.ssh
+    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
+
+    # Test SSH connection (optional, but helpful for debugging)
+    - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH Connection Successful'"
+
+    # Log into Docker registry
     - echo "Logging in to Docker registry..."
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
-    - echo "Registry Image:$CI_REGISTRY_IMAGE"
+
+    # Build and push Docker image
     - echo "Building Docker image..."
     - docker build -t "$CI_REGISTRY_IMAGE/backend:latest" -f ./DockerFile .
     - echo "Pushing Docker image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
+
+    # Deploy the application on the EC2 instance
     - echo "Deploying backend using SSH..."
     - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       cd /home/ubuntu/wavetrack-server &&
@@ -74,6 +62,7 @@ deploy-backend:
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
       docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
       "
+
   environment:
     name: production
     url: https://web.vottamean.com/api/v1
