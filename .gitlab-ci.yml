@@ -55,9 +55,11 @@ deploy-backend:
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
 
     # Deploy the application on the EC2 instance
-    - echo "Deploying backend using SSH..."
+    - echo "Deploying backend using HTTPS for Git..."
     - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       cd /home/ubuntu/wavetrack-server &&
+      git config --global credential.helper store &&
+      echo \"https://$CI_GITLAB_ACCESS_TOKEN@git.clp.kr\" > ~/.git-credentials &&
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
       docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
