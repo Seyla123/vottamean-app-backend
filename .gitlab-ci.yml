@@ -36,9 +36,9 @@ deploy-backend:
     - eval $(ssh-agent -s)
 
     # Set up SSH
+    - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
-    - mkdir -p ~/.ssh
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
 
     # Test SSH connection (optional, but helpful for debugging)
