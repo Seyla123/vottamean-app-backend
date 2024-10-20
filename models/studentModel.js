@@ -18,27 +18,37 @@ module.exports = (sequelize, DataTypes) => {
       guardian_first_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidName,
+        validate: {
+          isValidName: infoValidator.isValidName,
+        },
       },
       guardian_last_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidName,
+        validate: {
+          isValidName: infoValidator.isValidName,
+        },
       },
       guardian_email: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidEmail,
+        validate: {
+          isValidEmail: infoValidator.isValidEmail,
+        },
       },
       guardian_relationship: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: validators.isValidGuardianRelationship,
+        validate: {
+          isValidGuardianRelationship: validators.isValidGuardianRelationship,
+        },
       },
       guardian_phone_number: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidPhoneNumber,
+        validate: {
+          isValidPhoneNumber: infoValidator.isValidPhoneNumber,
+        },
       },
       active: {
         type: DataTypes.BOOLEAN,
