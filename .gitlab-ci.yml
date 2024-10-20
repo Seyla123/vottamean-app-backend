@@ -36,10 +36,14 @@ setup-ssh:
     - ssh-add ~/.ssh/id_rsa || { echo "Failed to add SSH key"; exit 1; }
     - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "echo 'SSH Connection Successful'"
 
+    # Copy SSH files to the working directory for artifacts
+    - cp ~/.ssh/id_rsa $CI_PROJECT_DIR/id_rsa
+    - cp ~/.ssh/known_hosts $CI_PROJECT_DIR/known_hosts
+
   artifacts:
     paths:
-      - ~/.ssh/id_rsa
-      - ~/.ssh/known_hosts
+      - id_rsa
+      - known_hosts
     expire_in: 1 hour
 
 # Deploy job
@@ -64,7 +68,7 @@ deploy-backend:
     - echo "Pushing Docker image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
     - echo "Deploying backend using SSH..."
-    - ssh -i ~/.ssh/id_rsa ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
+    - ssh -i id_rsa ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com "
       cd /home/ubuntu/wavetrack-server &&
       git pull origin develop &&
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
@@ -76,4 +80,3 @@ deploy-backend:
   only:
     - main
     - develop
- 
