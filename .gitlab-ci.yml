@@ -30,16 +30,17 @@ deploy-backend:
   variables:
     DOCKER_DRIVER: overlay2
   script:
-    # Install SSH client
-    - echo "Installing OpenSSH client..."
-    - apt-get update && apt-get install -y openssh-client
-    - eval $(ssh-agent -s)
+    # Install necessary packages including SSH and rsync
+    - echo "Installing dependencies..."
+    - apt-get update && apt-get install -y openssh-client rsync
 
     # Set up SSH
+    - echo "Setting up SSH..."
     - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
+    - eval $(ssh-agent -s)
 
     # Log into Docker registry
     - echo "Logging in to Docker registry..."
@@ -51,7 +52,7 @@ deploy-backend:
     - echo "Pushing Docker image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
 
-      # Deploy the application on the EC2 instance using rsync
+    # Deploy the application on the EC2 instance using rsync
     - echo "Deploying backend using rsync..."
     - rsync -avz --delete --exclude='.git' --exclude='node_modules' ./ ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com:/home/ubuntu/wavetrack-server/
 
