@@ -1,28 +1,12 @@
 # Define pipeline stages
 stages:
   - build
+  - push
   - deploy
 
-# Build job
+# Build Docker image job
 build-backend:
   stage: build
-  image: node:20
-  script:
-    - echo "Checking for Dockerfile..."
-    - ls -la
-    - echo "Installing backend dependencies..."
-    - npm install
-  artifacts:
-    paths:
-      - node_modules/
-    expire_in: 1 week
-  only:
-    - main
-    - develop
-
-# Deploy job
-deploy-backend:
-  stage: deploy
   image: docker:latest
   services:
     - name: docker:dind
@@ -30,18 +14,6 @@ deploy-backend:
   variables:
     DOCKER_DRIVER: overlay2
   script:
-    # Install necessary packages including SSH and rsync
-    - echo "Installing dependencies..."
-    - apt-get update && apt-get install -y openssh-client rsync
-
-    # Set up SSH
-    - echo "Setting up SSH..."
-    - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-    - chmod 600 ~/.ssh/id_rsa
-    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
-    - eval $(ssh-agent -s)
-
     # Log into Docker registry
     - echo "Logging in to Docker registry..."
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
@@ -51,6 +23,27 @@ deploy-backend:
     - docker build -t "$CI_REGISTRY_IMAGE/backend:latest" -f ./DockerFile .
     - echo "Pushing Docker image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
+
+  only:
+    - main
+    - develop
+
+# Deploy job using rsync
+deploy-backend:
+  stage: deploy
+  image: ubuntu:20.04 # Use an Ubuntu image that has or can easily install rsync
+  before_script:
+    # Install rsync and SSH client
+    - apt-get update && apt-get install -y rsync openssh-client
+
+  script:
+    # Set up SSH
+    - echo "Setting up SSH..."
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
+    - eval $(ssh-agent -s)
 
     # Deploy the application on the EC2 instance using rsync
     - echo "Deploying backend using rsync..."
