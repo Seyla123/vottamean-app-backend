@@ -79,7 +79,7 @@ exports.getAll = (
   attribute
 ) =>
   catchAsync(async (req, res, next) => {
-    let filter = { ...additionalFilter, active: 1 };
+    let filter = { ...additionalFilter};
 
     if (req.params.id) filter = { ...filter, id: req.params.id };
 
