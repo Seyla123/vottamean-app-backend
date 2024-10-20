@@ -18,14 +18,16 @@ router
   .route('/')
   .post(
     sessionMiddleware.checkExistingSession,
-    sessionMiddleware.validateAdminOwnership, 
+    sessionMiddleware.validateAdminOwnership,
     sessionController.createSession).get(sessionController.getAllSessions)
-    .delete(sessionController.deleteManySessions);
+  .delete(sessionController.deleteManySessions);
 
 router
   .route('/:id')
   .get(sessionController.getSession)
-  .patch(sessionController.updateSession)
+  .patch(
+    sessionMiddleware.validateAdminOwnership, 
+    sessionController.updateSession)
   .delete(sessionController.deleteSession);
 
 module.exports = router;
