@@ -30,9 +30,9 @@ deploy-backend:
   variables:
     DOCKER_DRIVER: overlay2
   script:
-    # Install SSH client and rsync
-    - echo "Installing OpenSSH client and rsync..."
-    - apt-get update && apt-get install -y openssh-client rsync
+    # Install SSH client
+    - echo "Installing OpenSSH client..."
+    - apt-get update && apt-get install -y openssh-client
     - eval $(ssh-agent -s)
 
     # Set up SSH
@@ -41,13 +41,17 @@ deploy-backend:
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan -H ec2-44-203-85-14.compute-1.amazonaws.com >> ~/.ssh/known_hosts
 
+    # Log into Docker registry
+    - echo "Logging in to Docker registry..."
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+
     # Build and push Docker image
     - echo "Building Docker image..."
     - docker build -t "$CI_REGISTRY_IMAGE/backend:latest" -f ./DockerFile .
     - echo "Pushing Docker image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/backend:latest"
 
-    # Deploy the application on the EC2 instance using rsync
+      # Deploy the application on the EC2 instance using rsync
     - echo "Deploying backend using rsync..."
     - rsync -avz --delete --exclude='.git' --exclude='node_modules' ./ ubuntu@ec2-44-203-85-14.compute-1.amazonaws.com:/home/ubuntu/wavetrack-server/
 
@@ -58,6 +62,7 @@ deploy-backend:
       docker pull $CI_REGISTRY_IMAGE/backend:latest &&
       docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
       "
+
   environment:
     name: production
     url: https://web.vottamean.com/api/v1
