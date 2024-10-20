@@ -1,15 +1,15 @@
 version: '3'
 services:
   backend:
-    image: $CI_REGISTRY_IMAGE/backend:latest
+    image: '${CI_REGISTRY_IMAGE}/backend:latest'
     container_name: backend
     restart: always
     ports:
-      - "8000:8000"
+      - '8000:8000'
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=$DATABASE_URL
+      NODE_ENV: production
+      DATABASE_URL: '${DATABASE_URL}'
     volumes:
       - ./:/usr/src/app
     working_dir: /usr/src/app
-    command: "npm start"
+    command: 'npm start'

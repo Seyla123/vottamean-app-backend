@@ -10,7 +10,7 @@ build-backend:
   image: docker:latest
   services:
     - name: docker:dind
-      command: ["--insecure-registry=git.clp.kr:5050"]
+      command: ['--insecure-registry=git.clp.kr:5050']
   variables:
     DOCKER_DRIVER: overlay2
   script:
