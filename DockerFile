@@ -13,9 +13,6 @@ RUN npm install
 # Copy the rest of the application code to the container
 COPY . .
 
-# Copy the docker-compose.yml file to the working directory
-COPY docker-compose.yml /usr/src/app/docker-compose.yml
-
 # Expose the port that your application will run on
 EXPOSE 8000
 
