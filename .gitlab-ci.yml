@@ -49,8 +49,8 @@ deploy-backend:
     - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-206-226-251.compute-1.amazonaws.com "
       echo '$CI_REGISTRY_PASSWORD' | sudo docker login -u '$CI_REGISTRY_USER' --password-stdin '$CI_REGISTRY' &&
       sudo docker pull '$CI_REGISTRY_IMAGE/backend:latest' &&
-      sudo docker run --rm -v /var/run/docker.sock:/var/run/docker.sock '$CI_REGISTRY_IMAGE/backend:latest' \
-      /bin/sh -c 'cd /usr/src/app && docker-compose -f /usr/src/app/docker-compose.yml up -d --build'
+      sudo docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /usr/src/app:/usr/src/app '$CI_REGISTRY_IMAGE/backend:latest' \
+      docker-compose -f /usr/src/app/docker-compose.yml up -d --build
       "
 
   environment:
