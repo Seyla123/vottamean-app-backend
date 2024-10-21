@@ -1,21 +1,9 @@
 const { Sequelize } = require('sequelize');
-const path = require('path');
+require('dotenv').config({
+  path: `.env.${process.env.NODE_ENV || 'development'}`,
+});
 
-// Determine the environment
-const env = process.env.NODE_ENV || 'default';
-
-// Load the appropriate .env file based on NODE_ENV
-if (env === 'production') {
-  require('dotenv').config({
-    path: path.resolve(__dirname, `.env.production`),
-  });
-} else if (env === 'development') {
-  require('dotenv').config({
-    path: path.resolve(__dirname, `.env.development`),
-  });
-} else {
-  require('dotenv').config({ path: path.resolve(__dirname, `.env`) });
-}
+const env = process.env.NODE_ENV || 'development';
 
 // Base configuration
 const baseConfig = {
