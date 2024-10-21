@@ -9,13 +9,13 @@ build-backend:
   image: docker:latest
   services:
     - name: docker:dind
-      command: ["--insecure-registry=git.clp.kr:5050"]
+      command: ['--insecure-registry=git.clp.kr:5050']
   variables:
     DOCKER_DRIVER: overlay2
   script:
     # Log into Docker registry
     - echo "Logging in to Docker registry..."
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
 
     # Build and push Docker image
     - echo "Building Docker image..."
@@ -49,9 +49,9 @@ deploy-backend:
     - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-206-226-251.compute-1.amazonaws.com "
       echo '$CI_REGISTRY_PASSWORD' | sudo docker login -u '$CI_REGISTRY_USER' --password-stdin '$CI_REGISTRY' &&
       sudo docker pull '$CI_REGISTRY_IMAGE/backend:latest' &&
-      sudo docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /home/ubuntu:/app git.clp.kr:5050/anbschool/2nd/hexcode/team-projects/wavetrack-server/backend:latest \
+      sudo docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /home/ubuntu:/app '$CI_REGISTRY_IMAGE/backend:latest' \
       sh -c 'cd /app && docker-compose up -d --build'
-      "
+    "
 
   environment:
     name: production
