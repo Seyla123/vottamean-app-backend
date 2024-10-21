@@ -14,7 +14,6 @@ services:
       DB_HOST: ${DB_HOST}
       DB_DIALECT: ${DB_DIALECT}
       DATABASE_URL: ${DATABASE_URL}
-      NODE_ENV: ${NODE_ENV}
       PORT: ${PORT}
 
       # JWT
