@@ -141,9 +141,6 @@ module.exports = (sequelize, DataTypes) => {
             'emailVerificationExpires',
           ],
         },
-        where: {
-          active: true,
-        },
       },
       scopes: {
         withPassword: {

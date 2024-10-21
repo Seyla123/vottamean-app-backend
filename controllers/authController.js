@@ -409,7 +409,8 @@ exports.protect = catchAsync(async (req, res, next) => {
   const decoded = await jwt.verify(token, process.env.JWT_SECRET);
 
   // 4. Find the user associated with the token.
-  const currentUser = await User.findByPk(decoded.id);
+  const currentUser = await User.findOne({ where: { user_id: decoded.id, active: true } });
+
   if (!currentUser) {
     return next(
       new AppError('The user belonging to this token no longer exists.', 401)
@@ -434,47 +435,47 @@ exports.protect = catchAsync(async (req, res, next) => {
 // ----------------------------
 exports.restrictTo =
   (...roles) =>
-  async (req, res, next) => {
-    // 1. Check if the user's role is included in the allowed roles.
-    if (!roles.includes(req.user.role)) {
-      return next(
-        new AppError('You do not have permission to perform this action', 403)
-      );
-    }
-    // Check if the logged-in user is an admin
-    if (req.user.role === 'admin') {
-      const admin = await SchoolAdmin.findOne({
-        include: [
-          { model: Admin, as: 'Admin', where: { user_id: req.user.user_id } },
-        ],
-      });
+    async (req, res, next) => {
+      // 1. Check if the user's role is included in the allowed roles.
+      if (!roles.includes(req.user.role)) {
+        return next(
+          new AppError('You do not have permission to perform this action', 403)
+        );
+      }
+      // Check if the logged-in user is an admin
+      if (req.user.role === 'admin') {
+        const admin = await SchoolAdmin.findOne({
+          include: [
+            { model: Admin, as: 'Admin', where: { user_id: req.user.user_id } },
+          ],
+        });
 
-      if (!admin) {
-        return next(new AppError('No admin found with that user ID', 404));
+        if (!admin) {
+          return next(new AppError('No admin found with that user ID', 404));
+        }
+
+        // Set the school_admin_id param for admin routes
+        req.school_admin_id = admin.school_admin_id;
       }
 
-      // Set the school_admin_id param for admin routes
-      req.school_admin_id = admin.school_admin_id;
-    }
+      // Check if the logged-in user is a teacher
+      if (req.user.role === 'teacher') {
+        const teacher = await Teacher.findOne({
+          include: [
+            { model: User, as: 'User', where: { user_id: req.user.user_id } },
+          ],
+        });
 
-    // Check if the logged-in user is a teacher
-    if (req.user.role === 'teacher') {
-      const teacher = await Teacher.findOne({
-        include: [
-          { model: User, as: 'User', where: { user_id: req.user.user_id } },
-        ],
-      });
+        if (!teacher) {
+          return next(new AppError('No teacher found with that user ID', 404));
+        }
 
-      if (!teacher) {
-        return next(new AppError('No teacher found with that user ID', 404));
+        // Set the teacher_id param for teacher routes
+        req.teacher_id = teacher.teacher_id;
       }
-
-      // Set the teacher_id param for teacher routes
-      req.teacher_id = teacher.teacher_id;
-    }
-    // 2. Proceed if user role is permitted.
-    next();
-  };
+      // 2. Proceed if user role is permitted.
+      next();
+    };
 
 // ----------------------------
 // CHECK IF USER IS LOGGED IN FUNCTION
@@ -487,7 +488,7 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
       const decoded = await jwt.verify(req.cookies.jwt, process.env.JWT_SECRET);
 
       // 3. Find the user associated with the token.
-      const currentUser = await User.findByPk(decoded.id);
+      const currentUser = await User.findOne({ where: { user_id: decoded.id, active: true } });
       if (!currentUser || currentUser.changedPasswordAfter(decoded.iat)) {
         return next();
       }
@@ -513,6 +514,17 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   // 2. Return error if user is not found.
   if (!user) {
     return next(new AppError('There is no user with that email address.', 404));
+  }
+
+  // Check if the account is active
+  if (!user.active) {
+    // Assuming 'active' is a boolean field
+    return next(
+      new AppError(
+        'Your account is inactive. Please contact support for further assistance.',
+        403
+      )
+    );
   }
 
   // 3. Generate a password reset token and save it.
@@ -559,6 +571,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   // 2. Find the user with the matching reset token and valid expiration time.
   const user = await User.findOne({
     where: {
+      active: true,
       passwordResetToken: hashedToken,
       passwordResetExpires: { [Op.gt]: Date.now() },
     },
@@ -594,7 +607,7 @@ exports.changePassword = catchAsync(async (req, res, next) => {
   }
 
   // 3. Find the current user with their password
-  const user = await User.scope('withPassword').findByPk(req.user.user_id);
+  const user = await User.scope('withPassword').findOne({ where: { user_id : req.user.user_id, active: true } });
 
   if (!user) {
     return next(new AppError('User not found.', 404));
