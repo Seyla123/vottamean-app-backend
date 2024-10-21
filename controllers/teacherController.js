@@ -35,16 +35,36 @@ const AppError = require('../utils/appError');
 const factory = require('./handlerFactory');
 
 // Get one teacher
-exports.getTeacher = factory.getOne(Teacher, 'teacher_id', [
-  {
-    model: User,
-    as: 'User',
-  },
-  {
-    model: Info,
-    as: 'Info',
-  },
-]);
+exports.getTeacher = catchAsync(async (req, res, next) => {
+  // Find the teacher by primary key and include the User model
+  const teacher = await Teacher.findOne({
+
+      where: {
+          teacher_id: req.params.id,
+          school_admin_id: req.school_admin_id,
+          active: true
+      },
+      include: [
+        {
+            model: User,
+            as: 'User',
+        },
+        {
+          model: Info,
+          as: 'Info',
+        }
+    ],
+  });
+
+  if (!teacher) {
+      return next(new AppError('Teacher not found', 404));
+  }
+
+  res.status(200).json({
+      status: 'success',
+      data: teacher,
+  });
+});
 
 // Get all teachers
 exports.getAllTeachers = catchAsync(async (req, res, next) => {
@@ -124,7 +144,57 @@ exports.updateTeacher = catchAsync(async (req, res, next) => {
 });
 
 // Delete teacher
-exports.deleteTeacher = factory.deleteOne(Teacher, 'teacher_id');
+exports.deleteTeacher = catchAsync(async (req, res, next) => {
+  // Find the teacher by teacher_id and school_admin_id
+  const teacher = await Teacher.findOne({
+    where: {
+      teacher_id: req.params.id,
+      school_admin_id: req.school_admin_id,
+      active:true
+    }
+  });
+
+  if (!teacher) {
+    return next(new AppError('Teacher not found', 404));
+  }
+
+  // Find the user record related to the teacher
+  const user = await User.findByPk(teacher.user_id);
+  if (!user) {
+    return next(new AppError('Teacher account not found', 404));
+  }
+
+  // Begin a transaction
+  const transaction = await sequelize.transaction();
+  try {
+    // Update the teacher to set active to false
+    await Teacher.update(
+      { active: false }, // Set active to false
+      { where: { teacher_id: req.params.id }, transaction }
+    );
+
+    // Update the user to set active to false
+    await User.update(
+      { active: false }, // Set active to false
+      { where: { user_id: teacher.user_id }, transaction }
+    );
+
+    // Commit the transaction
+    await transaction.commit();
+
+    // Send success response
+    res.status(200).json({
+      status: 'success',
+      message: 'Teacher deleted successfully',
+      data: teacher
+    });
+  } catch (error) {
+    // Rollback the transaction in case of an error
+    await transaction.rollback();
+    return next(new AppError(`Failed to delete teacher: ${error.message}`, 500));
+  }
+});
+
 
 // ----------------------------
 // SIGNUP FUNCTION FOR TEACHERS
@@ -463,5 +533,65 @@ exports.completeRegistration = catchAsync(async (req, res, next) => {
 
 // Delete many teachers
 exports.deleteManyTeachers = catchAsync(async (req, res, next) => {
-  factory.deleteMany(Teacher, 'teacher_id')(req, res, next);
+  const idArray = req.body.ids; // Assuming `ids` is sent as an array in the request body
+
+  // Ensure idArray is an array
+  if (!Array.isArray(idArray) || idArray.length === 0) {
+    return next(new AppError('Invalid or missing teacher IDs', 400));
+  }
+
+  // Find all teachers by teacher_ids and school_admin_id
+  const teachers = await Teacher.findAll({
+    where: {
+      teacher_id: idArray,
+      school_admin_id: req.school_admin_id
+    }
+  });
+
+  if (teachers.length === 0) {
+    return next(new AppError('No teachers found', 404));
+  }
+
+  // Find all users associated with the teachers
+  const userIds = teachers.map(teacher => teacher.user_id);
+  const users = await User.findAll({
+    where: {
+      user_id: userIds
+    }
+  });
+
+  // Check if all users were found
+  if (users.length !== userIds.length) {
+    return next(new AppError('Some teacher accounts not found', 404));
+  }
+
+  // Begin a transaction
+  const transaction = await sequelize.transaction();
+  try {
+    // Update all teachers to set active to false
+    await Teacher.update(
+      { active: false },
+      { where: { teacher_id: idArray }, transaction }
+    );
+
+    // Update all users to set active to false
+    await User.update(
+      { active: false },
+      { where: { user_id: userIds }, transaction }
+    );
+
+    // Commit the transaction
+    await transaction.commit();
+
+    // Send success response
+    res.status(200).json({
+      status: 'success',
+      message: 'Teachers deleted successfully',
+      data: teachers
+    });
+  } catch (error) {
+    // Rollback the transaction in case of an error
+    await transaction.rollback();
+    return next(new AppError(`Failed to delete teachers: ${error.message}`, 500));
+  }
 });
