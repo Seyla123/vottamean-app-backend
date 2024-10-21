@@ -5,7 +5,7 @@ services:
     container_name: backend
     restart: always
     ports:
-      - '5000:8000'
+      - '8000:8000'
     environment:
       NODE_ENV: production
       DATABASE_URL: 'mysql://admin:hexcodeDB885@vottamean-db.cnag88eqc8ug.us-east-1.rds.amazonaws.com:3306/wavetrack'
