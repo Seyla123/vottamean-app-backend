@@ -1,7 +1,7 @@
 version: '3'
 services:
   backend:
-    image: 'git.clp.kr:5050/anbschool/2nd/hexcode/team-projects/wavetrack-server:latest'
+    image: 'git.clp.kr:5050/anbschool/2nd/hexcode/team-projects/wavetrack-server/backend:latest'
     container_name: backend
     restart: always
     ports:
