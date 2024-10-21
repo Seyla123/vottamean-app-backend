@@ -47,10 +47,10 @@ deploy-backend:
     # SSH into EC2 and deploy
     - echo "Logging in to Docker registry and restarting application on EC2..."
     - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-206-226-251.compute-1.amazonaws.com "
-      echo '$CI_REGISTRY_PASSWORD' | sudo docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY &&
-      sudo docker pull $CI_REGISTRY_IMAGE/backend:latest &&
+      echo '$CI_REGISTRY_PASSWORD' | sudo docker login -u '$CI_REGISTRY_USER' --password-stdin '$CI_REGISTRY' &&
+      sudo docker pull '$CI_REGISTRY_IMAGE/backend:latest' &&
       sudo docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /home/ubuntu:/app git.clp.kr:5050/anbschool/2nd/hexcode/team-projects/wavetrack-server/backend:latest \
-      sh -c 'cd /app && docker-compose up -d --build
+      sh -c 'cd /app && docker-compose up -d --build'
       "
 
   environment:
