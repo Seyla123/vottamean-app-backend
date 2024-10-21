@@ -214,11 +214,11 @@ const getAssociations = (school_admin_id, class_id, subject_id, search) => {
           as: 'SchoolAdmin',
           where: { school_admin_id },
           required: !!school_admin_id,
-        },{
+        }, {
           model: Teacher,
           as: 'Teacher',
           include: [{ model: Info, as: 'Info' }],
-          required:!!school_admin_id,
+          required: !!school_admin_id,
         }
       ],
     },
@@ -246,9 +246,12 @@ exports.getAllAttendancesData = async (req) => {
     'sort',
     'limit',
     'fields',
+    'lte_date',
+    'gte_date',
+    'active'
   ];
   req.query = filterObj(req.query, ...allowedFields);
-  const filter = { active: 1 };
+  const filter = {};
   const features = new APIFeatures(Attendance, req.query)
     .filter()
     .sort()
@@ -260,17 +263,141 @@ exports.getAllAttendancesData = async (req) => {
     include: associations,
   });
 
-  const attendanceCount = await Attendance.count({
-    where: filter,
-    include: associations,
-  })
+  const attendanceCount = await features.count(
+    {
+      where: filter,
+      include: associations,
+    }
+  )
   if (!attendance) {
     throw new AppError('No attendances found', 404);
   }
-  return {
+
+  // Create APIFeatures instance for get total of each status
+  const dataAttendanceFeature = new APIFeatures(Attendance, req.query)
+    .filter() 
+
+  // Execute the query using the provided query configuration
+  const dataAttendance = await dataAttendanceFeature.exec({},{
+    // Get the count of attendances for each status
+    include: [
+      {
+        model: Status,
+        as: 'Status',
+        attributes: ['status'],
+      },
+      // Filter by class_id if provided
+      {
+        model: Student,
+        as: 'Student',
+        where: class_id ? { class_id } : {}, 
+        attributes: [], 
+      },
+      // Filter by subject_id if provided
+      {
+        model: Session,
+        as: 'Sessions',
+        where: subject_id ? { subject_id } : {}, 
+        attributes: [],
+        include: [
+          {
+            model: SchoolAdmin,
+            as: 'SchoolAdmin',
+            where: { school_admin_id: school_admin_id },
+            attributes: [] 
+          }
+        ]
+      },
+    ],
+    // Get the count of attendances for each status
+    attributes: [
+      'status_id',
+      [sequelize.fn('COUNT', sequelize.col('Attendance.status_id')), 'total'],
+    ],
+    group: ['Attendance.status_id', 'Status.status'],
+    where : req.query.active ? { active: req.query.active } : {}
+  });
+
+const uniqueSubjects = await Attendance.findAll({
+  include: [
+    {
+      model: Session,
+      as: 'Sessions', // Ensure this alias matches the association
+      attributes: [], // No need to include session attributes
+      include: [
+        {
+          model: Subject,
+          as: 'Subject', // Ensure this alias matches the association
+          attributes: ['subject_id', 'subject_name'] // Fetching required attributes
+        },
+        {
+          model: SchoolAdmin,
+          as: 'SchoolAdmin',
+          where: school_admin_id ? { school_admin_id: school_admin_id } : {},
+          attributes: [], // You can exclude if not needed
+          required: true 
+        }
+      ]
+    }
+  ],
+  attributes: [
+    [sequelize.fn('DISTINCT', sequelize.col('Sessions.subject_id')), 'subject_id'],// Adjusted to use the correct path
+    [sequelize.col('Sessions.Subject.subject_name'), 'subject_name']
+  ],
+  group: ['Sessions.subject_id', 'Sessions.Subject.subject_name'], // Grouping by necessary fields
+});
+
+const uniqueClassess = await Attendance.findAll({
+  include: [
+    {
+      model: Session,
+      as: 'Sessions', // Ensure this alias matches the association
+      attributes: [], // No need to include session attributes
+      include: [
+        {
+          model: Class,
+          as: 'Class', // Ensure this alias matches the association
+          attributes: ['class_id', 'class_name'] // Fetching required attributes
+        },
+        {
+          model: SchoolAdmin,
+          as: 'SchoolAdmin',
+          where: school_admin_id ? { school_admin_id: school_admin_id } : {},
+          attributes: [], // You can exclude if not needed
+          required: true 
+        }
+      ]
+    }
+  ],
+  attributes: [
+    [sequelize.fn('DISTINCT', sequelize.col('Sessions.class_id')), 'class_id'],// Adjusted to use the correct path
+    [sequelize.col('Sessions.Class.class_name'), 'class_name']
+  ],
+  group: ['Sessions.class_id', 'Sessions.Class.class_name'], // Grouping by necessary fields
+});
+
+
+// Filter out subjects, class with null 
+const filteredUniqueSubjects = uniqueSubjects.filter(subject => subject.dataValues.subject_id !== null || subject.dataValues.subject_name !== null);
+const filteredUniqueClasses= uniqueClassess.filter(classes => classes.dataValues.class_id !== null || classes.dataValues.class_name !== null);
+
+  // Create attendance summary
+  // This will show total count of each status
+  const attendanceSummary = dataAttendance.map(item => ({
+    status_id: item.status_id,
+    status: item.Status.status,
+    total: item.dataValues.total
+  }));
+
+  const result = {
+    attendanceSummary: attendanceSummary,
+    subjects : filteredUniqueSubjects,
+    classes : filteredUniqueClasses,
     attendance,
     attendanceCount,
-  }
+  };
+
+  return result
 };
 
 /**
@@ -281,29 +408,22 @@ exports.getAllAttendancesData = async (req) => {
  * @returns {Promise<Object>} - promise with total count of students
  */
 exports.getStudentCount = async (schoolAdminId, classId) => {
-  const studentCount = await Student.findOne({
+  const studentCounts = await Student.findAll({
     where: { school_admin_id: schoolAdminId, class_id: classId || null },
-    attributes: [
-      [sequelize.fn('COUNT', sequelize.col('student_id')), 'total_students'], // Count all students
-      [
-        sequelize.fn('SUM', sequelize.literal(`CASE WHEN Info.gender = 'male' THEN 1 ELSE 0 END`)),
-        'total_male', // Count male students
-      ],
-      [
-        sequelize.fn('SUM', sequelize.literal(`CASE WHEN Info.gender = 'female' THEN 1 ELSE 0 END`)),
-        'total_female', // Count female students
-      ],
-    ],
     include: [
       {
         model: Info,
         as: 'Info',
-        attributes: [],
       },
     ],
-    group: ['Info.gender'], // Group by gender
   });
-  return studentCount;
+  const maleCount = studentCounts.filter((student) => student.Info.gender === 'Male').length;
+  const femaleCount = studentCounts.filter((student) => student.Info.gender === 'Female').length;
+  return {
+    total_students: studentCounts.length,
+    total_male: maleCount,
+    total_female: femaleCount,
+  };
 };
 
 /**
@@ -374,34 +494,50 @@ exports.formatAttendanceReportData = (attendanceRecords) => {
 };
 
 /**
- * Extracts unique valid dates and maps them to their respective day of the week
- * from the attendance report data.
+ * Extracts unique valid dates from the attendance report data, maps them to their
+ * respective day of the week, and includes an array of unique subjects for each
+ * date.
  *
  * @param {Object[]} result - Attendance report data
  *
- * @returns {Object[]} - Array of objects with date and day properties
+ * @returns {Object[]} - Array of objects with date, day, and subject properties
  */
 exports.getAttendanceReportDateRange = (result) => {
-  // Checks if a date string is valid.
-  const isValidDate = (dateString) => {
-    return dayjs(dateString, 'YYYY-MM-DD', true).isValid();
-  };
+  const isValidDate = (dateString) => dayjs(dateString, 'YYYY-MM-DD', true).isValid();
 
-  // Filter out invalid dates and map valid dates to their respective day of the week
-  const datesWithDays = Array.from(
-    new Set(
-      result.flatMap((item) => Object.keys(item.attendance))
-    )
-  )
-    .filter(isValidDate) // Only keep valid dates
-    .sort((a, b) => dayjs(a).diff(dayjs(b))) // Sort dates in descending order
-    .map((date) => ({
+  // Create a map to collect subjects for each valid date
+  const attendanceMap = {};
+
+  result.forEach(({ attendance }) => {
+    Object.entries(attendance).forEach(([date, subjects]) => {
+      if (!isValidDate(date)) return;
+
+      // Initialize the date entry in the map if it doesn't exist
+      if (!attendanceMap[date]) {
+        attendanceMap[date] = {
+          day: dayjs(date).format('dddd').toUpperCase(),
+          subjects: new Set() // Use a Set to avoid duplicates
+        };
+      }
+
+      // Add subjects to the Set (automatically avoids duplicates)
+      Object.keys(subjects).forEach((subject) => attendanceMap[date].subjects.add(subject));
+    });
+  });
+
+  // Convert the attendance map to an array with unique subjects
+  const datesWithDays = Object.entries(attendanceMap)
+    .map(([date, { day, subjects }]) => ({
       date,
-      day: dayjs(date).format('dddd').toUpperCase(),
-    }));
+      day,
+      subject: Array.from(subjects), // Convert Set to Array
+    }))
+    .sort((a, b) => dayjs(a.date).diff(dayjs(b.date))); // Sort by date
 
   return datesWithDays;
 };
+
+
 
 /**
  * deleteAttendance
@@ -426,10 +562,7 @@ exports.deleteAttendance = (idArr) =>
           },
         }
       );
-      console.log('--------------------------------');
-      console.log('this attendace :', attendance);
-      console.log('--------------------------------');
-      
+
       if (attendance[0] === 0) {
         console.error(`No active attendance found with attendance_id: ${idArr}`);
         return next(new AppError(`No active attendance found with that attendance_id`, 404))
@@ -446,3 +579,5 @@ exports.deleteAttendance = (idArr) =>
       })
     }
   })
+
+  

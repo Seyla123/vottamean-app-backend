@@ -79,7 +79,7 @@ exports.getAll = (
   attribute
 ) =>
   catchAsync(async (req, res, next) => {
-    let filter = { ...additionalFilter, active: 1 };
+    let filter = { ...additionalFilter};
 
     if (req.params.id) filter = { ...filter, id: req.params.id };
 
@@ -91,9 +91,12 @@ exports.getAll = (
       .paginate()
       .includeAssociations(popOptions);
     if (attribute) features.options.attributes = attribute;
-    const totalCount = await features.count({ where: filter });
-
+    
     const doc = await features.exec({
+      where: filter,
+      include: popOptions,
+    });
+    const totalCount = await features.count({
       where: filter,
       include: popOptions,
     });
@@ -144,8 +147,11 @@ exports.updateOne = (Model, idField) =>
     } catch (err) {
       // Return a JSON error response
       console.log('this is error :', err);
+      if(process.env.NODE_ENV !== 'production'){
+      next(new AppError(`${err.message}`, 500));
+      }
 
-      next(new AppError('Server error, please try again later.', 500));
+      next(new AppError(`Server error, please try again later.`, 500));
     }
   });
 

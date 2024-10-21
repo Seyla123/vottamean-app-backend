@@ -17,30 +17,42 @@ module.exports = (sequelize, DataTypes) => {
       first_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidName,
+        validate: {
+          isValidName: infoValidator.isValidName
+        },
       },
       last_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidName,
+        validate: {
+          isValidName: infoValidator.isValidName
+        },
       },
       gender: {
-        type: DataTypes.ENUM('Male', 'Female', 'Other'),
+        type: DataTypes.ENUM('male', 'female', 'other', 'Male', 'Female', 'Other'),
         allowNull: false,
-        validate: infoValidator.isValidGender,
+        validate: {
+          isValidGender: infoValidator.isValidGender
+        },
       },
       photo: {
         type: DataTypes.STRING,
-        validate: infoValidator.isValidPhoto,
+        validate: {
+          isValidPhoto: infoValidator.isValidPhoto
+        },
       },
       phone_number: {
         type: DataTypes.STRING,
-        validate: infoValidator.isValidPhoneNumber,
+        validate: {
+          isValidPhoneNumber: infoValidator.isValidPhoneNumber
+        },
       },
       address: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidAddress,
+        validate: {
+          isValidAddress: infoValidator.isValidAddress
+        },
       },
       dob: {
         type: DataTypes.DATEONLY,

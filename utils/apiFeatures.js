@@ -68,16 +68,19 @@ class APIFeatures {
 
     let filters = {};
     Object.keys(queryObj).forEach((key) => {
-      if (/\b(gte|gt|lte|lt)\b/.test(key)) {
-        const [field, operator] = key.split('_');
-        filters[field] = { [Op[operator]]: queryObj[key] };
-      } if (key === "filter") {
+      if (/\b(gte|gt|lte|lt)_\w+\b/.test(key)) {
+        const [operator, field] = key.split('_');
+        if (field === 'date') {
+          filters.date = { ...filters.date, [Op[operator]]: queryObj[key] };
+        } else {
+          filters[field] = { [Op[operator]]: queryObj[key] };
+        }
+      } else if (key === 'filter') {
         const dateRange = queryObj[key];
         if (APIFeatures.getDateFilters(dateRange) !== null) {
           filters.created_at = APIFeatures.getDateFilters(dateRange);
         }
-      }
-      else {
+      } else {
         filters[key] = queryObj[key];
       }
     });
@@ -108,7 +111,7 @@ class APIFeatures {
   }
   async count(additionalOptions = {}) {
     const countOptions = {
-      ...this.options 
+      ...this.options
     };
     countOptions.where = { ...countOptions.where, ...additionalOptions.where };
 
@@ -160,14 +163,21 @@ class APIFeatures {
     return this;
   }
 
-  async exec(additionalOptions = {}) {
-    const finalOptions = {
-      ...this.options // external filters passed here
+  async exec(additionalOptions = {}, options = false) {
+    let finalOptions = {
+      ...this.options 
     };
+    
     finalOptions.where = { ...finalOptions.where, ...additionalOptions.where };
+
+    // if options true 
+    if (options) {
+      options.where = { ...this.options.where, ...additionalOptions.where };
+      finalOptions = options;
+    }
+
     try {
       const result = await this.query.findAll(finalOptions);
-      console.log('result :', result);
 
       return result;
     } catch (err) {

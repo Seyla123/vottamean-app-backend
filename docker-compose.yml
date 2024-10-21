@@ -5,11 +5,17 @@ services:
     container_name: backend
     restart: always
     ports:
-      - "8000:8000"
+      - '5000:8000'
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=$DATABASE_URL
+      NODE_ENV: production
+      DATABASE_URL: 'mysql://admin:hexcodeDB885@vottamean-db.cnag88eqc8ug.us-east-1.rds.amazonaws.com:3306/wavetrack'
     volumes:
       - ./:/usr/src/app
     working_dir: /usr/src/app
-    command: "npm start"
+    command: 'npm start'
+    networks:
+      - shared-network
+
+networks:
+  shared-network:
+    driver: bridge

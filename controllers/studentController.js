@@ -76,7 +76,8 @@ exports.addStudent = catchAsync(async (req, res, next) => {
   } catch (error) {
     return next(new AppError(error.message, 400));
   }
-
+  // Check if class belongs to admin
+  await isBelongsToAdmin(class_id, 'class_id', req.school_admin_id, Class);
   // 3. Start a transaction
   const transaction = await sequelize.transaction();
   try {
@@ -174,6 +175,10 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
   req.body = filterObj(req.body, ...allowedFields);
 
   const school_admin_id = req.school_admin_id;
+  const class_id = req.body.class_id;
+
+  // Check if class belongs to admin
+  await isBelongsToAdmin(class_id, 'class_id', req.school_admin_id, Class);
   const transaction = await sequelize.transaction();
 
   try {
@@ -234,8 +239,8 @@ exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
 
   // Check if session belongs to the teacher
   const session = await Session.findOne({
-    where: { session_id, teacher_id },
-    include: [{ model: Class, as: 'Class' , attributes : ['class_name']}]
+    where: { session_id, teacher_id , active: true},
+    include: [{ model: Class, as: 'Class', attributes: ['class_name'] }]
   });
 
   if (!session) {
@@ -244,7 +249,9 @@ exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
 
   // Find all students in the same class
   const students = await Student.findAll({
-    where: { class_id: session.class_id },
+    where: { class_id: session.class_id ,
+      active: true
+    },
     include: [{ model: Info, as: 'Info' }],
   });
 
@@ -253,8 +260,8 @@ exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
     status: 'success',
     length: students.length,
     Class: {
-      class_name : session.Class.class_name,
-      total_students : students.length
+      class_name: session.Class.class_name,
+      total_students: students.length
     },
     data: students,
   });
@@ -272,13 +279,14 @@ exports.getAllStudentsByTeacher = catchAsync(async (req, res, next) => {
   // Find all students in teacher assigned class
   const getStudents = await Student.findAll({
     where: {
-     class_id : {
-      [Op.in]: getAllTeacherClasses,
-     }
+      class_id: {
+        [Op.in]: getAllTeacherClasses,
+      },
+      active: true
     },
     include: [{ model: Info, as: 'Info' }],
   });
-  
+
   // Respond successfully with students
   res.status(200).json({
     status: 'success',
