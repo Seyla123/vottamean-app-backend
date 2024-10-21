@@ -111,7 +111,7 @@ class APIFeatures {
   }
   async count(additionalOptions = {}) {
     const countOptions = {
-      ...this.options 
+      ...this.options
     };
     countOptions.where = { ...countOptions.where, ...additionalOptions.where };
 
@@ -163,14 +163,21 @@ class APIFeatures {
     return this;
   }
 
-  async exec(additionalOptions = {}) {
-    const finalOptions = {
-      ...this.options // external filters passed here
+  async exec(additionalOptions = {}, options = false) {
+    let finalOptions = {
+      ...this.options 
     };
+    
     finalOptions.where = { ...finalOptions.where, ...additionalOptions.where };
+
+    // if options true 
+    if (options) {
+      options.where = { ...this.options.where, ...additionalOptions.where };
+      finalOptions = options;
+    }
+
     try {
       const result = await this.query.findAll(finalOptions);
-      console.log('result :', result);
 
       return result;
     } catch (err) {

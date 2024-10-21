@@ -34,9 +34,6 @@ router.get('/me', userController.getMe, userController.getUser);
 // Logout current user
 router.post('/logout', authController.logout);
 
-// Admin route
-router.use(authController.restrictTo('admin'));
-
 // Password management route for admin
 router.patch('/change-password', authController.changePassword);
 
