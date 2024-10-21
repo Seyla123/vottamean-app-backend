@@ -1,7 +1,6 @@
 # Define pipeline stages
 stages:
   - build
-  - push
   - deploy
 
 # Build Docker image job
@@ -28,13 +27,13 @@ build-backend:
     - main
     - develop
 
-# Deploy job using rsync
+# Deploy job to EC2
 deploy-backend:
   stage: deploy
   image: ubuntu:20.04
   before_script:
-    # Install rsync and SSH client
-    - apt-get update && apt-get install -y rsync openssh-client
+    # Install SSH client
+    - apt-get update && apt-get install -y openssh-client
 
   script:
     # Set up SSH
@@ -45,17 +44,12 @@ deploy-backend:
     - ssh-keyscan -H ec2-44-206-226-251.compute-1.amazonaws.com >> ~/.ssh/known_hosts
     - eval $(ssh-agent -s)
 
-    # Deploy the application on the EC2 instance using rsync
-    - echo "Deploying backend using rsync..."
-    - rsync -avz --delete --exclude='.git' --exclude='node_modules' ./ ubuntu@ec2-44-206-226-251.compute-1.amazonaws.com:/home/ubuntu/wavetrack-server/
-
-    # SSH into EC2, log in to the Docker registry, and restart the application
+    # SSH into EC2 and deploy
     - echo "Logging in to Docker registry and restarting application on EC2..."
     - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-206-226-251.compute-1.amazonaws.com "
       echo '$CI_REGISTRY_PASSWORD' | sudo docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY &&
-      cd /home/ubuntu/wavetrack-server &&
       sudo docker pull $CI_REGISTRY_IMAGE/backend:latest &&
-      sudo docker-compose -f /home/ubuntu/wavetrack-server/docker-compose.yml up -d --build
+      sudo docker-compose up -d --build
       "
 
   environment:
