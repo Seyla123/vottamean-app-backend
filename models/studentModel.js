@@ -38,10 +38,6 @@ module.exports = (sequelize, DataTypes) => {
       },
       guardian_relationship: {
         type: DataTypes.STRING,
-        allowNull: false,
-        validate: {
-          isValidGuardianRelationship: validators.isValidGuardianRelationship,
-        },
       },
       guardian_phone_number: {
         type: DataTypes.STRING,
