@@ -44,10 +44,6 @@ deploy-backend:
     - ssh-keyscan -H ec2-44-206-226-251.compute-1.amazonaws.com >> ~/.ssh/known_hosts
     - eval $(ssh-agent -s)
 
-    # Using rsync to copy only the docker-compose.yml file to EC2
-    - echo "Copying docker-compose.yml to EC2..."
-    - rsync -avz ./docker-compose.yml ubuntu@ec2-44-206-226-251.compute-1.amazonaws.com:/home/ubuntu/backend/
-
     # SSH into EC2 and deploy
     - echo "Logging in to Docker registry and restarting application on EC2..."
     - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-206-226-251.compute-1.amazonaws.com "
