@@ -1,5 +1,6 @@
 // Database models
 const { Student, Info, sequelize, Class, Session } = require('../models');
+
 // Info Validators
 const {
   isValidEmail,
@@ -54,8 +55,8 @@ exports.addStudent = catchAsync(async (req, res, next) => {
     phone_number,
     address,
     dob,
-    photo,
-  } = req.body;
+  } = req.body; 
+  const photo = req.file ? req.file.location : null;
 
   // 2. Validate input fields using custom validators
   try {
@@ -156,7 +157,7 @@ exports.getAllStudents = catchAsync(async (req, res, next) => {
 
 // Update all students with their associated info
 exports.updateStudent = catchAsync(async (req, res, next) => {
-  // filter allow fields
+  // filter allowed fields
   const allowedFields = [
     'class_id',
     'guardian_first_name',
@@ -182,19 +183,24 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
   const transaction = await sequelize.transaction();
 
   try {
-    //update student
+    // If a new photo is uploaded, handle it
+    if (req.file) {
+      req.body.photo = req.file.location; // Use the uploaded file's S3 URL
+    }
+    // Update student
     await Student.update(req.body, {
       where: { student_id: req.params.id, school_admin_id },
       transaction,
     });
-    //find student after update
+
+    // Find student after update
     const student = await Student.findOne({
       where: { student_id: req.params.id, school_admin_id },
       include: [{ model: Info, as: 'Info' }],
       transaction,
     });
 
-    //after find student update info
+    // After finding student, update info
     const info_id = student.Info.info_id;
     await Info.update(req.body, {
       where: { info_id },
@@ -204,7 +210,7 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
     // Commit the transaction
     await transaction.commit();
 
-    // respond with success message
+    // Respond with success message
     const updatedStudent = await Student.findOne({
       where: { student_id: req.params.id, school_admin_id },
       include: { model: Info, as: 'Info' },
@@ -212,7 +218,7 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
 
     res.status(201).json({
       status: 'success',
-      message: 'Update student anf their info successfully',
+      message: 'Updated student and their info successfully',
       data: updatedStudent,
     });
   } catch (error) {
@@ -232,7 +238,7 @@ exports.deleteStudent = catchAsync(async (req, res, next) => {
   factory.deleteOne(Student, 'student_id')(req, res, next);
 });
 
-// Get all students by class
+// Get all students by class in a session
 exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
   const session_id = req.params.id;
   const teacher_id = req.teacher_id;
@@ -272,11 +278,17 @@ exports.getAllStudentsByTeacher = catchAsync(async (req, res, next) => {
   const filter = req.query.filter;
   const currentDay = dayjs().isoWeekday();
 
-  // Get all teacher session and get all classes
-  const teacherSessions = await fetchTeacherSessions(req.teacher_id, filter, currentDay);
-  const getAllTeacherClasses = teacherSessions.map(session => session.class_id)
+  // Get all teacher sessions and their assigned classes
+  const teacherSessions = await fetchTeacherSessions(
+    req.teacher_id,
+    filter,
+    currentDay
+  );
+  const getAllTeacherClasses = teacherSessions.map(
+    (session) => session.class_id
+  );
 
-  // Find all students in teacher assigned class
+  // Find all students in teacher-assigned classes
   const getStudents = await Student.findAll({
     where: {
       class_id: {
@@ -292,11 +304,10 @@ exports.getAllStudentsByTeacher = catchAsync(async (req, res, next) => {
     status: 'success',
     length: getStudents.length,
     data: getStudents,
-  })
-})
+  });
+});
 
 // Mark multiple students as inactive
 exports.deleteSelectedStudents = catchAsync(async (req, res, next) => {
   factory.deleteMany(Student, 'student_id')(req, res, next);
-
 });
