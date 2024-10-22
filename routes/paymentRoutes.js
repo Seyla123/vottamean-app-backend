@@ -12,7 +12,7 @@ const router = express.Router();
 router.post(
   '/webhook',
   express.raw({ type: 'application/json' }),
-  paymentController.handleStripeWebhook,
+  paymentController.handleStripeWebhook
 );
 
 // Protect all routes after this middleware
@@ -33,9 +33,8 @@ router.post('/cancel-subscription', paymentController.cancelSubscription);
 // Create a payment intent (for creating subscriptions)
 // router.post('/create-payment-intent', paymentController.createPaymentIntent);
 
-router.post(
-  '/create-checkout-session',
-  paymentController.createCheckoutSession
-);
+router.post('/checkout', paymentController.createCheckoutSession);
+
+router.get('/checkout/sessions/:id', paymentController.getCheckoutSession);
 
 module.exports = router;

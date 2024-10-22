@@ -230,3 +230,31 @@ exports.handleStripeWebhook = catchAsync(async (req, res, next) => {
 
   res.status(200).json({ received: true });
 });
+// -----------------------------------
+// GET CHECKOUT SESSION DETAILS
+// -----------------------------------
+exports.getCheckoutSession = catchAsync(async (req, res, next) => {
+
+  // Retrieve the session ID from the request parameters
+  const sessionId = req.params.id;
+
+  // Retrieve the checkout session details from Stripe
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+  // Calculate the date of the checkout session
+  const date = new Date(session.created * 1000);
+  
+  // Send a JSON response with the checkout session details
+  res.status(200).json({
+    status: 'success',
+    data: {
+      sessionId: session.id,
+      totalAmount: session.amount_total / 100,
+      customerEmail: session.customer_details.email,
+      planType: session.metadata,
+      subscriptionId: session.subscription,
+      paymentStatus: session.payment_status,
+      date
+    },
+  });
+})
