@@ -5,7 +5,7 @@ services:
     container_name: backend
     restart: always
     ports:
-      - '8000:8000'
+      - '8000:80'
     environment:
       # Database
       DB_NAME: ${DB_NAME}
