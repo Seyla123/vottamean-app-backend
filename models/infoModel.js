@@ -29,7 +29,7 @@ module.exports = (sequelize, DataTypes) => {
         },
       },
       gender: {
-        type: DataTypes.ENUM('male', 'female', 'other', 'Male', 'Female', 'Other'),
+        type: DataTypes.ENUM('Male', 'Female', 'Other'),
         allowNull: false,
         validate: {
           isValidGender: infoValidator.isValidGender
