@@ -46,68 +46,84 @@ exports.getAllAttendances = catchAsync(async (req, res, next) => {
   });
 });
 
-//Creates attendance for a student in a specific session.
 exports.createAttendance = catchAsync(async (req, res, next) => {
-  // Get today's date for attendance record
   const { session_id, attendance } = req.body;
-  const today = new Date();
 
-  // get session data formatted for sending attendance status email notification
-  const sessionData = await formatDataSessionfForAttendance(session_id);
+  // Set today's date (ignoring time)
+  const today = new Date().setHours(0, 0, 0, 0);
 
-  // Fetch existing attendance for the session and today
-  const existingAttendance = await Attendance.findAll({
-    where: {
-      session_id,
-      date: today,
-    },
-  });
+  // Fetch session data and existing attendance concurrently
+  const [sessionData, existingAttendance] = await Promise.all([
+    formatDataSessionfForAttendance(session_id),
+    Attendance.findAll({
+      where: { session_id, date: today },
+    }),
+  ]);
 
-  // Create a map for quick lookup
+  // Create a map for existing attendance records
   const existingRecordsMap = {};
-  existingAttendance.forEach((record) => {
+  existingAttendance.forEach(record => {
     existingRecordsMap[record.student_id] = record;
   });
 
+  const newAttendance = [];
+  const updateAttendance = [];
+
   // Process attendance records
-  const promises = attendance.map(async ({ student_id, status_id }) => {
-    // get formatted student attendance data for sending notification email to their gardian
-    const data = await formattedStudentAttendance(student_id, sessionData);
-
-    // send email notification to student's gardian
-    //  await sendAttendanceEmail(data, status_id);
-
+  attendance.forEach(({ student_id, status_id }) => {
     if (existingRecordsMap[student_id]) {
-      // Update existing record
-      return Attendance.update(
-        { status_id },
-        {
-          where: {
-            student_id,
-            session_id,
-            date: today,
-          },
-        }
-      );
+      // Queue update operations
+      updateAttendance.push({
+        status_id,
+        student_id,
+        session_id,
+        date: today,
+      });
     } else {
-      // Create a new attendance record
-      return Attendance.create({
+      // Queue new attendance records for bulk insertion
+      newAttendance.push({
         student_id,
         session_id,
         status_id,
         date: today,
       });
     }
+
+    // Offload email sending asynchronously (without waiting)
+    formattedStudentAttendance(student_id, sessionData).then((data) => {
+      sendAttendanceEmail(data, status_id); // Don't await, let it run in the background
+    });
   });
 
-  // resovle all promises
-  await Promise.all(promises);
+  // Perform batch database operations
+  if (newAttendance.length) {
+    await Attendance.bulkCreate(newAttendance);
+  }
+
+  if (updateAttendance.length) {
+    // Perform bulk updates in parallel
+    const updatePromises = updateAttendance.map((attendance) =>
+      Attendance.update(
+        { status_id: attendance.status_id },
+        {
+          where: {
+            student_id: attendance.student_id,
+            session_id: attendance.session_id,
+            date: attendance.date,
+          },
+        }
+      )
+    );
+    await Promise.all(updatePromises);
+  }
 
   return res.status(200).json({
     status: 'success',
-    message: 'Attendance has been marked/updated successfully.',
+    message: 'Attendance has been marked successfully.',
   });
 });
+
+
 
 //Update an attendance record by attendance ID
 exports.updateAttendance = catchAsync(async (req, res, next) => {

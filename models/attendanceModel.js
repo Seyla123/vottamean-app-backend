@@ -16,9 +16,6 @@ module.exports = (sequelize, DataTypes) => {
       date: {
         type: DataTypes.DATEONLY,
         allowNull: false,
-        validate: {
-          isValidDate: validators.isValidDate
-        },
       },
       active: {
         type: DataTypes.BOOLEAN,

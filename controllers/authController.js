@@ -541,7 +541,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     await new Email(user, resetURL).sendPasswordReset();
     res.status(200).json({
       status: 'success',
-      message: 'Token sent to email!',
+      message: 'Forgot password succesfully',
     });
   } catch (err) {
     // 6. Handle email sending errors by resetting fields and sending an error response.
