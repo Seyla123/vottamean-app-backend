@@ -218,12 +218,12 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
 
     res.status(201).json({
       status: 'success',
-      message: 'Updated student and their info successfully',
+      message: 'Updated student info successfully',
       data: updatedStudent,
     });
   } catch (error) {
     await transaction.rollback();
-    return next(new AppError('Error updating student or info', 500));
+    return next(new AppError('Error updating student', 500));
   }
 });
 
