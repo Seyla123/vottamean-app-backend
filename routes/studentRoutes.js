@@ -23,13 +23,19 @@ router
     photoController.resizeUserPhoto,
     studentController.getAllStudents
   )
-  .post(studentController.addStudent);
+  .post(
+    photoController.uploadUserPhoto,
+    photoController.resizeUserPhoto,
+    studentController.addStudent
+  );
 
 // Routes for individual student operations
-router.route('/').delete(
-  authController.restrictTo('admin'),
-  studentController.deleteSelectedStudents
-);
+router
+  .route('/')
+  .delete(
+    authController.restrictTo('admin'),
+    studentController.deleteSelectedStudents
+  );
 router
   .route('/:id')
   .get(studentController.getStudent)
