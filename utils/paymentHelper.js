@@ -1,4 +1,4 @@
-const { Admin, Subscription, Teacher, Student, Payment } = require('../models');
+const { Admin, Subscription, Teacher, Student, Payment, sequelize } = require('../models');
 const AppError = require('./appError');
 
 // Helper function to check subscription limits for teachers and students
@@ -20,21 +20,30 @@ const checkLimit = async (school_admin_id, type) => {
     !schoolAdmin.Subscriptions ||
     schoolAdmin.Subscriptions.length === 0
   ) {
-    throw new AppError('No active subscription found for this admin', 403);
+    throw new AppError(`You're not subscribed. Select a plan to continue.`, 403);
   }
 
-  const { plan_type, duration } = schoolAdmin.Subscriptions[0];
+  const { plan_type, duration, end_date } = schoolAdmin.Subscriptions[0];
+
+  const today = new Date();
+  const isExpired = end_date < today;
+
+
+  if (isExpired) {
+    throw new AppError('Your subscription has expired', 402);
+  }
 
   // 2. Count the number of entities (teachers or students)
   const entityCount =
     type === 'teacher'
-      ? await Teacher.count({ where: { school_admin_id } })
-      : await Student.count({ where: { school_admin_id } });
+      ? await Teacher.count({ where: { school_admin_id, active: true } })
+      : await Student.count({ where: { school_admin_id, active: true } });
 
   // 3. Check plan type and entity limit
   if (plan_type === 'basic' && duration === 'trial') {
     // Basic Free Trial Plan
     const limit = type === 'teacher' ? 5 : 50;
+
     if (entityCount >= limit) {
       throw new AppError(`Basic Free plan allows only ${limit} ${type}s`, 403);
     }
@@ -106,6 +115,7 @@ exports.handleCheckoutSessionCompleted = async (session) => {
 
     // If current plan is basic, create a new subscription without extending the existing one
     if (currentPlanType === 'basic') {
+
       console.log(
         `Admin with admin_id: ${admin_id} is currently on the basic plan. Creating a new subscription for the ${plan_type} plan.`
       );
@@ -132,9 +142,47 @@ exports.handleCheckoutSessionCompleted = async (session) => {
     } else {
       // For non-basic plans, check if they are trying to switch plans
       if (currentPlanType !== plan_type) {
-        return console.error(
-          `Admin with admin_id: ${admin_id} is currently on the ${currentPlanType} plan. They must cancel this plan before switching to ${plan_type}.`
-        );
+        const transaction = await sequelize.transaction();
+        try {
+
+          // cancel all previuse plans
+          await Subscription.update(
+            {
+              status: 'canceled',
+            },
+            { where: { admin_id } },
+            { transaction }
+          );
+
+          // subcribe  new plan
+          await Subscription.create({
+            admin_id,
+            plan_type: plan_type,
+            duration: duration,
+            stripe_subscription_id: subscriptionId,
+            start_date: new Date(),
+            end_date: new Date(),
+            status: 'active',
+          }, { transaction })
+
+          // Record the payment
+          await Payment.create({
+            admin_id,
+            subscription_id: activeSubscription
+              ? activeSubscription.subscription_id
+              : newSubscription.subscription_id,
+            amount: (session.amount_total / 100).toFixed(2),
+            payment_method: session.payment_method_types[0],
+            payment_status: 'successful',
+          }, { transaction });
+
+          // commit the transaction
+          await transaction.commit();
+        } catch (error) {
+          // Rollback the transaction in case of an error
+          await transaction.rollback();
+          return console.error(error);
+        }
       }
 
       // Extend the current subscription based on duration
@@ -156,6 +204,7 @@ exports.handleCheckoutSessionCompleted = async (session) => {
       console.log(
         `Subscription extended for admin_id: ${admin_id} until ${newEndDate}`
       );
+
     }
   } else {
     // If no active subscription, create a new one

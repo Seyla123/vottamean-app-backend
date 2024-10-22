@@ -70,6 +70,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
           {
             model: Subscription,
             as: 'Subscriptions',
+            where: { status: 'active' },
             required: false,
           },
         ],
@@ -138,7 +139,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
     id: user_id,
     email,
     role,
-    subscriptions, // Only include the root level subscriptions
+    subscriptions : subscriptions, // Only include the root level subscriptions
     adminProfile:
       role === 'admin' && AdminProfile
         ? { ...AdminProfile, Subscriptions: undefined }
