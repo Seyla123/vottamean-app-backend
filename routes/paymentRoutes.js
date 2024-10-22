@@ -13,14 +13,6 @@ router.post(
   '/webhook',
   express.raw({ type: 'application/json' }),
   paymentController.handleStripeWebhook,
-  (req, res) => {
-    console.log('Received webhook:', req.body);
-    res.status(200).json({
-      received: true,
-      status: 'success',
-      message: 'Webhook received',
-    });
-  }
 );
 
 // Protect all routes after this middleware

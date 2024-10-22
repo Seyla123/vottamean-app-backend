@@ -143,24 +143,6 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
     });
   }
 
-  // Fetch the active subscription of the user
-  const currentSubscription = await Subscription.findOne({
-    where: { admin_id, status: 'active' },
-    order: [['createdAt', 'DESC']],
-  });
-
-  // Check if the user already has an active plan and if they are trying to switch to a different plan
-  if (currentSubscription) {
-    const { plan_type: currentPlanType } = currentSubscription;
-
-    // Allow upgrade only from 'basic' to other plans
-    if (currentPlanType !== 'basic' && currentPlanType !== plan_type) {
-      return res.status(400).json({
-        status: 'fail',
-        message: `You are currently subscribed to the ${currentPlanType} plan. Please cancel your current subscription before switching to the ${plan_type} plan.`,
-      });
-    }
-  }
 
   // Calculate the plan amount based on plan type and duration
   const amount = getPlanAmount(plan_type, duration);
@@ -219,7 +201,6 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
 exports.handleStripeWebhook = catchAsync(async (req, res, next) => {
   const sig = req.headers['stripe-signature'];
   let event;
-
   try {
     event = stripe.webhooks.constructEvent(
       req.body,
@@ -227,6 +208,7 @@ exports.handleStripeWebhook = catchAsync(async (req, res, next) => {
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
+
     return next(new AppError(`Webhook Error: ${err.message}`, 400));
   }
 

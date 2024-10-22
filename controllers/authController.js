@@ -90,6 +90,10 @@ exports.signup = catchAsync(async (req, res, next) => {
   // 3. Check if the email is already registered.
   const existingUser = await User.findOne({ where: { email } });
 
+  if (existingUser && existingUser.emailVerified) {
+    return next(new AppError('This email is already registered.', 400));
+  }
+
   // 4. If the user exists but is not verified, always allow a new verification token.
   if (existingUser && !existingUser.emailVerified) {
     // 5. Generate a new verification token and its hashed version.
