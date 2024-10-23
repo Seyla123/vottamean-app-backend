@@ -44,6 +44,7 @@ exports.createVerificationToken = () => {
   return { token: verificationToken, hashedToken };
 };
 
+// Email Verification For Registration
 exports.sendVerificationEmail = async (email, verificationUrl) => {
   const emailService = new Email({ email }, verificationUrl);
   await emailService.sendVerification();

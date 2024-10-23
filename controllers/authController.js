@@ -35,6 +35,7 @@ const Email = require('../utils/email');
 const {
   createVerificationToken,
   sendVerificationEmail,
+  sendForgotPasswordEmail,
   createSendToken,
 } = require('../utils/authUtils');
 
@@ -413,7 +414,9 @@ exports.protect = catchAsync(async (req, res, next) => {
   const decoded = await jwt.verify(token, process.env.JWT_SECRET);
 
   // 4. Find the user associated with the token.
-  const currentUser = await User.findOne({ where: { user_id: decoded.id, active: true } });
+  const currentUser = await User.findOne({
+    where: { user_id: decoded.id, active: true },
+  });
 
   if (!currentUser) {
     return next(
@@ -439,47 +442,47 @@ exports.protect = catchAsync(async (req, res, next) => {
 // ----------------------------
 exports.restrictTo =
   (...roles) =>
-    async (req, res, next) => {
-      // 1. Check if the user's role is included in the allowed roles.
-      if (!roles.includes(req.user.role)) {
-        return next(
-          new AppError('You do not have permission to perform this action', 403)
-        );
-      }
-      // Check if the logged-in user is an admin
-      if (req.user.role === 'admin') {
-        const admin = await SchoolAdmin.findOne({
-          include: [
-            { model: Admin, as: 'Admin', where: { user_id: req.user.user_id } },
-          ],
-        });
+  async (req, res, next) => {
+    // 1. Check if the user's role is included in the allowed roles.
+    if (!roles.includes(req.user.role)) {
+      return next(
+        new AppError('You do not have permission to perform this action', 403)
+      );
+    }
+    // Check if the logged-in user is an admin
+    if (req.user.role === 'admin') {
+      const admin = await SchoolAdmin.findOne({
+        include: [
+          { model: Admin, as: 'Admin', where: { user_id: req.user.user_id } },
+        ],
+      });
 
-        if (!admin) {
-          return next(new AppError('No admin found with that user ID', 404));
-        }
-
-        // Set the school_admin_id param for admin routes
-        req.school_admin_id = admin.school_admin_id;
+      if (!admin) {
+        return next(new AppError('No admin found with that user ID', 404));
       }
 
-      // Check if the logged-in user is a teacher
-      if (req.user.role === 'teacher') {
-        const teacher = await Teacher.findOne({
-          include: [
-            { model: User, as: 'User', where: { user_id: req.user.user_id } },
-          ],
-        });
+      // Set the school_admin_id param for admin routes
+      req.school_admin_id = admin.school_admin_id;
+    }
 
-        if (!teacher) {
-          return next(new AppError('No teacher found with that user ID', 404));
-        }
+    // Check if the logged-in user is a teacher
+    if (req.user.role === 'teacher') {
+      const teacher = await Teacher.findOne({
+        include: [
+          { model: User, as: 'User', where: { user_id: req.user.user_id } },
+        ],
+      });
 
-        // Set the teacher_id param for teacher routes
-        req.teacher_id = teacher.teacher_id;
+      if (!teacher) {
+        return next(new AppError('No teacher found with that user ID', 404));
       }
-      // 2. Proceed if user role is permitted.
-      next();
-    };
+
+      // Set the teacher_id param for teacher routes
+      req.teacher_id = teacher.teacher_id;
+    }
+    // 2. Proceed if user role is permitted.
+    next();
+  };
 
 // ----------------------------
 // CHECK IF USER IS LOGGED IN FUNCTION
@@ -492,7 +495,9 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
       const decoded = await jwt.verify(req.cookies.jwt, process.env.JWT_SECRET);
 
       // 3. Find the user associated with the token.
-      const currentUser = await User.findOne({ where: { user_id: decoded.id, active: true } });
+      const currentUser = await User.findOne({
+        where: { user_id: decoded.id, active: true },
+      });
       if (!currentUser || currentUser.changedPasswordAfter(decoded.iat)) {
         return next();
       }
@@ -542,7 +547,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
   // 5. Attempt to send the password reset email.
   try {
-    await new Email(user, resetURL).sendPasswordReset();
+    await new Email(user, resetURL).sendForgotPassword();
     res.status(200).json({
       status: 'success',
       message: 'Forgot password succesfully',
@@ -611,7 +616,9 @@ exports.changePassword = catchAsync(async (req, res, next) => {
   }
 
   // 3. Find the current user with their password
-  const user = await User.scope('withPassword').findOne({ where: { user_id : req.user.user_id, active: true } });
+  const user = await User.scope('withPassword').findOne({
+    where: { user_id: req.user.user_id, active: true },
+  });
 
   if (!user) {
     return next(new AppError('User not found.', 404));
