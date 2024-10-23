@@ -3,7 +3,10 @@ const nodemailer = require('nodemailer');
 const { htmlToText } = require('html-to-text');
 
 // Import HTML template function
-const { generateEmailTemplate } = require('./emailTemplate');
+const { generateEmailTemplate } = require('../emails/emailTemplate');
+const {
+  forgotPasswordEmailTemplate,
+} = require('../emails/forgotPasswordEmailTemplate');
 const {
   attendanceStatusEmailTemplate,
 } = require('../emails/attendanceStatusEmailTemaple');
@@ -71,17 +74,44 @@ class Email {
     }
   }
 
+  // Updated sendForgotPassword Method
+  async sendForgotPassword() {
+    const subject = 'Password Reset Request';
+
+    // Generate HTML content using the template function
+    const html = forgotPasswordEmailTemplate({
+      firstName: this.firstName,
+      resetURL: this.url,
+      unsubscriberesetURL: this.unsubscribeUrl,
+    });
+
+    // Convert HTML to text
+    const text = htmlToText(html);
+
+    // Set up mail options
+    const mailOptions = {
+      from: this.from,
+      to: this.to,
+      subject,
+      html,
+      text,
+    };
+
+    // Send the email
+    try {
+      await this.newTransport().sendMail(mailOptions);
+      console.log('Email sent successfully');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      throw new Error('Email sending failed');
+    }
+  }
+
+  // Send Email Verification For Registration
   async sendVerification() {
     await this.send('emailVerification', 'Email Verification Link');
   }
 
-  async sendWelcome() {
-    await this.send('welcome', 'Welcome to Our Platform!');
-  }
-
-  async sendPasswordReset() {
-    await this.send('passwordReset', 'Password Reset Token');
-  }
   // New Method to Send Attendance Notification
   async sendAttendanceNotification(data, status_id) {
     const statusMap = {
@@ -98,7 +128,6 @@ class Email {
 
     const subject = `${statusInfo.text} : Attendance Alert for ${data.studentName}`;
     const html = attendanceStatusEmailTemplate(data, statusInfo.text);
-    //const message = `Dear Guardian,\n\nThis is to inform you that your child, ${studentName}, is marked as ${statusText} in today's session.\n\nBest regards,\nSchool Administration`;
     const message = htmlToText(html);
     // Prepare mail options
     const mailOptions = {
@@ -121,6 +150,16 @@ class Email {
   // Send Teacher Verification Email
   async sendTeacherVerification() {
     await this.send('teacherVerification', 'Verify Your Teacher Account');
+  }
+
+  // // Send Email Verification For Registration
+  // async sendVerification() {
+  //   await this.send('emailVerification', 'Email Verification Link');
+  // }
+
+  // Send Welcome Email To New Users
+  async sendWelcome() {
+    await this.send('welcome', 'Welcome to Our Platform!');
   }
 }
 

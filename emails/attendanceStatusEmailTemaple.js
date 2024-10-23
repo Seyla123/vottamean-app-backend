@@ -162,7 +162,9 @@ exports.attendanceStatusEmailTemplate = (data, status) => `
 
       <div class="email-body">
         <h2>Hello ${data.guardianName},</h2>
-        <p>We are writing to inform you that your child, <span class="highlight">${data.studentName}</span>, has been marked for today's session as follows:</p>
+        <p>We are writing to inform you that your child, <span class="highlight">${
+          data.studentName
+        }</span>, has been marked for today's session as follows:</p>
 
         <div class="email-details">
           <h3>Session Details</h3>
@@ -199,7 +201,9 @@ exports.attendanceStatusEmailTemplate = (data, status) => `
       </div>
 
       <div class="email-footer">
-        <p>&copy; ${new Date().getFullYear()} ${data.schoolName}. All Rights Reserved.</p>
+        <p>&copy; ${new Date().getFullYear()} ${
+  data.schoolName
+}. All Rights Reserved.</p>
         <p><a href="#">Contact Us</a> | <a href="#">Unsubscribe</a></p>
       </div>
     </div>
