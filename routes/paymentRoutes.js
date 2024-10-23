@@ -12,14 +12,17 @@ const router = express.Router();
 router.post(
   '/webhook',
   express.raw({ type: 'application/json' }),
-  paymentController.handleStripeWebhook,
+  paymentController.handleStripeWebhook
 );
 
 // Protect all routes after this middleware
 router.use(authController.protect);
-
+router.use(authController.restrictTo('admin'));
 // Require email verification for payment routes
 router.use(authController.requireEmailVerification);
+router.use(paymentController.checkAdminExists);
+
+
 
 // Get all payment data
 router.get('/get-all-payments', paymentController.getAllPayments);
@@ -30,12 +33,9 @@ router.get('/get-all-subscriptions', paymentController.getAllSubscriptions);
 // Cancel a subscription
 router.post('/cancel-subscription', paymentController.cancelSubscription);
 
-// Create a payment intent (for creating subscriptions)
-// router.post('/create-payment-intent', paymentController.createPaymentIntent);
+router.post('/checkout', paymentController.createCheckoutSession);
 
-router.post(
-  '/create-checkout-session',
-  paymentController.createCheckoutSession
-);
+router.get('/checkout/sessions/:id', paymentController.getCheckoutSession);
+
 
 module.exports = router;
