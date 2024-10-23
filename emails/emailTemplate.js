@@ -26,7 +26,7 @@ function generateEmailTemplate(firstName, url, subject, unsubscribeUrl) {
         </div>
         <div style="background-color: #f8fafc; padding: 30px; text-align: center; font-size: 14px; color: #666; position: relative;">
         <img src="https://react-email-demo-5c0l8sni5-resend.vercel.app/static/yelp-footer.png" alt="footer image" style="position: absolute; top: 0; left: 0; width: 100%; height: auto;">
-        <p style="margin: 10px 0px;">© ${new Date().getFullYear()} WaveTrack. All rights reserved.</p>
+        <p style="margin: 10px 0px;">© ${new Date().getFullYear()} Vottamean. All rights reserved.</p>
         </div>
     </div>
 </body>

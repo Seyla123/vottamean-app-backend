@@ -5,11 +5,11 @@ const { htmlToText } = require('html-to-text');
 // Import HTML template function
 const { generateEmailTemplate } = require('../emails/emailTemplate');
 const {
-  attendanceStatusEmailTemplate,
-} = require('../emails/attendanceStatusEmailTemaple');
-const {
   forgotPasswordEmailTemplate,
 } = require('../emails/forgotPasswordEmailTemplate');
+const {
+  attendanceStatusEmailTemplate,
+} = require('../emails/attendanceStatusEmailTemaple');
 
 // Email Service
 class Email {
@@ -23,7 +23,6 @@ class Email {
 
   // Create Transporter
   newTransport() {
-    // For Future Paid Service
     // if (process.env.NODE_ENV === 'production') {
     //   return nodemailer.createTransport({
     //     host: process.env.BREVO_HOST,
@@ -47,15 +46,15 @@ class Email {
     });
   }
 
-  // Send Email with Dynamic Message Template
-  async send(templateFunction, subject, templateData = {}) {
-    // Get the HTML template using the passed template function
-    const html = templateFunction({
-      firstName: this.firstName,
-      url: this.url,
-      unsubscribeUrl: this.unsubscribeUrl,
-      ...templateData,
-    });
+  // Send Email with Message Template
+  async send(template, subject) {
+    // Get the HTML template from emailTemplates.js
+    const html = generateEmailTemplate(
+      this.firstName,
+      this.url,
+      subject,
+      this.unsubscribeUrl
+    );
     const text = htmlToText(html);
 
     const mailOptions = {
@@ -75,37 +74,45 @@ class Email {
     }
   }
 
-  // Send Email Verification Link
-  async sendVerification() {
-    const templateData = {
-      message: 'Please verify your email using the link below:',
-    };
-    await this.send(
-      generateEmailTemplate,
-      'Email Verification Link',
-      templateData
-    );
-  }
-
-  // Send Welcome Email
-  async sendWelcome() {
-    const templateData = {
-      message: 'Welcome to Our Platform! We are glad to have you with us.',
-    };
-    await this.send(
-      generateEmailTemplate,
-      'Welcome to Our Platform!',
-      templateData
-    );
-  }
-
-  // Method to Send the Forgot Password Email Template
+  // Updated sendForgotPassword Method
   async sendForgotPassword() {
-    const subject = 'Password Reset Token';
-    await this.send(forgotPasswordEmailTemplate, subject, {});
+    const subject = 'Password Reset Request';
+
+    // Generate HTML content using the template function
+    const html = forgotPasswordEmailTemplate({
+      firstName: this.firstName,
+      resetURL: this.url,
+      unsubscriberesetURL: this.unsubscribeUrl,
+    });
+
+    // Convert HTML to text
+    const text = htmlToText(html);
+
+    // Set up mail options
+    const mailOptions = {
+      from: this.from,
+      to: this.to,
+      subject,
+      html,
+      text,
+    };
+
+    // Send the email
+    try {
+      await this.newTransport().sendMail(mailOptions);
+      console.log('Email sent successfully');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      throw new Error('Email sending failed');
+    }
   }
 
-  // Method to Send Attendance Notification
+  // Send Email Verification For Registration
+  async sendVerification() {
+    await this.send('emailVerification', 'Email Verification Link');
+  }
+
+  // New Method to Send Attendance Notification
   async sendAttendanceNotification(data, status_id) {
     const statusMap = {
       1: { text: 'Present', className: 'present' },
@@ -120,22 +127,39 @@ class Email {
     };
 
     const subject = `${statusInfo.text} : Attendance Alert for ${data.studentName}`;
-    await this.send(attendanceStatusEmailTemplate, subject, {
-      studentName: data.studentName,
-      statusText: statusInfo.text,
-    });
+    const html = attendanceStatusEmailTemplate(data, statusInfo.text);
+    const message = htmlToText(html);
+    // Prepare mail options
+    const mailOptions = {
+      from: this.from,
+      to: this.to,
+      subject,
+      text: message,
+      html: html,
+    };
+
+    try {
+      await this.newTransport().sendMail(mailOptions);
+      console.log(`Attendance email sent successfully to ${this.to}`);
+    } catch (error) {
+      console.error(`Error sending attendance email to ${this.to}:`, error);
+      throw new Error('Attendance email sending failed :', error);
+    }
   }
 
   // Send Teacher Verification Email
   async sendTeacherVerification() {
-    const templateData = {
-      message: 'Please verify your teacher account using the link below:',
-    };
-    await this.send(
-      generateEmailTemplate,
-      'Verify Your Teacher Account',
-      templateData
-    );
+    await this.send('teacherVerification', 'Verify Your Teacher Account');
+  }
+
+  // // Send Email Verification For Registration
+  // async sendVerification() {
+  //   await this.send('emailVerification', 'Email Verification Link');
+  // }
+
+  // Send Welcome Email To New Users
+  async sendWelcome() {
+    await this.send('welcome', 'Welcome to Our Platform!');
   }
 }
 
