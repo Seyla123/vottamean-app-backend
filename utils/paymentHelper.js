@@ -20,7 +20,7 @@ const checkLimit = async (school_admin_id, type) => {
     !schoolAdmin.Subscriptions ||
     schoolAdmin.Subscriptions.length === 0
   ) {
-    throw new AppError(`You're not subscribed. Select a plan to continue.`, 403);
+    throw new AppError(`You haven’t subscribed yet. Please select a plan to avoid temporary deactivation.`, 403);
   }
 
   const { plan_type, duration, end_date } = schoolAdmin.Subscriptions[0];
@@ -107,83 +107,53 @@ exports.handleCheckoutSessionCompleted = async (session) => {
   });
 
   let newEndDate;
-  let newSubscription;
+  let newSubscriptionId;
 
   if (activeSubscription) {
     const { plan_type: currentPlanType, end_date: currentEndDate } =
       activeSubscription;
 
-    // If current plan is basic, create a new subscription without extending the existing one
-    if (currentPlanType === 'basic') {
+    // For non-basic plans, check if they are trying to switch plans
+    if (currentPlanType !== plan_type) {
+      const transaction = await sequelize.transaction();
+      try {
+        // If no active subscription, create a new one
+        const end_date =
+          duration === 'monthly'
+            ? addMonths(new Date(), 1)
+            : addYears(new Date(), 1);
+        // cancel all previuse plans
+        await Subscription.update(
+          {
+            status: 'canceled',
+          },
+          { where: { admin_id } },
+          { transaction }
+        );
 
-      console.log(
-        `Admin with admin_id: ${admin_id} is currently on the basic plan. Creating a new subscription for the ${plan_type} plan.`
-      );
+        // subcribe  new plan
+        const newSubscription = await Subscription.create({
+          admin_id,
+          plan_type: plan_type,
+          duration: duration,
+          stripe_subscription_id: subscriptionId,
+          start_date: new Date(),
+          end_date: end_date,
+          status: 'active',
+        }, { transaction })
 
-      // Create a new subscription with the new plan type
-      const end_date =
-        duration === 'monthly'
-          ? addMonths(new Date(), 1)
-          : addYears(new Date(), 1);
+        newSubscriptionId = newSubscription.subscription_id;
 
-      newSubscription = await Subscription.create({
-        admin_id,
-        plan_type,
-        duration,
-        stripe_subscription_id: subscriptionId,
-        start_date: new Date(),
-        end_date,
-        status: 'active',
-      });
 
-      console.log(
-        `New subscription created for admin_id: ${admin_id} with plan type: ${plan_type}`
-      );
-    } else {
-      // For non-basic plans, check if they are trying to switch plans
-      if (currentPlanType !== plan_type) {
-        const transaction = await sequelize.transaction();
-        try {
-
-          // cancel all previuse plans
-          await Subscription.update(
-            {
-              status: 'canceled',
-            },
-            { where: { admin_id } },
-            { transaction }
-          );
-
-          // subcribe  new plan
-          await Subscription.create({
-            admin_id,
-            plan_type: plan_type,
-            duration: duration,
-            stripe_subscription_id: subscriptionId,
-            start_date: new Date(),
-            end_date: new Date(),
-            status: 'active',
-          }, { transaction })
-
-          // Record the payment
-          await Payment.create({
-            admin_id,
-            subscription_id: activeSubscription
-              ? activeSubscription.subscription_id
-              : newSubscription.subscription_id,
-            amount: (session.amount_total / 100).toFixed(2),
-            payment_method: session.payment_method_types[0],
-            payment_status: 'successful',
-          }, { transaction });
-
-          // commit the transaction
-          await transaction.commit();
-        } catch (error) {
-          // Rollback the transaction in case of an error
-          await transaction.rollback();
-          return console.error(error);
-        }
+        // commit the transaction
+        await transaction.commit();
+      } catch (error) {
+        // Rollback the transaction in case of an error
+        await transaction.rollback();
+        return console.error(error);
       }
+    }
+    else {
 
       // Extend the current subscription based on duration
       if (duration === 'monthly') {
@@ -197,15 +167,19 @@ exports.handleCheckoutSessionCompleted = async (session) => {
         {
           end_date: newEndDate,
           stripe_subscription_id: subscriptionId,
+          duration: duration,
         },
         { where: { subscription_id: activeSubscription.subscription_id } }
       );
+
+      newSubscriptionId= activeSubscription.subscription_id
 
       console.log(
         `Subscription extended for admin_id: ${admin_id} until ${newEndDate}`
       );
 
     }
+
   } else {
     // If no active subscription, create a new one
     const end_date =
@@ -213,7 +187,7 @@ exports.handleCheckoutSessionCompleted = async (session) => {
         ? addMonths(new Date(), 1)
         : addYears(new Date(), 1);
 
-    newSubscription = await Subscription.create({
+    const newSubscription = await Subscription.create({
       admin_id,
       plan_type,
       duration,
@@ -222,16 +196,14 @@ exports.handleCheckoutSessionCompleted = async (session) => {
       end_date,
       status: 'active',
     });
+    newSubscriptionId= newSubscription.subscription_id;
 
     console.log(`New subscription created for admin_id: ${admin_id}`);
   }
-
   // Record the payment
   await Payment.create({
     admin_id,
-    subscription_id: activeSubscription
-      ? activeSubscription.subscription_id
-      : newSubscription.subscription_id,
+    subscription_id: newSubscriptionId,
     amount: (session.amount_total / 100).toFixed(2),
     payment_method: session.payment_method_types[0],
     payment_status: 'successful',

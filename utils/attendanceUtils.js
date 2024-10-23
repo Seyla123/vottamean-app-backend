@@ -248,7 +248,7 @@ exports.getAllAttendancesData = async (req) => {
     'fields',
     'lte_date',
     'gte_date',
-    'active'
+    'active',
   ];
   req.query = filterObj(req.query, ...allowedFields);
   const filter = {};

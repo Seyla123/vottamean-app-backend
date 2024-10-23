@@ -1,5 +1,5 @@
 const stripe = require('../config/stripe');
-const { Subscription, Payment, Admin } = require('../models');
+const { Subscription, Payment, Admin, SchoolAdmin } = require('../models');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const {
@@ -56,17 +56,10 @@ exports.getAllPayments = catchAsync(async (req, res, next) => {
 // CANCEL SUBSCRIPTION
 // -----------------------------------
 exports.cancelSubscription = catchAsync(async (req, res, next) => {
-  const { admin_id } = req.body;
-
-  if (!admin_id) {
-    return res.status(400).json({
-      status: 'fail',
-      message: 'Missing required field: admin_id',
-    });
-  }
+  const adminId = req.admin_id;
 
   const activeSubscription = await Subscription.findOne({
-    where: { admin_id, status: 'active' },
+    where: { admin_id : adminId, status: 'active' },
     order: [['createdAt', 'DESC']],
   });
 
@@ -75,33 +68,6 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
       status: 'fail',
       message: 'No active subscription found to cancel.',
     });
-  }
-
-  if (activeSubscription.plan_type === 'trial') {
-    return res.status(400).json({
-      status: 'fail',
-      message: 'Cannot cancel a free trial subscription.',
-    });
-  }
-
-  if (!activeSubscription.stripe_subscription_id) {
-    return res.status(400).json({
-      status: 'fail',
-      message: 'Stripe subscription ID is missing or undefined.',
-    });
-  }
-
-  try {
-    await stripe.subscriptions.cancel(
-      activeSubscription.stripe_subscription_id
-    );
-  } catch (error) {
-    return next(
-      new AppError(
-        `Error canceling subscription in Stripe: ${error.message}`,
-        400
-      )
-    );
   }
 
   await Subscription.update(
@@ -115,19 +81,37 @@ exports.cancelSubscription = catchAsync(async (req, res, next) => {
   });
 });
 
+// Check if admin exists
+exports.checkAdminExists = async (req, res, next) => {
+  const school_admin_id = req.school_admin_id;
+
+  const schoolAdminId  = await SchoolAdmin.findOne({
+    where: { school_admin_id: school_admin_id },
+    attributes: ['admin_id'],
+  });
+  if (!schoolAdminId) {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'could not find school admin',
+    });
+  }
+  req.admin_id = schoolAdminId.admin_id;
+  
+  if (!req.admin_id) {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'could not find this admin id',
+    });
+  }
+  next();
+};
+
 // -----------------------------------
 // CREATE CHECKOUT SESSION : Stripe UI
 // -----------------------------------
 exports.createCheckoutSession = catchAsync(async (req, res, next) => {
-  const { admin_id, plan_type, duration } = req.body;
-
-  // Check for missing required fields
-  if (!admin_id || !plan_type || !duration) {
-    return res.status(400).json({
-      status: 'fail',
-      message: 'Missing required fields: admin_id, plan_type, or duration',
-    });
-  }
+  const { plan_type, duration } = req.body;
+  const adminId  = req.admin_id;
 
   const validPlanTypes = ['basic', 'standard', 'premium'];
   const validDurations = ['trial', 'monthly', 'yearly'];
@@ -181,7 +165,7 @@ exports.createCheckoutSession = catchAsync(async (req, res, next) => {
       success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
       metadata: {
-        admin_id,
+        admin_id:adminId,
         plan_type,
         duration,
       },
