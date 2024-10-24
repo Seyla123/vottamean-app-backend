@@ -25,6 +25,7 @@ const statusRoutes = require('./statusRoutes');
 
 // Information Route
 const infoRoutes = require('./infoRoutes');
+const emailRoutes = require('./emailRoutes');
 
 // User Routes
 router.use('/auth', authRoutes);
@@ -51,5 +52,6 @@ router.use('/attendance', attendanceRoutes);
 
 // Information Route
 router.use('/info', infoRoutes);
+router.use('/email', emailRoutes);
 
 module.exports = router;

@@ -35,6 +35,7 @@ const Email = require('../utils/email');
 const {
   createVerificationToken,
   sendVerificationEmail,
+  sendForgotPasswordEmail,
   createSendToken,
 } = require('../utils/authUtils');
 
@@ -90,6 +91,10 @@ exports.signup = catchAsync(async (req, res, next) => {
   // 3. Check if the email is already registered.
   const existingUser = await User.findOne({ where: { email } });
 
+  if (existingUser && existingUser.emailVerified) {
+    return next(new AppError('This email is already registered.', 400));
+  }
+
   // 4. If the user exists but is not verified, always allow a new verification token.
   if (existingUser && !existingUser.emailVerified) {
     // 5. Generate a new verification token and its hashed version.
@@ -117,8 +122,8 @@ exports.signup = catchAsync(async (req, res, next) => {
 
     // 7. Construct the verification URL and send it via email.
     const verificationUrl =
-      `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}` ||
-      `${req.headers.origin}/auth/verify-email/${verificationToken}?token=${tempToken}`;
+      `${req.headers.origin}/auth/verify-email/${verificationToken}?token=${tempToken}` ||
+      `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}`;
 
     try {
       await sendVerificationEmail(email, verificationUrl);
@@ -172,8 +177,8 @@ exports.signup = catchAsync(async (req, res, next) => {
 
   // 11. Construct the verification URL and send it via email.
   const verificationUrl =
-    `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}` ||
-    `${req.headers.origin}/auth/verify-email/${verificationToken}?token=${tempToken}`;
+    `${req.headers.origin}/auth/verify-email/${verificationToken}?token=${tempToken}` ||
+    `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}`;
 
   try {
     await sendVerificationEmail(email, verificationUrl);
@@ -409,7 +414,10 @@ exports.protect = catchAsync(async (req, res, next) => {
   const decoded = await jwt.verify(token, process.env.JWT_SECRET);
 
   // 4. Find the user associated with the token.
-  const currentUser = await User.findByPk(decoded.id);
+  const currentUser = await User.findOne({
+    where: { user_id: decoded.id, active: true },
+  });
+
   if (!currentUser) {
     return next(
       new AppError('The user belonging to this token no longer exists.', 401)
@@ -487,7 +495,9 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
       const decoded = await jwt.verify(req.cookies.jwt, process.env.JWT_SECRET);
 
       // 3. Find the user associated with the token.
-      const currentUser = await User.findByPk(decoded.id);
+      const currentUser = await User.findOne({
+        where: { user_id: decoded.id, active: true },
+      });
       if (!currentUser || currentUser.changedPasswordAfter(decoded.iat)) {
         return next();
       }
@@ -515,21 +525,32 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no user with that email address.', 404));
   }
 
+  // Check if the account is active
+  if (!user.active) {
+    // Assuming 'active' is a boolean field
+    return next(
+      new AppError(
+        'Your account is inactive. Please contact support for further assistance.',
+        403
+      )
+    );
+  }
+
   // 3. Generate a password reset token and save it.
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
 
   // 4. Construct the password reset URL.
   const resetURL =
-    `http://localhost:5173/auth/verify-reset-password/${resetToken}` ||
-    `${req.headers.origin}/auth/verify-reset-password/${resetToken}`;
+    `${req.headers.origin}/auth/verify-reset-password/${resetToken}` ||
+    `http://localhost:5173/auth/verify-reset-password/${resetToken}`;
 
   // 5. Attempt to send the password reset email.
   try {
-    await new Email(user, resetURL).sendPasswordReset();
+    await new Email(user, resetURL).sendForgotPassword();
     res.status(200).json({
       status: 'success',
-      message: 'Token sent to email!',
+      message: 'Forgot password succesfully',
     });
   } catch (err) {
     // 6. Handle email sending errors by resetting fields and sending an error response.
@@ -559,6 +580,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   // 2. Find the user with the matching reset token and valid expiration time.
   const user = await User.findOne({
     where: {
+      active: true,
       passwordResetToken: hashedToken,
       passwordResetExpires: { [Op.gt]: Date.now() },
     },
@@ -594,7 +616,9 @@ exports.changePassword = catchAsync(async (req, res, next) => {
   }
 
   // 3. Find the current user with their password
-  const user = await User.scope('withPassword').findByPk(req.user.user_id);
+  const user = await User.scope('withPassword').findOne({
+    where: { user_id: req.user.user_id, active: true },
+  });
 
   if (!user) {
     return next(new AppError('User not found.', 404));

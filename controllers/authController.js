@@ -59,21 +59,6 @@ exports.signup = catchAsync(async (req, res, next) => {
     school_phone_number,
   } = req.body;
 
-  console.log('Received Data:', {
-    email,
-    password,
-    passwordConfirm,
-    address,
-    dob,
-    first_name,
-    last_name,
-    gender,
-    phone_number,
-    school_name,
-    school_address,
-    school_phone_number,
-  });
-
   // 2. Validate input fields using custom validators.
   try {
     isValidEmail(email);
