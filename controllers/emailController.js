@@ -1,6 +1,9 @@
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const nodemailer = require('nodemailer');
+const {
+  generateSupportEmailTemplate,
+} = require('../emails/emailSupportTemplate');
 require('dotenv').config();
 
 // Email transporter configuration
@@ -25,16 +28,14 @@ exports.receiveEmailSupport = catchAsync(async (req, res, next) => {
     );
   }
 
+  // Use the imported template function
+  const emailContent = generateSupportEmailTemplate(name, email, message);
+
   const mailOptions = {
     from: process.env.EMAIL_USERNAME,
     to: process.env.EMAIL_USERNAME,
     subject: `Support Request from ${name}`,
-    html: `
-      <h3>New Support Request</h3>
-      <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Message:</strong> ${message}</p>
-    `,
+    html: emailContent,
   };
 
   // Send the email
