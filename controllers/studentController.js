@@ -172,6 +172,8 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
     'address',
     'dob',
     'photo',
+    'existing_photo',
+    'remove_photo'
   ];
   req.body = filterObj(req.body, ...allowedFields);
 
@@ -183,10 +185,21 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
   const transaction = await sequelize.transaction();
 
   try {
-    // If a new photo is uploaded, handle it
+    // Handle photo updates
     if (req.file) {
-      req.body.photo = req.file.location; // Use the uploaded file's S3 URL
+      // New photo uploaded
+      req.body.photo = req.file.location;
+    } else if (req.body.remove_photo === 'true') {
+      // Photo was removed
+      req.body.photo = null;
+    } else if (req.body.existing_photo) {
+      // Keep existing photo
+      req.body.photo = req.body.existing_photo;
     }
+
+    // Remove temporary fields
+    delete req.body.remove_photo;
+    delete req.body.existing_photo;
     // Update student
     await Student.update(req.body, {
       where: { student_id: req.params.id, school_admin_id },
@@ -206,6 +219,7 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
       where: { info_id },
       transaction,
     });
+    console.log('Request body for update:', req.body);
 
     // Commit the transaction
     await transaction.commit();

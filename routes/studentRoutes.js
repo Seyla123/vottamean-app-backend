@@ -39,7 +39,11 @@ router
 router
   .route('/:id')
   .get(studentController.getStudent)
-  .patch(studentController.updateStudent)
+  .patch(
+    photoController.uploadUserPhoto,
+    photoController.resizeUserPhoto,
+    studentController.updateStudent
+  )
   .delete(studentController.deleteStudent);
 
 // Route for deleting multiple students

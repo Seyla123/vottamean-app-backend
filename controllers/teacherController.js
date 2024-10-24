@@ -38,31 +38,30 @@ const factory = require('./handlerFactory');
 exports.getTeacher = catchAsync(async (req, res, next) => {
   // Find the teacher by primary key and include the User model
   const teacher = await Teacher.findOne({
-
-      where: {
-          teacher_id: req.params.id,
-          school_admin_id: req.school_admin_id,
-          active: true
+    where: {
+      teacher_id: req.params.id,
+      school_admin_id: req.school_admin_id,
+      active: true,
+    },
+    include: [
+      {
+        model: User,
+        as: 'User',
       },
-      include: [
-        {
-            model: User,
-            as: 'User',
-        },
-        {
-          model: Info,
-          as: 'Info',
-        }
+      {
+        model: Info,
+        as: 'Info',
+      },
     ],
   });
 
   if (!teacher) {
-      return next(new AppError('Teacher not found', 404));
+    return next(new AppError('Teacher not found', 404));
   }
 
   res.status(200).json({
-      status: 'success',
-      data: teacher,
+    status: 'success',
+    data: teacher,
   });
 });
 
@@ -94,7 +93,6 @@ exports.getAllTeachers = catchAsync(async (req, res, next) => {
   )(req, res, next);
 });
 
-// Update teacher
 exports.updateTeacher = catchAsync(async (req, res, next) => {
   // 1. Check if the teacher belongs to the admin
   await isBelongsToAdmin(
@@ -119,9 +117,22 @@ exports.updateTeacher = catchAsync(async (req, res, next) => {
   // 4. Extract necessary fields from the request body
   const { first_name, last_name, gender, phone_number, dob, address } =
     req.body;
-  const photo = req.file ? req.file.location : info.photo; // Keep the existing photo if none is uploaded
 
-  // 5. Filter out allowed fields for the update
+  // 5. Handle photo field
+  let photo = info.photo; // Default to current photo
+
+  if (req.file) {
+    // New photo uploaded
+    photo = req.file.location;
+  } else if (req.body.remove_photo === 'true') {
+    // Photo was removed
+    photo = null;
+  } else if (req.body.existing_photo) {
+    // Keep existing photo
+    photo = req.body.existing_photo;
+  }
+
+  // 6. Filter out allowed fields for the update
   const updatedFields = {
     first_name,
     last_name,
@@ -131,9 +142,9 @@ exports.updateTeacher = catchAsync(async (req, res, next) => {
     address,
     photo,
   };
-  // 6. Update the Info record
+  // 7. Update the Info record
   await Info.update(updatedFields, { where: { info_id: teacher.info_id } });
-  // 7. Retrieve the updated Info record
+  // 8. Retrieve the updated Info record
   const updatedInfo = await Info.findByPk(teacher.info_id);
 
   res.status(200).json({
@@ -150,8 +161,8 @@ exports.deleteTeacher = catchAsync(async (req, res, next) => {
     where: {
       teacher_id: req.params.id,
       school_admin_id: req.school_admin_id,
-      active:true
-    }
+      active: true,
+    },
   });
 
   if (!teacher) {
@@ -186,15 +197,16 @@ exports.deleteTeacher = catchAsync(async (req, res, next) => {
     res.status(200).json({
       status: 'success',
       message: 'Teacher deleted successfully',
-      data: teacher
+      data: teacher,
     });
   } catch (error) {
     // Rollback the transaction in case of an error
     await transaction.rollback();
-    return next(new AppError(`Failed to delete teacher: ${error.message}`, 500));
+    return next(
+      new AppError(`Failed to delete teacher: ${error.message}`, 500)
+    );
   }
 });
-
 
 // ----------------------------
 // SIGNUP FUNCTION FOR TEACHERS
@@ -544,8 +556,8 @@ exports.deleteManyTeachers = catchAsync(async (req, res, next) => {
   const teachers = await Teacher.findAll({
     where: {
       teacher_id: idArray,
-      school_admin_id: req.school_admin_id
-    }
+      school_admin_id: req.school_admin_id,
+    },
   });
 
   if (teachers.length === 0) {
@@ -553,11 +565,11 @@ exports.deleteManyTeachers = catchAsync(async (req, res, next) => {
   }
 
   // Find all users associated with the teachers
-  const userIds = teachers.map(teacher => teacher.user_id);
+  const userIds = teachers.map((teacher) => teacher.user_id);
   const users = await User.findAll({
     where: {
-      user_id: userIds
-    }
+      user_id: userIds,
+    },
   });
 
   // Check if all users were found
@@ -587,11 +599,13 @@ exports.deleteManyTeachers = catchAsync(async (req, res, next) => {
     res.status(200).json({
       status: 'success',
       message: 'Teachers deleted successfully',
-      data: teachers
+      data: teachers,
     });
   } catch (error) {
     // Rollback the transaction in case of an error
     await transaction.rollback();
-    return next(new AppError(`Failed to delete teachers: ${error.message}`, 500));
+    return next(
+      new AppError(`Failed to delete teachers: ${error.message}`, 500)
+    );
   }
 });
