@@ -152,7 +152,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
             createdAt: TeacherProfile.createdAt,
             updatedAt: TeacherProfile.updatedAt,
             Info: TeacherProfile.Info,
-            School: school,
+            School: [school],
           }
         : null,
   };
