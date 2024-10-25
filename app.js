@@ -24,6 +24,7 @@ app.use(
       'http://localhost:5173',
       'http://localhost:5174',
       'https://vottamean.com',
+      'https://www.vottamean.com',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
