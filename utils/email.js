@@ -18,7 +18,7 @@ class Email {
     this.firstName = user.first_name || '';
     this.url = url;
     this.unsubscribeUrl = `${url}/unsubscribe`;
-    this.from = `HexCode+ Company <${process.env.BREVO_EMAIL_FROM}>`;
+    this.from = `Vottamean App <${process.env.BREVO_EMAIL_FROM}>`;
   }
 
   // Create Transporter
