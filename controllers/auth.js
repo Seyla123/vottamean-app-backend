@@ -59,21 +59,6 @@ exports.signup = catchAsync(async (req, res, next) => {
     school_phone_number,
   } = req.body;
 
-  console.log('Received Data:', {
-    email,
-    password,
-    passwordConfirm,
-    address,
-    dob,
-    first_name,
-    last_name,
-    gender,
-    phone_number,
-    school_name,
-    school_address,
-    school_phone_number,
-  });
-
   // 2. Validate input fields using custom validators.
   try {
     isValidEmail(email);
@@ -117,7 +102,7 @@ exports.signup = catchAsync(async (req, res, next) => {
         emailVerificationToken: hashedToken,
       },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
+      { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '15m' }
     );
 
     // 7. Construct the verification URL and send it via email.
@@ -172,7 +157,7 @@ exports.signup = catchAsync(async (req, res, next) => {
       emailVerificationToken: hashedToken,
     },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
+    { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '15m' }
   );
 
   // 11. Construct the verification URL and send it via email.
@@ -276,13 +261,13 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
       { transaction }
     );
 
-    // 10. Create the subscription (basic plan, 14-day trial)
+    // 10. Create the subscription (basic plan, 30-day trial)
     await Subscription.create(
       {
         admin_id: admin.admin_id,
         plan_type: 'basic',
         start_date: new Date(),
-        end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
       { transaction }
     );
@@ -525,9 +510,8 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no user with that email address.', 404));
   }
 
-  // Check if the account is active
+  // Check if the account is active.
   if (!user.active) {
-    // Assuming 'active' is a boolean field
     return next(
       new AppError(
         'Your account is inactive. Please contact support for further assistance.',
@@ -536,24 +520,26 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     );
   }
 
-  // 3. Generate a password reset token and save it.
+  // 3. Clear any existing reset tokens and generate a new one.
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+
+  // Generate a fresh reset token
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
 
   // 4. Construct the password reset URL.
-  const resetURL =
-    `${req.headers.origin}/auth/verify-reset-password/${resetToken}` ||
-    `http://localhost:5173/auth/verify-reset-password/${resetToken}`;
+  const resetURL = `${req.headers.origin}/auth/reset-password/${resetToken}`;
 
   // 5. Attempt to send the password reset email.
   try {
     await new Email(user, resetURL).sendForgotPassword();
     res.status(200).json({
       status: 'success',
-      message: 'Forgot password succesfully',
+      message: 'Password reset email sent successfully.',
     });
   } catch (err) {
-    // 6. Handle email sending errors by resetting fields and sending an error response.
+    // Handle email sending errors by resetting fields and sending an error response.
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save({ validateBeforeSave: false });
@@ -591,10 +577,15 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     return next(new AppError('Token is invalid or has expired', 400));
   }
 
-  // 4. Update the user's password and clear the reset token fields.
+  // 4. Update the user's password and clear the reset token fields to invalidate it.
   user.password = req.body.password;
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
+
+  // Update the password changed time for token invalidation on next use.
+  user.passwordChangedAt = Date.now() - 1000;
+
+  // Save the user to ensure the token is invalidated in the database.
   await user.save();
 
   // 5. Generate and send JWT token to the client.

@@ -510,9 +510,8 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no user with that email address.', 404));
   }
 
-  // Check if the account is active
+  // Check if the account is active.
   if (!user.active) {
-    // Assuming 'active' is a boolean field
     return next(
       new AppError(
         'Your account is inactive. Please contact support for further assistance.',
@@ -521,24 +520,26 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     );
   }
 
-  // 3. Generate a password reset token and save it.
+  // 3. Clear any existing reset tokens and generate a new one.
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+
+  // Generate a fresh reset token
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
 
   // 4. Construct the password reset URL.
-  const resetURL =
-    `${req.headers.origin}/auth/verify-reset-password/${resetToken}` ||
-    `http://localhost:5173/auth/verify-reset-password/${resetToken}`;
+  const resetURL = `${req.headers.origin}/auth/reset-password/${resetToken}`;
 
   // 5. Attempt to send the password reset email.
   try {
     await new Email(user, resetURL).sendForgotPassword();
     res.status(200).json({
       status: 'success',
-      message: 'Forgot password succesfully',
+      message: 'Password reset email sent successfully.',
     });
   } catch (err) {
-    // 6. Handle email sending errors by resetting fields and sending an error response.
+    // Handle email sending errors by resetting fields and sending an error response.
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save({ validateBeforeSave: false });
@@ -556,33 +557,33 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 // RESET PASSWORD FUNCTION
 // ----------------------------
 exports.resetPassword = catchAsync(async (req, res, next) => {
-  // 1. Hash the reset token from the request parameters.
   const hashedToken = crypto
     .createHash('sha256')
     .update(req.params.token)
     .digest('hex');
 
-  // 2. Find the user with the matching reset token and valid expiration time.
   const user = await User.findOne({
     where: {
       active: true,
       passwordResetToken: hashedToken,
       passwordResetExpires: { [Op.gt]: Date.now() },
+      passwordResetUsed: false, // Ensure the token hasn’t been used
     },
   });
 
-  // 3. Return error if token is invalid or expired.
   if (!user) {
     return next(new AppError('Token is invalid or has expired', 400));
   }
 
-  // 4. Update the user's password and clear the reset token fields.
+  // Update the password and invalidate the reset token
   user.password = req.body.password;
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
+  user.passwordChangedAt = new Date();
+  user.passwordResetUsed = true; // Mark as used to prevent reuse
+
   await user.save();
 
-  // 5. Generate and send JWT token to the client.
   createSendToken(user, 200, req, res);
 });
 

@@ -38,6 +38,7 @@ module.exports = (sequelize, DataTypes) => {
         .digest('hex');
 
       this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+      this.passwordResetUsed = false;
 
       return resetToken;
     }
@@ -112,6 +113,10 @@ module.exports = (sequelize, DataTypes) => {
       verificationRequestedAt: {
         type: DataTypes.DATE,
         allowNull: true,
+      },
+      passwordResetUsed: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
       },
       active: {
         type: DataTypes.BOOLEAN,
