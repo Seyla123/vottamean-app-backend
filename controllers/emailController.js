@@ -32,8 +32,8 @@ exports.receiveEmailSupport = catchAsync(async (req, res, next) => {
   const emailContent = generateSupportEmailTemplate(name, email, message);
 
   const mailOptions = {
-    from: process.env.EMAIL_USERNAME,
-    to: process.env.EMAIL_USERNAME,
+    from: email,
+    to:'mrrseyla.758@gmail.com',
     subject: `Support Request from ${name}`,
     html: emailContent,
   };
