@@ -97,7 +97,7 @@ function generateSupportEmailTemplate(name, email, message) {
         <div class="email-wrapper">
           <div class="email-container">
             <div class="email-header">
-              <img src="https://wavetrack-s3-bucket-deploy.s3.us-east-1.amazonaws.com/LOGO_without_name.png" alt="Company Logo" onerror="this.onerror=null; this.src=''; this.alt='Company Logo';">
+              <img src="https://wavetrack-s3-bucket-deploy.s3.us-east-1.amazonaws.com/logo-vottamean.png" alt="Company Logo" onerror="this.onerror=null; this.src=''; this.alt='Company Logo';">
             </div>
   
             <div class="email-body">
