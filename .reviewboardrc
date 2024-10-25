@@ -1,0 +1,5 @@
+REVIEWBOARD_URL = "https://review.clp.kr/"
+REPOSITORY = "HexCode/Wave-Track/Backend"
+REPOSITORY_TYPE = "git"
+BRANCH = "feature/create-school-api"
+LAND_DEST_BRANCH = "feature/create-school-api"
