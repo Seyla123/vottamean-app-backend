@@ -18,7 +18,7 @@ function generateEmailTemplate(firstName, url, subject, unsubscribeUrl) {
                 <img src="https://i.pinimg.com/564x/fb/9c/ba/fb9cba7badda493e31abe27c7173c582.jpg" alt="WaveTrack Logo" style="position: absolute; top: 0; left: 0; width: 100%; height: auto;"/>
             </div>
             <p style="font-size: 18px; line-height: 1.6; margin-bottom: 25px;">Hello <span style="font-weight: bold; color: #4379F2;">${firstName}</span>,</p>
-            <p style="font-size: 16px; line-height: 1.6; margin-bottom: 25px;">Thank you for joining WaveTrack! We're excited to have you on board. To get started, please verify your email address by clicking the button below:</p>
+            <p style="font-size: 16px; line-height: 1.6; margin-bottom: 25px;">Thank you for joining Vottamean! We're excited to have you on board. To get started, please verify your email address by clicking the button below:</p>
             <div style="text-align: center; margin-top: 40px; margin-bottom: 40px;">
                 <a href="${url}" style="display: inline-block; padding: 14px 30px; background-color: #4379F2; color: white; text-decoration: none; border-radius: 50px; font-size: 18px; font-weight: bold;  box-shadow: 0 4px 15px rgba(67, 121, 242, 0.3);">Verify Email</a>
             </div>
