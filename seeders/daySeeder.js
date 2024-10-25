@@ -1,7 +1,7 @@
 const { DayOfWeek } = require('../models');
 
 const insertDays = async () => {
-  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   
   for (const day of days) {
     const [dayInstance, created] = await DayOfWeek.findOrCreate({
