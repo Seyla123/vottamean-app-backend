@@ -15,7 +15,7 @@ exports.forgotPasswordEmailTemplate = ({
 <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; margin: 0; padding: 0;">
     <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); overflow: hidden;">
         <div style="background-color: #4379F2; padding: 20px 10px; text-align: center;">
-            <img src="https://wavetrack-s3-bucket-deploy.s3.us-east-1.amazonaws.com/logo-vottamean.png" alt="WaveTrack Logo" style="width: 60px; height: auto; margin-bottom: 20px;"/>
+            <img src="https://wavetrack-s3-bucket-deploy.s3.us-east-1.amazonaws.com/logo-vottamean.png" alt="Vottamean Logo" style="width: 60px; height: auto; margin-bottom: 20px;"/>
             <h1 style="color: white; font-size: 28px; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Password Reset Request</h1>
         </div>
         <div style="padding: 40px 30px; color: #333;">
