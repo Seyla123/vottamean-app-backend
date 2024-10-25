@@ -22,7 +22,7 @@ function generateEmailTemplate(firstName, url, subject, unsubscribeUrl) {
             <div style="text-align: center; margin-top: 40px; margin-bottom: 40px;">
                 <a href="${url}" style="display: inline-block; padding: 14px 30px; background-color: #4379F2; color: white; text-decoration: none; border-radius: 50px; font-size: 18px; font-weight: bold;  box-shadow: 0 4px 15px rgba(67, 121, 242, 0.3);">Verify Email</a>
             </div>
-            <p style="font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 25px;">If you didn't create a WaveTrack account, no worries! You can safely ignore this email.</p>
+            <p style="font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 25px;">If you didn't create a Vottamean account, no worries! You can safely ignore this email.</p>
         </div>
         <div style="background-color: #f8fafc; padding: 30px; text-align: center; font-size: 14px; color: #666; position: relative;">
         <img src="https://react-email-demo-5c0l8sni5-resend.vercel.app/static/yelp-footer.png" alt="footer image" style="position: absolute; top: 0; left: 0; width: 100%; height: auto;">
