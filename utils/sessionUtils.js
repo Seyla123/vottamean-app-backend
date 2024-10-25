@@ -1,4 +1,5 @@
-const { Student, Session, Period, DayOfWeek, Subject, Class, Info, Teacher } = require('../models');
+const { Student, Session, Period, DayOfWeek, Subject, Class, Info, Teacher, Attendance } = require('../models');
+const dayjs = require('dayjs');
 // Function to fetch teacher sessions
 exports.fetchTeacherSessions = async (teacherId, filter, currentDay) => {
     return await Session.findAll({
@@ -22,6 +23,13 @@ exports.formatTeacherSessions = async (sessions) => {
       const studentCount = await Student.count({
         where: { class_id: session.Class.class_id, active: true },
       });
+
+      const findMarkSessionToday = await Attendance.count({
+        where: {
+          session_id: session.session_id,
+          date: dayjs().format('YYYY-MM-DD'),
+        }
+      })
   
       return {
         session_id: session.session_id,
@@ -31,12 +39,12 @@ exports.formatTeacherSessions = async (sessions) => {
         students: studentCount || 0,
         start_time: session.Period.start_time,
         end_time: session.Period.end_time,
+        isClassMarked: findMarkSessionToday ? true : false
       };
     }));
-  
+    formattedSessions.sort((a, b) => a.isClassMarked - b.isClassMarked);
     return formattedSessions;
   };
-
 //   Included model session
   exports.includedSession = [
     { model: DayOfWeek, as: 'DayOfWeek' },

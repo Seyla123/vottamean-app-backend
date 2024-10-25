@@ -1,5 +1,5 @@
 // Database models
-const { Student, Info, sequelize, Class, Session } = require('../models');
+const { Student, Info, sequelize, Class, Session, Attendance } = require('../models');
 
 // Info Validators
 const {
@@ -265,6 +265,17 @@ exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
 
   if (!session) {
     return next(new AppError('Session not found', 400));
+  }
+
+  const findMarkSessionToday = await Attendance.count({
+    where: {
+      session_id: session.session_id,
+      date: dayjs().format('YYYY-MM-DD'),
+    }
+  })
+  
+  if (findMarkSessionToday) {
+    return next(new AppError('This class is already marked today', 400));
   }
 
   // Find all students in the same class
