@@ -507,7 +507,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
   // 2. Return error if user is not found.
   if (!user) {
-    return next(new AppError('There is no user with that email address.', 404));
+    return next(new AppError('There is no user with this email address.', 404));
   }
 
   // Check if the account is active.
