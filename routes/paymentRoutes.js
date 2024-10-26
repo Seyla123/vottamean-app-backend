@@ -23,6 +23,7 @@ router.use(authController.requireEmailVerification);
 router.use(paymentController.checkAdminExists);
 
 
+router.get('/', paymentController.getSubscription);
 
 // Get all payment data
 router.get('/get-all-payments', paymentController.getAllPayments);
@@ -36,6 +37,7 @@ router.post('/cancel-subscription', paymentController.cancelSubscription);
 router.post('/checkout', paymentController.createCheckoutSession);
 
 router.get('/checkout/sessions/:id', paymentController.getCheckoutSession);
+
 
 
 module.exports = router;

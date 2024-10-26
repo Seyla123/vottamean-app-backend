@@ -1,5 +1,5 @@
 const stripe = require('../config/stripe');
-const { Subscription, Payment, Admin, SchoolAdmin } = require('../models');
+const { Subscription, Payment, Admin, SchoolAdmin, Student, Teacher } = require('../models');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const {
@@ -242,3 +242,68 @@ exports.getCheckoutSession = catchAsync(async (req, res, next) => {
     },
   });
 })
+
+// -----------------------------------
+// GET SUBSCRIPTION DETAILS
+// -----------------------------------
+exports.getSubscription = catchAsync(async (req, res, next) => {
+  // Retrieve school admin and admin IDs from request
+  const schoolAdminId = req.school_admin_id;
+  const adminId = req.admin_id;
+
+  // Find the subscription associated with the admin
+  const subscription = await Subscription.findOne({
+    where: { admin_id: adminId },
+    include: [{ model: Admin, as: 'Admin' }],
+  });
+
+  // Count the number of active students for the school admin
+  const currentStudentCount = await Student.count({
+    where: { school_admin_id: schoolAdminId, active: true },
+  });
+
+  // Count the number of active teachers for the school admin
+  const currentTeacherCount = await Teacher.count({
+    where: { school_admin_id: schoolAdminId, active: true },
+  });
+
+  // Determine student and teacher limits based on subscription plan type
+  let limitStudent, limitTeacher;
+  if (subscription.plan_type === 'basic') {
+    limitStudent = 50;
+    limitTeacher = 5;
+  } else if (subscription.plan_type === 'standard') {
+    limitStudent = 1000;
+    limitTeacher = 50;
+  } else {
+    limitStudent = 'unlimited'; // unlimited
+    limitTeacher = 'unlimited'; // unlimited
+  }
+
+  // Calculate percentage of students and teachers used
+  const percentageStudent = currentStudentCount
+    ? Math.round((currentStudentCount / limitStudent) * 100)
+    : 0;
+  const percentageTeacher = currentTeacherCount
+    ? Math.round((currentTeacherCount / limitTeacher) * 100)
+    : 0;
+
+  // Send response with subscription details and current counts
+  res.status(200).json({
+    status: 'success',
+    data: {
+      subscription: {
+        planType: subscription.plan_type,
+        duration: subscription.duration,
+        limitStudent,
+        limitTeacher,
+        currentStudent: currentStudentCount,
+        currentTeacher: currentTeacherCount,
+        percentageStudentLimit: percentageStudent,
+        percentageTeacherLimit: percentageTeacher,
+        startDate: subscription.start_date,
+        endDate: subscription.end_date,
+      },
+    },
+  });
+});
