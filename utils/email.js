@@ -43,6 +43,9 @@ class Email {
         user: process.env.EMAIL_USERNAME,
         pass: process.env.EMAIL_PASSWORD,
       },
+      tls: {
+        rejectUnauthorized: false,
+      },
     });
   }
 
@@ -53,8 +56,9 @@ class Email {
       this.firstName,
       this.url,
       subject,
-      this.unsubscribeUrl
+      `${this.unsubscribeUrl}?email=${encodeURIComponent(this.to)}`
     );
+
     const text = htmlToText(html);
 
     const mailOptions = {
