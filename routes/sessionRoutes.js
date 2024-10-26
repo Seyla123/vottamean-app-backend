@@ -26,7 +26,6 @@ router
   .route('/:id')
   .get(sessionController.getSession)
   .patch(
-    sessionMiddleware.validateAdminOwnership, 
     sessionController.updateSession)
   .delete(sessionController.deleteSession);
 

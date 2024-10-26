@@ -179,9 +179,16 @@ exports.updateStudent = catchAsync(async (req, res, next) => {
 
   const school_admin_id = req.school_admin_id;
   const class_id = req.body.class_id;
-
-  // Check if class belongs to admin
-  await isBelongsToAdmin(class_id, 'class_id', req.school_admin_id, Class);
+  const getStudent = await Student.findOne({
+    where: { student_id: req.params.id, school_admin_id: req.school_admin_id },
+    raw:true
+  });
+  
+  if(Number(class_id) !== getStudent.class_id){
+    // Check if class belongs to admin
+    await isBelongsToAdmin(class_id, 'class_id', req.school_admin_id, Class);
+  }
+  
   const transaction = await sequelize.transaction();
 
   try {

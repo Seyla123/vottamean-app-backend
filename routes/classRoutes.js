@@ -17,6 +17,8 @@ router
   .get(classController.getAllClasses)
   .delete(classController.deleteManyClass);
 
+router.route('/student-class-filter').get(classController.StudentClassFilter);
+
 router
   .route('/:id')
   .get(classController.getClass)
