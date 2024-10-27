@@ -16,7 +16,6 @@ module.exports = (sequelize, DataTypes) => {
       date: {
         type: DataTypes.DATEONLY,
         allowNull: false,
-        validate: validators.isValidDate,
       },
       active: {
         type: DataTypes.BOOLEAN,
@@ -32,6 +31,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   Attendance.associate = (models) => {
     // Attendance belongs to a Student
     Attendance.belongsTo(models.Student, {

@@ -10,9 +10,6 @@ exports.getInfo = factory.getOne(Info, 'info_id');
 // Get all Infos
 exports.getAllInfos = factory.getAll(Info);
 
-// Add a new Info
-exports.addInfo = factory.createOne(Info);
-
 // Update Info
 exports.updateInfo = factory.updateOne(Info, 'info_id');
 

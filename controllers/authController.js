@@ -10,8 +10,21 @@ const {
   Admin,
   School,
   SchoolAdmin,
+  Teacher,
+  Subscription,
 } = require('../models');
 const { Op } = require('sequelize');
+
+// Validators
+const {
+  isValidEmail,
+  isValidPassword,
+  isPasswordConfirm,
+  isValidDOB,
+  isValidName,
+  isValidPhoneNumber,
+  isValidGender,
+} = require('../validators/infoValidator');
 
 // Error Handlers
 const catchAsync = require('../utils/catchAsync');
@@ -22,6 +35,7 @@ const Email = require('../utils/email');
 const {
   createVerificationToken,
   sendVerificationEmail,
+  sendForgotPasswordEmail,
   createSendToken,
 } = require('../utils/authUtils');
 
@@ -45,33 +59,94 @@ exports.signup = catchAsync(async (req, res, next) => {
     school_phone_number,
   } = req.body;
 
-  // 2. Validate that the password and password confirmation match.
-  if (password !== passwordConfirm) {
-    return next(new AppError('Passwords do not match', 400));
+  // 2. Validate input fields using custom validators.
+  try {
+    isValidEmail(email);
+    isValidPassword(password);
+    isPasswordConfirm(passwordConfirm, password);
+    isValidDOB(dob);
+    isValidName(first_name);
+    isValidName(last_name);
+    isValidGender(gender);
+    isValidPhoneNumber(phone_number);
+  } catch (error) {
+    return next(new AppError(error.message, 400));
   }
 
-  // 3. Convert the date of birth to a Date object and validate its format.
-  const formattedDob = new Date(dob);
-  if (isNaN(formattedDob.getTime())) {
-    return next(new AppError('Invalid date format for Date of Birth', 400));
-  }
-
-  // 4. Check if the email is already registered.
+  // 3. Check if the email is already registered.
   const existingUser = await User.findOne({ where: { email } });
-  if (existingUser) {
-    return next(new AppError('Email is already registered', 400));
+
+  if (existingUser && existingUser.emailVerified) {
+    return next(new AppError('This email is already registered.', 400));
   }
 
-  // 5. Generate a verification token and its hashed version.
+  // 4. If the user exists but is not verified, always allow a new verification token.
+  if (existingUser && !existingUser.emailVerified) {
+    // 5. Generate a new verification token and its hashed version.
+    const { token: verificationToken, hashedToken } = createVerificationToken();
+
+    // 6. Create a new temporary JWT token with user data and the hashed verification token.
+    const tempToken = jwt.sign(
+      {
+        email,
+        password,
+        address,
+        dob: new Date(dob),
+        first_name,
+        last_name,
+        gender,
+        phone_number,
+        school_name,
+        school_address,
+        school_phone_number,
+        emailVerificationToken: hashedToken,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
+    );
+
+    // 7. Construct the verification URL and send it via email.
+    const verificationUrl =
+      `${req.headers.origin}/auth/verify-email/${verificationToken}?token=${tempToken}` ||
+      `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}`;
+
+    try {
+      await sendVerificationEmail(email, verificationUrl);
+
+      // Update the `verificationRequestedAt` field and save the new hashed token.
+      existingUser.verificationRequestedAt = new Date();
+      existingUser.emailVerificationToken = hashedToken;
+      await existingUser.save();
+    } catch (error) {
+      return next(new AppError('Failed to send verification email', 500));
+    }
+
+    // 8. Respond with a success message.
+    return res.status(200).json({
+      status: 'success',
+      message:
+        'This email is already registered but not verified. A new verification email has been sent. Please verify your email to complete registration.',
+    });
+  }
+
+  // 9. If no existing user, create a new user with emailVerified set to false and set verificationRequestedAt to now.
   const { token: verificationToken, hashedToken } = createVerificationToken();
 
-  // 6. Create a temporary JWT token with user data and the hashed verification token.
+  const newUser = await User.create({
+    email,
+    password,
+    emailVerified: false,
+    verificationRequestedAt: new Date(),
+    emailVerificationToken: hashedToken,
+  });
+
+  // 10. Generate a new temporary JWT token for the new user.
   const tempToken = jwt.sign(
     {
-      email,
-      password,
+      email: newUser.email,
+      password: newUser.password,
       address,
-      dob: formattedDob,
+      dob: new Date(dob),
       first_name,
       last_name,
       gender,
@@ -85,13 +160,18 @@ exports.signup = catchAsync(async (req, res, next) => {
     { expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRES_IN || '10m' }
   );
 
-  // 7. Construct the verification URL and send it via email.
-  const verificationUrl = `${req.protocol}://${req.get(
-    'host'
-  )}/api/v1/auth/verifyEmail/${verificationToken}?token=${tempToken}`;
-  await sendVerificationEmail(email, verificationUrl);
+  // 11. Construct the verification URL and send it via email.
+  const verificationUrl =
+    `${req.headers.origin}/auth/verify-email/${verificationToken}?token=${tempToken}` ||
+    `http://localhost:5173/auth/verify-email/${verificationToken}?token=${tempToken}`;
 
-  // 8. Respond with a success message and the temporary token.
+  try {
+    await sendVerificationEmail(email, verificationUrl);
+  } catch (error) {
+    return next(new AppError('Failed to send verification email', 500));
+  }
+
+  // 12. Respond with a success message and the temporary token.
   res.status(200).json({
     status: 'success',
     message:
@@ -104,85 +184,111 @@ exports.signup = catchAsync(async (req, res, next) => {
 // VERIFY EMAIL FUNCTION
 // ----------------------------
 exports.verifyEmail = catchAsync(async (req, res, next) => {
-  // 1. Extract necessary fields from the request body.
+  // 1. Extract the token from the URL and log it
+  const { token: urlToken } = req.params;
+
+  // 2. Hash the token from the URL for comparison
   const hashedToken = crypto
     .createHash('sha256')
-    .update(req.params.token)
+    .update(urlToken)
     .digest('hex');
 
+  // 3. Extract temporary JWT token from the query
   const tempToken = req.query.token;
 
-  const decoded = await jwt.verify(tempToken, process.env.JWT_SECRET);
+  // 4. Decode the temporary JWT token to extract the email
+  const decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
 
-  // 2. Validate that the password and password confirmation match.
-  if (decoded.emailVerificationToken !== hashedToken) {
+  // 5. Find the user by the decoded email and include the emailVerificationToken field
+  const user = await User.findOne({
+    where: { email: decoded.email },
+    attributes: ['email', 'emailVerificationToken', 'user_id'],
+  });
+
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
+
+  // 6. Check if the token matches the user's stored verification token
+  if (user.emailVerificationToken !== hashedToken) {
     return next(new AppError('Token is invalid or has expired.', 400));
   }
 
-  // 3. Transaction of the data models
+  // 7. Start a transaction for database updates
   const transaction = await sequelize.transaction();
+
   try {
-    const {
-      email,
-      password,
-      address,
-      dob,
-      first_name,
-      last_name,
-      gender,
-      phone_number,
-      school_name,
-      school_address,
-      school_phone_number,
-    } = decoded;
+    // 8. Update the user's email verification status
+    user.emailVerified = true;
+    user.emailVerificationToken = null;
+    await user.save({ transaction });
 
-    // 4. Create the user first
-    const user = await User.create(
-      { email, password, emailVerified: true },
-      { transaction }
-    );
-
-    // 5. Create info record and get info_id
+    // 9. Create the related Info, School, Admin, and SchoolAdmin records
     const info = await Info.create(
       {
-        first_name,
-        last_name,
-        gender,
-        phone_number,
-        address,
-        dob,
+        first_name: decoded.first_name,
+        last_name: decoded.last_name,
+        gender: decoded.gender,
+        phone_number: decoded.phone_number,
+        address: decoded.address,
+        dob: new Date(decoded.dob),
       },
       { transaction }
     );
 
-    // 6. Create the school record
     const school = await School.create(
-      { school_name, school_address, school_phone_number },
+      {
+        school_name: decoded.school_name,
+        school_address: decoded.school_address,
+        school_phone_number: decoded.school_phone_number,
+      },
       { transaction }
     );
 
-    // 7. Use the info_id from Info creation for Admin creation
     const admin = await Admin.create(
-      { user_id: user.user_id, info_id: info.info_id },
+      {
+        user_id: user.user_id,
+        info_id: info.info_id,
+      },
       { transaction }
     );
 
-    // 8. Create the SchoolAdmin record
     await SchoolAdmin.create(
-      { admin_id: admin.admin_id, school_id: school.school_id },
+      {
+        admin_id: admin.admin_id,
+        school_id: school.school_id,
+      },
       { transaction }
     );
 
-    // 9. Commit the transaction if all records are created successfully
+    // 10. Create the subscription (basic plan, 14-day trial)
+    await Subscription.create(
+      {
+        admin_id: admin.admin_id,
+        plan_type: 'basic',
+        start_date: new Date(),
+        end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      },
+      { transaction }
+    );
+
+    // 11. Commit the transaction
     await transaction.commit();
 
+    // 12. Respond with success
     res.status(200).json({
       status: 'success',
-      message: 'Email verified and account created successfully!',
+      message: 'Email verified and account activated successfully!',
     });
   } catch (err) {
+    // 13. Rollback the transaction if an error occurs
     await transaction.rollback();
-    return next(new AppError(`Failed to create user and school ${err}`, 500));
+    return next(
+      new AppError(
+        `Failed to verify email and update user: ${err.message}`,
+        500
+      )
+    );
   }
 });
 
@@ -214,7 +320,35 @@ exports.login = catchAsync(async (req, res, next) => {
 
   // 3. Find the user by email and verify the password.
   const user = await User.scope('withPassword').findOne({ where: { email } });
-  if (!user || !(await user.correctPassword(password))) {
+
+  // Check if user exists
+  if (!user) {
+    return next(new AppError('Incorrect email or password', 401));
+  }
+
+  // Check if the account is active
+  if (!user.active) {
+    // Assuming 'active' is a boolean field
+    return next(
+      new AppError(
+        'Your account is inactive. Please contact support for further assistance.',
+        403
+      )
+    );
+  }
+
+  // Check if the email is verified
+  if (!user.emailVerified) {
+    return next(
+      new AppError(
+        'Please verify your email before logging in. If you did not receive a verification email, please sign up again.',
+        403
+      )
+    );
+  }
+
+  // Verify password
+  if (!(await user.correctPassword(password))) {
     return next(new AppError('Incorrect email or password', 401));
   }
 
@@ -265,7 +399,10 @@ exports.protect = catchAsync(async (req, res, next) => {
   const decoded = await jwt.verify(token, process.env.JWT_SECRET);
 
   // 4. Find the user associated with the token.
-  const currentUser = await User.findByPk(decoded.id);
+  const currentUser = await User.findOne({
+    where: { user_id: decoded.id, active: true },
+  });
+
   if (!currentUser) {
     return next(
       new AppError('The user belonging to this token no longer exists.', 401)
@@ -290,12 +427,43 @@ exports.protect = catchAsync(async (req, res, next) => {
 // ----------------------------
 exports.restrictTo =
   (...roles) =>
-  (req, res, next) => {
+  async (req, res, next) => {
     // 1. Check if the user's role is included in the allowed roles.
     if (!roles.includes(req.user.role)) {
       return next(
         new AppError('You do not have permission to perform this action', 403)
       );
+    }
+    // Check if the logged-in user is an admin
+    if (req.user.role === 'admin') {
+      const admin = await SchoolAdmin.findOne({
+        include: [
+          { model: Admin, as: 'Admin', where: { user_id: req.user.user_id } },
+        ],
+      });
+
+      if (!admin) {
+        return next(new AppError('No admin found with that user ID', 404));
+      }
+
+      // Set the school_admin_id param for admin routes
+      req.school_admin_id = admin.school_admin_id;
+    }
+
+    // Check if the logged-in user is a teacher
+    if (req.user.role === 'teacher') {
+      const teacher = await Teacher.findOne({
+        include: [
+          { model: User, as: 'User', where: { user_id: req.user.user_id } },
+        ],
+      });
+
+      if (!teacher) {
+        return next(new AppError('No teacher found with that user ID', 404));
+      }
+
+      // Set the teacher_id param for teacher routes
+      req.teacher_id = teacher.teacher_id;
     }
     // 2. Proceed if user role is permitted.
     next();
@@ -312,7 +480,9 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
       const decoded = await jwt.verify(req.cookies.jwt, process.env.JWT_SECRET);
 
       // 3. Find the user associated with the token.
-      const currentUser = await User.findByPk(decoded.id);
+      const currentUser = await User.findOne({
+        where: { user_id: decoded.id, active: true },
+      });
       if (!currentUser || currentUser.changedPasswordAfter(decoded.iat)) {
         return next();
       }
@@ -337,25 +507,39 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
   // 2. Return error if user is not found.
   if (!user) {
-    return next(new AppError('There is no user with that email address.', 404));
+    return next(new AppError('There is no user with this email address.', 404));
   }
 
-  // 3. Generate a password reset token and save it.
+  // Check if the account is active.
+  if (!user.active) {
+    return next(
+      new AppError(
+        'Your account is inactive. Please contact support for further assistance.',
+        403
+      )
+    );
+  }
+
+  // 3. Clear any existing reset tokens and generate a new one.
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+
+  // Generate a fresh reset token
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
 
   // 4. Construct the password reset URL.
-  const resetURL = `http://localhost:5173/reset-password/${resetToken}`;
+  const resetURL = `${req.headers.origin}/auth/reset-password/${resetToken}`;
 
   // 5. Attempt to send the password reset email.
   try {
-    await new Email(user, resetURL).sendPasswordReset();
+    await new Email(user, resetURL).sendForgotPassword();
     res.status(200).json({
       status: 'success',
-      message: 'Token sent to email!',
+      message: 'Password reset email sent successfully.',
     });
   } catch (err) {
-    // 6. Handle email sending errors by resetting fields and sending an error response.
+    // Handle email sending errors by resetting fields and sending an error response.
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save({ validateBeforeSave: false });
@@ -373,51 +557,69 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 // RESET PASSWORD FUNCTION
 // ----------------------------
 exports.resetPassword = catchAsync(async (req, res, next) => {
-  // 1. Hash the reset token from the request parameters.
   const hashedToken = crypto
     .createHash('sha256')
     .update(req.params.token)
     .digest('hex');
 
-  // 2. Find the user with the matching reset token and valid expiration time.
   const user = await User.findOne({
     where: {
+      active: true,
       passwordResetToken: hashedToken,
       passwordResetExpires: { [Op.gt]: Date.now() },
+      passwordResetUsed: false, // Ensure the token hasn’t been used
     },
   });
 
-  // 3. Return error if token is invalid or expired.
   if (!user) {
     return next(new AppError('Token is invalid or has expired', 400));
   }
 
-  // 4. Update the user's password and clear the reset token fields.
+  // Update the password and invalidate the reset token
   user.password = req.body.password;
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
+  user.passwordChangedAt = new Date();
+  user.passwordResetUsed = true; // Mark as used to prevent reuse
+
   await user.save();
 
-  // 5. Generate and send JWT token to the client.
   createSendToken(user, 200, req, res);
 });
 
 // ----------------------------
-// UPDATE PASSWORD FUNCTION
+// CHANGE PASSWORD FUNCTION
 // ----------------------------
-exports.updatePassword = catchAsync(async (req, res, next) => {
-  // 1. Find the current user with their password.
-  const user = await User.scope('withPassword').findByPk(req.user.user_id);
+exports.changePassword = catchAsync(async (req, res, next) => {
+  // 1. Extract currentPassword and newPassword from the request body
+  const { currentPassword, newPassword } = req.body;
 
-  // 2. Verify that the current password provided is correct.
-  if (!(await user.correctPassword(req.body.passwordCurrent))) {
+  // 2. Validate input fields
+  if (!currentPassword || !newPassword) {
+    return next(
+      new AppError('Please provide both current and new passwords.', 400)
+    );
+  }
+
+  // 3. Find the current user with their password
+  const user = await User.scope('withPassword').findOne({
+    where: { user_id: req.user.user_id, active: true },
+  });
+
+  if (!user) {
+    return next(new AppError('User not found.', 404));
+  }
+
+  // 4. Verify that the current password provided is correct
+  const isPasswordCorrect = await user.correctPassword(currentPassword);
+  if (!isPasswordCorrect) {
     return next(new AppError('Your current password is incorrect.', 401));
   }
 
-  // 3. Update the password and save the user.
-  user.password = req.body.password;
+  // 5. Change the password and save the user
+  user.password = newPassword;
   await user.save();
 
-  // 4. Generate and send JWT token to the client.
+  // 6. Generate and send JWT token to the client
   createSendToken(user, 200, req, res);
 });

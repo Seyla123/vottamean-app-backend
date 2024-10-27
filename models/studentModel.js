@@ -15,25 +15,36 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
-      guardian_name: {
+      guardian_first_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidName,
+        validate: {
+          isValidName: infoValidator.isValidName,
+        },
+      },
+      guardian_last_name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: {
+          isValidName: infoValidator.isValidName,
+        },
       },
       guardian_email: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidEmail,
+        validate: {
+          isValidEmail: infoValidator.isValidEmail,
+        },
       },
       guardian_relationship: {
         type: DataTypes.STRING,
-        allowNull: false,
-        validate: validators.isValidGuardianRelationship,
       },
       guardian_phone_number: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidPhoneNumber,
+        validate: {
+          isValidPhoneNumber: infoValidator.isValidPhoneNumber,
+        },
       },
       active: {
         type: DataTypes.BOOLEAN,
@@ -49,7 +60,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
-  // Associations
+  // Define associations
   Student.associate = (models) => {
     // Student belongs to a SchoolAdmin
     Student.belongsTo(models.SchoolAdmin, {
@@ -62,7 +73,7 @@ module.exports = (sequelize, DataTypes) => {
     Student.belongsTo(models.Class, {
       foreignKey: 'class_id',
       as: 'Class',
-      onDelete: 'SET NULL',
+      onDelete: 'CASCADE',
     });
 
     // Student belongs to Info (personal details)

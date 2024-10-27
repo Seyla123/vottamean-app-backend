@@ -1,0 +1,58 @@
+version: '3'
+services:
+  backend:
+    image: 'git.clp.kr:5050/anbschool/2nd/hexcode/team-projects/wavetrack-server/backend:latest'
+    container_name: backend
+    restart: always
+    ports:
+      - '8000:8000'
+    environment:
+      # Database
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_DIALECT: ${DB_DIALECT}
+      DATABASE_URL: ${DATABASE_URL}
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${PORT}
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      JWT_COOKIE_EXPIRES_IN: ${JWT_COOKIE_EXPIRES_IN}
+
+      # Email
+      EMAIL_FROM: ${EMAIL_FROM}
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_USERNAME: ${EMAIL_USERNAME}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+
+      # AWS S3 Bucket Deploy
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME}
+
+      # Stripe Access Key
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+
+      # Price IDs
+      VITE_STRIPE_YEARLY_PLAN: ${VITE_STRIPE_YEARLY_PLAN}
+      VITE_STRIPE_MONTHLY_PLAN: ${VITE_STRIPE_MONTHLY_PLAN}
+
+      # Return URLs
+      CLIENT_PAYMENT_SUCCESS_URL: ${CLIENT_PAYMENT_SUCCESS_URL}
+      CLIENT_PAYMENT_FAILURE_URL: ${CLIENT_PAYMENT_FAILURE_URL}
+
+      # Client Domain Side
+      CLIENT_DOMAIN: ${CLIENT_DOMAIN}
+    # Custome Network
+    networks:
+      - shared-network
+
+networks:
+  shared-network:
+    driver: bridge

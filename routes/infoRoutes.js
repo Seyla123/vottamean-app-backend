@@ -15,11 +15,12 @@ router.use(authController.protect);
 router.use(authController.restrictTo('admin'));
 
 // Info routes
-router.get('/', infoController.getAllInfos).post('/', infoController.addInfo);
+router.route('/').get(infoController.getAllInfos);
 
 router
-  .get('/:id', infoController.getInfo)
-  .put('/:id', infoController.updateInfo)
-  .delete('/:id', infoController.deleteInfo);
+  .route('/:id')
+  .get(infoController.getInfo)
+  .put(infoController.updateInfo)
+  .delete(infoController.deleteInfo);
 
 module.exports = router;

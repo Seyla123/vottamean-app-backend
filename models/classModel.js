@@ -1,10 +1,9 @@
-const { Model } = require('sequelize');
+// In your Class model file
+const { Model, DataTypes } = require('sequelize');
 const validators = require('../validators/validators');
 
 module.exports = (sequelize, DataTypes) => {
-  class Class extends Model {
-    // instance or class methods here if needed
-  }
+  class Class extends Model {}
 
   Class.init(
     {
@@ -16,14 +15,15 @@ module.exports = (sequelize, DataTypes) => {
       class_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: {
-          msg: 'Class name address already in use',
+        validate: {
+          isValidClassName: validators.isValidClassName,
         },
-        validate: validators.isValidClassName,
       },
       description: {
         type: DataTypes.STRING,
-        validate: validators.isValidDescription,
+        validate: {
+          isValidClassName: validators.isValidDescription, // Use imported validator
+        },
       },
       active: {
         type: DataTypes.BOOLEAN,
@@ -39,6 +39,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   Class.associate = (models) => {
     // Class belongs to a School Admin
     Class.belongsTo(models.SchoolAdmin, {

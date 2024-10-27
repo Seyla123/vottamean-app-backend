@@ -13,14 +13,18 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
-      name: {
+      subject_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: validators.isValidSubject,
+        validate: {
+          isValidSubject: validators.isValidSubject
+        },
       },
       description: {
         type: DataTypes.STRING,
-        validate: validators.isValidDescription,
+        validate: {
+          isValidDescription: validators.isValidDescription
+        },
       },
       active: {
         type: DataTypes.BOOLEAN,
@@ -36,7 +40,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
-  // Associations
+  // Define associations
   Subject.associate = (models) => {
     // Subject belongs to a School Admin
     Subject.belongsTo(models.SchoolAdmin, {

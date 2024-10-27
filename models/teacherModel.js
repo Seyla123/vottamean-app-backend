@@ -12,6 +12,11 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
+      active: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        allowNull: false,
+      },
     },
     {
       sequelize,
@@ -21,6 +26,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   Teacher.associate = (models) => {
     // Teacher belongs to a User
     Teacher.belongsTo(models.User, {

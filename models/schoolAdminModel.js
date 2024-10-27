@@ -21,6 +21,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   SchoolAdmin.associate = (models) => {
     // SchoolAdmin belongs to an Admin
     SchoolAdmin.belongsTo(models.Admin, {
@@ -34,13 +35,19 @@ module.exports = (sequelize, DataTypes) => {
       as: 'School',
     });
 
+    // SchoolAdmin has many Class
+    SchoolAdmin.hasMany(models.Class, {
+      foreignKey: 'school_admin_id',
+      as: 'Classes',
+    });
+
     // SchoolAdmin has many Teachers
     SchoolAdmin.hasMany(models.Teacher, {
       foreignKey: 'school_admin_id',
       as: 'Teachers',
     });
 
-    // SchoolAdmin has many Classes
+    // SchoolAdmin has many Students
     SchoolAdmin.hasMany(models.Student, {
       foreignKey: 'school_admin_id',
       as: 'Students',

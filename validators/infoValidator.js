@@ -25,7 +25,7 @@ module.exports = {
 
   // Validator for gender field
   isValidGender: (value) => {
-    const allowedGenders = ['male', 'female', 'other'];
+    const allowedGenders = ['Male', 'Female', 'Other'];
     if (!allowedGenders.includes(value)) {
       throw new Error('Gender must be either male, female, or other');
     }
@@ -34,19 +34,25 @@ module.exports = {
 
   // Validator for phone number
   isValidPhoneNumber: (value) => {
+    // Remove non-numeric characters (except for +)
+    const cleanedValue = value.replace(/[^\d+]/g, '');
+
+    // Check length and format
     if (
-      !validator.isLength(value, { min: 10, max: 15 }) ||
-      !/^[0-9]{10,15}$/.test(value)
+      !validator.isLength(cleanedValue, { min: 10, max: 15 }) ||
+      !/^\+?\d{9,15}$/.test(cleanedValue) // Allow optional '+' at the start and validate digits
     ) {
-      throw new Error('Phone number must be between 10 and 15 digits');
+      throw new Error(
+        'Phone number must be between 10 and 15 digits and can include a country code.'
+      );
     }
+
     return true;
   },
 
-  // Validator for address field
   isValidAddress: (value) => {
-    if (validator.isEmpty(value)) {
-      throw new Error('Address is required');
+    if (!validator.isLength(value, { max: 225 })) {
+      throw new Error('Address cannot be longer than 225 characters');
     }
     return true;
   },
@@ -70,7 +76,7 @@ module.exports = {
       );
     }
 
-    // Optional: Further check that the date is not in the future
+    // Check if the date is not in the future
     if (validator.isAfter(value, new Date().toISOString().split('T')[0])) {
       throw new Error('Date of birth cannot be in the future');
     }
@@ -94,9 +100,23 @@ module.exports = {
     if (validator.isEmpty(value)) {
       throw new Error('A password is required');
     }
+
     if (!validator.isLength(value, { min: 8 })) {
       throw new Error('Password must be at least 8 characters long');
     }
+
+    if (!/[a-zA-Z]/.test(value)) {
+      throw new Error('Password must contain at least one letter');
+    }
+
+    if (!/[0-9]/.test(value)) {
+      throw new Error('Password must contain at least one number');
+    }
+
+    if (!/[\W_]/.test(value)) {
+      throw new Error('Password must contain at least one special character');
+    }
+
     return true;
   },
 
@@ -116,6 +136,15 @@ module.exports = {
     const allowedRoles = ['admin', 'teacher'];
     if (!allowedRoles.includes(value)) {
       throw new Error('Invalid role');
+    }
+    return true;
+  },
+
+  // Validator for photo field
+  isValidPhoto: (value) => {
+    const defaultPhoto = 'default.jpg';
+    if (value !== defaultPhoto && !validator.isURL(value)) {
+      throw new Error('Photo must be a valid URL or the default image');
     }
     return true;
   },

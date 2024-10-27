@@ -1,8 +1,15 @@
 // Mail Library
 const nodemailer = require('nodemailer');
-
-// HTML Parser
 const { htmlToText } = require('html-to-text');
+
+// Import HTML template function
+const { generateEmailTemplate } = require('../emails/emailTemplate');
+const {
+  forgotPasswordEmailTemplate,
+} = require('../emails/forgotPasswordEmailTemplate');
+const {
+  attendanceStatusEmailTemplate,
+} = require('../emails/attendanceStatusEmailTemaple');
 
 // Email Service
 class Email {
@@ -10,23 +17,24 @@ class Email {
     this.to = user.email;
     this.firstName = user.first_name || '';
     this.url = url;
-    this.from = `HexCode+ Company <${process.env.EMAIL_FROM}>`;
+    this.unsubscribeUrl = `${url}/unsubscribe`;
+    this.from = `Vottamean App <${process.env.BREVO_EMAIL_FROM}>`;
   }
 
   // Create Transporter
   newTransport() {
-    if (process.env.NODE_ENV === 'production') {
-      // Use SendGrid in production
-      return nodemailer.createTransport({
-        service: 'SendGrid',
-        auth: {
-          user: process.env.SENDGRID_USERNAME,
-          pass: process.env.SENDGRID_PASSWORD,
-        },
-      });
-    }
+    // if (process.env.NODE_ENV === 'production') {
+    //   return nodemailer.createTransport({
+    //     host: process.env.BREVO_HOST,
+    //     port: process.env.BREVO_PORT,
+    //     secure: process.env.BREVO_PORT === '465',
+    //     auth: {
+    //       user: process.env.BREVO_USERNAME,
+    //       pass: process.env.BREVO_PASSWORD,
+    //     },
+    //   });
+    // }
 
-    // Use local SMTP server in development
     return nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
@@ -35,99 +43,22 @@ class Email {
         user: process.env.EMAIL_USERNAME,
         pass: process.env.EMAIL_PASSWORD,
       },
+      tls: {
+        rejectUnauthorized: false,
+      },
     });
   }
 
   // Send Email with Message Template
   async send(template, subject) {
-    // Create a more polished HTML email template
-    const html = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${subject}</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          background-color: #f4f4f4;
-          margin: 0;
-          padding: 0;
-        }
-        .container {
-          max-width: 600px;
-          margin: 20px auto;
-          padding: 20px;
-          background-color: #ffffff;
-          border-radius: 8px;
-          box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-          text-align: center;
-          background-color: #007BFF;
-          padding: 20px;
-          border-radius: 8px 8px 0 0;
-          color: white;
-        }
-        .header h1 {
-          margin: 0;
-          font-size: 24px;
-        }
-        .content {
-          padding: 20px;
-          line-height: 1.6;
-        }
-        .content p {
-          margin: 0 0 15px;
-        }
-        .btn {
-          display: inline-block;
-          padding: 12px 24px;
-          margin-top: 20px;
-          color: #ffffff;
-          background-color: #007BFF;
-          text-decoration: none;
-          border-radius: 5px;
-          font-weight: bold;
-        }
-        .btn:hover {
-          background-color: #0056b3;
-        }
-        .footer {
-          margin-top: 20px;
-          text-align: center;
-          color: #888888;
-          font-size: 12px;
-        }
-        .footer a {
-          color: #007BFF;
-          text-decoration: none;
-        }
-        .footer a:hover {
-          text-decoration: underline;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>${subject}</h1>
-        </div>
-        <div class="content">
-          <p>Hi ${this.firstName},</p>
-          <p>Welcome to our platform! Please confirm your email address by clicking the button below:</p>
-          <a href="${this.url}" class="btn">Verify Email</a>
-        </div>
-        <div class="footer">
-          <p>If you did not request this, please ignore this email.</p>
-          <p>&copy; 2024 Our Platform. All rights reserved. | <a href="${this.unsubscribeUrl}">Unsubscribe</a></p>
-        </div>
-      </div>
-    </body>
-    </html>`;
+    // Get the HTML template from emailTemplates.js
+    const html = generateEmailTemplate(
+      this.firstName,
+      this.url,
+      subject,
+      `${this.unsubscribeUrl}?email=${encodeURIComponent(this.to)}`
+    );
 
-    // Convert HTML to plain text for the text version of the email
     const text = htmlToText(html);
 
     const mailOptions = {
@@ -147,19 +78,92 @@ class Email {
     }
   }
 
-  // Send Verification Email
+  // Updated sendForgotPassword Method
+  async sendForgotPassword() {
+    const subject = 'Password Reset Request';
+
+    // Generate HTML content using the template function
+    const html = forgotPasswordEmailTemplate({
+      firstName: this.firstName,
+      resetURL: this.url,
+      unsubscriberesetURL: this.unsubscribeUrl,
+    });
+
+    // Convert HTML to text
+    const text = htmlToText(html);
+
+    // Set up mail options
+    const mailOptions = {
+      from: this.from,
+      to: this.to,
+      subject,
+      html,
+      text,
+    };
+
+    // Send the email
+    try {
+      await this.newTransport().sendMail(mailOptions);
+      console.log('Email sent successfully');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      throw new Error('Email sending failed');
+    }
+  }
+
+  // Send Email Verification For Registration
   async sendVerification() {
     await this.send('emailVerification', 'Email Verification Link');
   }
 
-  // Send Welcome Email to New User
-  async sendWelcome() {
-    await this.send('welcome', 'Welcome to Our Platform!');
+  // New Method to Send Attendance Notification
+  async sendAttendanceNotification(data, status_id) {
+    const statusMap = {
+      1: { text: 'Present', className: 'present' },
+      2: { text: 'Late', className: 'late' },
+      3: { text: 'Absent', className: 'absent' },
+      4: { text: 'Absent with Permission', className: 'absent-permission' },
+    };
+
+    const statusInfo = statusMap[status_id] || {
+      text: 'Unknown Status',
+      className: '',
+    };
+
+    const subject = `${statusInfo.text} : Attendance Alert for ${data.studentName}`;
+    const html = attendanceStatusEmailTemplate(data, statusInfo.text);
+    const message = htmlToText(html);
+    // Prepare mail options
+    const mailOptions = {
+      from: this.from,
+      to: this.to,
+      subject,
+      text: message,
+      html: html,
+    };
+
+    try {
+      await this.newTransport().sendMail(mailOptions);
+      console.log(`Attendance email sent successfully to ${this.to}`);
+    } catch (error) {
+      console.error(`Error sending attendance email to ${this.to}:`, error);
+      throw new Error('Attendance email sending failed :', error);
+    }
   }
 
-  // Send Password Reset Email
-  async sendPasswordReset() {
-    await this.send('passwordReset', 'Password Reset Token');
+  // Send Teacher Verification Email
+  async sendTeacherVerification() {
+    await this.send('teacherVerification', 'Verify Your Teacher Account');
+  }
+
+  // // Send Email Verification For Registration
+  // async sendVerification() {
+  //   await this.send('emailVerification', 'Email Verification Link');
+  // }
+
+  // Send Welcome Email To New Users
+  async sendWelcome() {
+    await this.send('welcome', 'Welcome to Our Platform!');
   }
 }
 

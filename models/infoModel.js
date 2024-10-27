@@ -17,38 +17,51 @@ module.exports = (sequelize, DataTypes) => {
       first_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidName,
+        validate: {
+          isValidName: infoValidator.isValidName
+        },
       },
       last_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidName,
+        validate: {
+          isValidName: infoValidator.isValidName
+        },
       },
       gender: {
-        type: DataTypes.ENUM('male', 'female', 'other'),
+        type: DataTypes.ENUM('Male', 'Female', 'Other'),
         allowNull: false,
-        validate: infoValidator.isValidGender,
+        validate: {
+          isValidGender: infoValidator.isValidGender
+        },
       },
       photo: {
         type: DataTypes.STRING,
-        defaultValue: 'default.jpg',
         validate: {
-          isUrl: { msg: 'Photo must be a valid URL' },
+          isValidPhoto: infoValidator.isValidPhoto
         },
       },
       phone_number: {
         type: DataTypes.STRING,
-        validate: infoValidator.isValidPhoneNumber,
+        validate: {
+          isValidPhoneNumber: infoValidator.isValidPhoneNumber
+        },
       },
       address: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidAddress,
+        validate: {
+          isValidAddress: infoValidator.isValidAddress
+        },
       },
       dob: {
         type: DataTypes.DATEONLY,
         allowNull: false,
-        validate: infoValidator.isValidDOB,
+        validate: {
+          customValidator(value) {
+            infoValidator.isValidDOB(value);
+          },
+        },
       },
       active: {
         type: DataTypes.BOOLEAN,
@@ -64,6 +77,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   Info.associate = (models) => {
     Info.hasOne(models.Admin, {
       foreignKey: 'info_id',
@@ -82,7 +96,13 @@ module.exports = (sequelize, DataTypes) => {
   // Using the reusable hook
   Info.addHook(
     'beforeValidate',
-    trimWhiteSpaces(['first_name', 'last_name', 'phone_number', 'address'])
+    trimWhiteSpaces([
+      'first_name',
+      'last_name',
+      'phone_number',
+      'address',
+      'photo',
+    ])
   );
 
   return Info;

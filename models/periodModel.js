@@ -13,11 +13,6 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
-      period_name: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        validate: validators.isValidPeriodName,
-      },
       start_time: {
         type: DataTypes.TIME,
         allowNull: false,
@@ -50,6 +45,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   Period.associate = (models) => {
     // Period belongs to a School Admin
     Period.belongsTo(models.SchoolAdmin, {

@@ -52,17 +52,11 @@ module.exports = {
     if (validator.isEmpty(value)) {
       throw new Error('Class name is required');
     }
-    if (!validator.isLength(value, { min: 3, max: 50 })) {
-      throw new Error('Class name must be between 3 and 50 characters');
-    }
     return true;
   },
 
   // Validator for description
   isValidDescription: (value) => {
-    if (validator.isEmpty(value)) {
-      throw new Error('Description cannot be empty');
-    }
     if (!validator.isLength(value, { max: 255 })) {
       throw new Error('Description cannot exceed 255 characters');
     }
@@ -84,6 +78,14 @@ module.exports = {
   isValidGuardianRelationship: (value) => {
     if (validator.isEmpty(value)) {
       throw new Error('Guardian relationship cannot be empty');
+    }
+    return true;
+  },
+
+  // Validator for name
+  isValidName: (value) => {
+    if (validator.isEmpty(value)) {
+      throw new Error('Name for Subject can not be empty');
     }
     return true;
   },

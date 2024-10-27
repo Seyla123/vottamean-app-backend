@@ -38,6 +38,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
+  // Define associations
   DayOfWeek.associate = (models) => {
     // DayOfWeek has many Sessions
     DayOfWeek.hasMany(models.Session, {

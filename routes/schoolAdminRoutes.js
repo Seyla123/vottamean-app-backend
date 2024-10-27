@@ -17,8 +17,9 @@ router.use(authController.restrictTo('admin'));
 router.get('/', schoolAdminController.getAllSchoolAdmins);
 
 router
-  .get('/:id', schoolAdminController.getSchoolAdmin)
-  .put('/:id', schoolAdminController.updateSchoolAdmin)
-  .delete('/:id', schoolAdminController.deleteSchoolAdmin);
+  .route('/:id')
+  .get(schoolAdminController.getSchoolAdmin)
+  .put(schoolAdminController.updateSchoolAdmin)
+  .delete(schoolAdminController.deleteSchoolAdmin);
 
 module.exports = router;

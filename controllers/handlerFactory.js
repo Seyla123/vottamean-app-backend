@@ -12,7 +12,14 @@ const APIFeatures = require('../utils/apiFeatures');
 // Reusable middleware functions for all routes.
 // --------------------------------------------
 
-// Create One
+/**
+ * Middleware for creating a new document in a specified model.
+ * Takes the request body to create a document and responds with the created document.
+ *
+ * @param {Model} Model - The model to create a document in.
+ * @param {Array} [popOptions=[]] - Array of options to include related models.
+ * @returns {Function} Middleware function for document creation.
+ */
 exports.createOne = (Model, popOptions = []) =>
   catchAsync(async (req, res, next) => {
     const doc = await Model.create(req.body, { include: popOptions });
@@ -25,14 +32,23 @@ exports.createOne = (Model, popOptions = []) =>
     });
   });
 
-// Get One
-exports.getOne = (Model, idField, popOptions = []) =>
+/**
+ * Middleware for retrieving a single document by its ID.
+ * Responds with the document if found; otherwise, passes an error to the next middleware.
+ *
+ * @param {Model} Model - The model to find the document in.
+ * @param {string} idField - The field used to identify the document.
+ * @param {Array} [popOptions=[]] - Array of options to include related models.
+ * @param {Object} [additionalFilter={}] - Additional filters to apply.
+ * @returns {Function} Middleware function for document retrieval.
+ */
+exports.getOne = (Model, idField, popOptions = [], additionalFilter = {}) =>
   catchAsync(async (req, res, next) => {
     let options = {
       where: { [idField]: req.params.id },
       include: popOptions,
     };
-
+    options.where = { ...options.where, ...additionalFilter };
     const doc = await Model.findOne(options);
 
     if (!doc) {
@@ -45,36 +61,65 @@ exports.getOne = (Model, idField, popOptions = []) =>
     });
   });
 
-// Get All Need to fix more flexible
-exports.getAll = (Model, additionalFilter = {}, popOptions = []) =>
+/**
+ * Middleware for retrieving all documents with filtering and pagination.
+ * Responds with the documents found, or an error if none are found.
+ *
+ * @param {Model} Model - The model to retrieve documents from.
+ * @param {Object} [additionalFilter={}] - Additional filters to apply.
+ * @param {Array} [popOptions=[]] - Array of options to include related models.
+ * @param {Array} [search=[]] - Fields to search within.
+ * @returns {Function} Middleware function for retrieving all documents.
+ */
+exports.getAll = (
+  Model,
+  additionalFilter = {},
+  popOptions = [],
+  search = [],
+  attribute
+) =>
   catchAsync(async (req, res, next) => {
-    let filter = { ...additionalFilter };
+    let filter = { ...additionalFilter};
 
     if (req.params.id) filter = { ...filter, id: req.params.id };
 
     const features = new APIFeatures(Model, req.query)
       .filter()
+      .search(search)
       .sort()
       .limitFields()
-      .paginate();
-
+      .paginate()
+      .includeAssociations(popOptions);
+    if (attribute) features.options.attributes = attribute;
+    
     const doc = await features.exec({
       where: filter,
       include: popOptions,
     });
+    const totalCount = await features.count({
+      where: filter,
+      include: popOptions,
+    });
 
-    if (!doc || doc.length === 0) {
+    if (!doc) {
       return next(new AppError('No documents found', 404));
     }
 
     res.status(200).json({
       status: 'success',
-      results: doc.length,
+      results: totalCount,
       data: doc,
     });
   });
 
-// Update One
+/**
+ * Middleware for updating a document by its ID.
+ * Responds with the updated document or an error if not found.
+ *
+ * @param {Model} Model - The model to update the document in.
+ * @param {string} idField - The field used to identify the document.
+ * @returns {Function} Middleware function for document update.
+ */
 exports.updateOne = (Model, idField) =>
   catchAsync(async (req, res, next) => {
     try {
@@ -101,44 +146,119 @@ exports.updateOne = (Model, idField) =>
       });
     } catch (err) {
       // Return a JSON error response
-      next(new AppError('Server error, please try again later.', 500));
+      console.log('this is error :', err);
+      if(process.env.NODE_ENV !== 'production'){
+      next(new AppError(`${err.message}`, 500));
+      }
+
+      next(new AppError(`Server error, please try again later.`, 500));
     }
   });
 
-// Delete One
+/**
+ * Middleware for marking a document as inactive instead of deleting it.
+ * Responds with a success message or an error if not found.
+ *
+ * @param {Model} Model - The model to mark the document in.
+ * @param {string} idField - The field used to identify the document.
+ * @returns {Function} Middleware function for marking document inactive.
+ */
 exports.deleteOne = (Model, idField) =>
   catchAsync(async (req, res, next) => {
     console.log(
-      `Attempting to delete record with ${idField}: ${req.params.id}`
+      `Attempting to set active to false for record with ${idField}: ${req.params.id}`
     );
-    const doc = await Model.destroy({
-      where: { [idField]: req.params.id },
-    });
 
-    if (!doc) {
+    // Update the active field to false instead of deleting the record
+    const doc = await Model.update(
+      { active: false }, // Set active to false
+      { where: { [idField]: req.params.id } }
+    );
+
+    // Check if the document exists and was updated
+    if (doc[0] === 0) {
       console.error(`No document found with ${idField}: ${req.params.id}`);
       return next(new AppError(`No document found with that ${idField}`, 404));
     }
 
-    res.status(204).json({
+    // Respond with a success message
+    res.status(200).json({
       status: 'success',
-      data: null,
+      message: `Record with ${idField}: ${req.params.id} successfully marked as inactive`,
     });
   });
 
-// Delete All
-exports.deleteAll = (Model) =>
+/**
+ * Middleware for marking a document as active.
+ * Responds with a success message or an error if not found.
+ *
+ * @param {Model} Model - The model to mark the document in.
+ * @param {string} idField - The field used to identify the document.
+ * @returns {Function} Middleware function for marking document inactive.
+ */
+exports.restoreOne = (Model, idField) =>
   catchAsync(async (req, res, next) => {
-    console.log('Deleting all records');
-    const doc = await Model.destroy({ where: {} });
+    console.log(
+      `Attempting to restore record with ${idField}: ${req.params.id}`
+    );
 
-    if (!doc) {
-      console.error('No documents found');
-      return next(new AppError('No documents found', 404));
+    // Ensure you're searching for users with active = false (inactive users)
+    const doc = await Model.update(
+      { active: true }, // Set active to true
+      { where: { [idField]: req.params.id, active: false } }
+    );
+
+    // Check if the document exists and was updated
+    if (doc[0] === 0) {
+      console.error(
+        `No inactive document found with ${idField}: ${req.params.id}`
+      );
+      return next(
+        new AppError(`No inactive document found with that ${idField}`, 404)
+      );
     }
 
-    res.status(204).json({
+    // Respond with a success message
+    res.status(200).json({
       status: 'success',
-      data: null,
+      message: `Record with ${idField}: ${req.params.id} successfully restored`,
     });
+  });
+
+/**
+ * Middleware for marking an array of selected -
+ * row of the documents to turn it into inactive status.
+ * Responds with a success message or an error if not found.
+ *
+ * @param {Model} Model - The model to mark the document in.
+ * @param {string} idField - The field used to identify the document.
+ * @returns {Function} Middleware function for marking document inactive.
+ */
+exports.deleteMany = (Model, idField) =>
+  catchAsync(async (req, res, next) => {
+    const idArr = req.body.ids;
+    console.log(
+      `Attempting to set active to false for records with ${idField}: ${idArr}`
+    );
+
+    // Update the active field to false instead of deleting the record
+    try {
+      const docs = await Model.update(
+        { active: false }, // Set active to false
+        { where: { [idField]: idArr, active: true, school_admin_id: req.school_admin_id } }
+      );
+
+      // Check if the document exists and was updated
+      if (docs[0] === 0) {
+        console.error(`No active document found with ${idField}: ${idArr}`);
+        return next(new AppError(`No active document found with that ${idField}`, 404));
+      }
+      // Respond with a success message
+      res.status(200).json({
+        status: 'success',
+        message: `${docs[0]} records with ${idField}: ${idArr} successfully marked as inactive`,
+      });
+    } catch (error) {
+      return next(new AppError(`No active document found with that ${idField}`, 404));
+    }
   });

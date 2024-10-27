@@ -3,25 +3,28 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "start": "NODE_ENV=production node server.js",
+    "start:prod": "NODE_ENV=production node server.js",
     "start:dev": "NODE_ENV=development nodemon server.js",
-    "start:test": "NODE_ENV=test node server.js",
-    "start:prod": "NODE_ENV=production node server.js"
+    "start:test": "NODE_ENV=test node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "aws-sdk": "^2.1691.0",
+    "@aws-sdk/client-s3": "^3.654.0",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "dayjs": "^1.11.13",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "fs": "^0.0.1-security",
     "html-to-text": "^9.0.5",
     "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.11.0",
     "nodemailer": "^6.9.14",
@@ -30,6 +33,7 @@
     "sequelize": "^6.37.3",
     "sequelize-cli": "^6.6.2",
     "sharp": "^0.33.5",
+    "stripe": "^17.1.0",
     "validator": "^13.12.0"
   }
 }

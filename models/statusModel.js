@@ -17,7 +17,7 @@ module.exports = (sequelize, DataTypes) => {
           'late',
           'present',
           'absent',
-          'absent_with_permission'
+          'permission'
         ),
         allowNull: false,
         defaultValue: 'absent',
@@ -35,15 +35,5 @@ module.exports = (sequelize, DataTypes) => {
       underscored: true,
     }
   );
-
-  Status.associate = (models) => {
-    // Status belongs to a Session
-    Status.hasMany(models.Session, {
-      foreignKey: 'status_id',
-      as: 'Sessions',
-      onDelete: 'CASCADE',
-    });
-  };
-
   return Status;
 };

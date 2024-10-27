@@ -12,6 +12,11 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
+      active: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        allowNull: false,
+      },
     },
     {
       sequelize,
@@ -33,13 +38,27 @@ module.exports = (sequelize, DataTypes) => {
     Admin.belongsToMany(models.School, {
       through: models.SchoolAdmin,
       foreignKey: 'admin_id',
-      as: 'Schools',
+      as: 'School',
     });
 
     // Admin belongs to an Info
     Admin.belongsTo(models.Info, {
       foreignKey: 'info_id',
       as: 'Info',
+    });
+
+    // Admin has many subscriptions
+    Admin.hasMany(models.Subscription, {
+      foreignKey: 'admin_id',
+      as: 'Subscriptions',
+      onDelete: 'CASCADE',
+    });
+
+    // Admin has many payments
+    Admin.hasMany(models.Payment, {
+      foreignKey: 'admin_id',
+      as: 'payments',
+      onDelete: 'CASCADE',
     });
   };
 

@@ -38,6 +38,7 @@ module.exports = (sequelize, DataTypes) => {
         .digest('hex');
 
       this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+      this.passwordResetUsed = false;
 
       return resetToken;
     }
@@ -109,6 +110,14 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
+      verificationRequestedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      passwordResetUsed: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
       active: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
@@ -137,9 +146,6 @@ module.exports = (sequelize, DataTypes) => {
             'emailVerificationExpires',
           ],
         },
-        where: {
-          active: true,
-        },
       },
       scopes: {
         withPassword: {
@@ -154,8 +160,10 @@ module.exports = (sequelize, DataTypes) => {
     if (user.changed('password')) {
       user.password = await bcrypt.hash(user.password, 12);
       user.passwordConfirm = undefined;
+
+      // Update passwordChangedAt only if the user is not new
       if (!user.isNewRecord) {
-        user.passwordChangedAt = new Date(Date.now() - 1000);
+        user.passwordChangedAt = new Date();
       }
     }
   });
