@@ -1,5 +1,5 @@
 // Database models
-const { Class, SchoolAdmin } = require('../models');
+const { Class, SchoolAdmin, Student, sequelize } = require('../models');
 
 // Error handler
 const catchAsync = require('../utils/catchAsync');
@@ -88,3 +88,45 @@ exports.deleteClass = catchAsync(async (req, res, next) => {
 exports.deleteManyClass = catchAsync(async (req, res, next) => {
   factory.deleteMany(Class, 'class_id')(req, res, next);
 });
+
+exports.StudentClassFilter = catchAsync(async (req, res, next) => {
+  const getAllClassInStudent = await Student.findAll({
+    where:{
+      school_admin_id: req.school_admin_id,
+      active:true
+    },
+    include: [
+      {
+        model: Class,
+        as: 'Class',
+        attributes: [],
+      },
+    ],
+    attributes: [
+      [sequelize.fn('DISTINCT', sequelize.col('Class.class_id')), 'class_id'],
+      [sequelize.col('Class.class_name'), 'class_name'],
+    ],
+    group: ['Class.class_id'],
+    raw: true
+
+  });
+  const getAllClass = await Class.findAll({
+    where: { school_admin_id: req.school_admin_id, active: true },
+    attributes: ['class_id', 'class_name'],
+    raw: true
+  })
+
+  // Combine both arrays and filter for unique `class_id`
+  const combinedClasses = [...getAllClassInStudent, ...getAllClass];
+  const uniqueClasses = combinedClasses.filter((value, index, self) =>
+    index === self.findIndex((t) => (
+      t.class_id === value.class_id
+    ))
+  );
+
+  res.status(200).json({
+    status: 'success',
+    length: getAllClassInStudent.length,
+    data: uniqueClasses,
+  })
+})

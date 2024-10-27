@@ -50,13 +50,47 @@ exports.getSession = catchAsync(async (req, res, next) => {
 
 // update session
 exports.updateSession = catchAsync(async (req, res, next) => {
+
+  const { class_id, subject_id, period_id, teacher_id } = req.body;
   // check if session belongs to the school
+  const existingSession = await Session.findOne({
+    where: {
+      session_id: req.params.id,
+      school_admin_id: req.school_admin_id,
+      active: true,
+    },
+    raw:true
+  })
+  if(!existingSession){
+    return next(new AppError('Session not found', 400));
+  }
   await isBelongsToAdmin(
     req.params.id,
     'session_id',
     req.school_admin_id,
     Session
   );
+
+  // Check if the class ID has changed and validate admin ownership
+  if (Number(class_id) !== existingSession.class_id) {
+    await isBelongsToAdmin(class_id, 'class_id', req.school_admin_id, Class);
+  }
+
+  // Check if the subject ID has changed and validate admin ownership
+  if (Number(subject_id) !== existingSession.subject_id) {
+    await isBelongsToAdmin(subject_id, 'subject_id', req.school_admin_id, Subject);
+  }
+
+  // Check if the period ID has changed and validate admin ownership
+  if (Number(period_id) !== existingSession.period_id) {
+    await isBelongsToAdmin(period_id, 'period_id', req.school_admin_id, Period);
+  }
+
+  // Check if the teacher ID has changed and validate admin ownership
+  if (Number(teacher_id) !== existingSession.teacher_id) {
+    await isBelongsToAdmin(teacher_id, 'teacher_id', req.school_admin_id, Teacher);
+  }
+
   //  filter the request body to only include 'class_id', 'subject_id','day_id','period_id','teacher_id'
   req.body = filterObj(req.body, ...AllowedSessionField);
 

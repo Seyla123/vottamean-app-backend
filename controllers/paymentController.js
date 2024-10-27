@@ -253,7 +253,7 @@ exports.getSubscription = catchAsync(async (req, res, next) => {
 
   // Find the subscription associated with the admin
   const subscription = await Subscription.findOne({
-    where: { admin_id: adminId },
+    where: { admin_id: adminId, status: 'active' },
     include: [{ model: Admin, as: 'Admin' }],
   });
 
