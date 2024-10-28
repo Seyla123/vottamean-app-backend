@@ -1,5 +1,5 @@
 // Database models
-const { Session } = require('../models');
+const { Session, Class, Subject, Period, Teacher } = require('../models');
 
 // Error handler
 const catchAsync = require('../utils/catchAsync');
