@@ -274,7 +274,7 @@ exports.getSubscription = catchAsync(async (req, res, next) => {
     limitTeacher = 5;
   } else if (subscription.plan_type === 'standard') {
     limitStudent = 1000;
-    limitTeacher = 50;
+    limitTeacher = 100;
   } else {
     limitStudent = 'unlimited'; // unlimited
     limitTeacher = 'unlimited'; // unlimited
