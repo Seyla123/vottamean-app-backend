@@ -46,8 +46,8 @@ deploy-backend:
     # - rsync -avz -e "ssh -i private_key.pem" ./ ubuntu@$DEPLOY_HOST:$DIST_DEPLOY_PATH
     - rsync -avz --exclude='node_modules' --exclude='.git' -e "ssh -i private_key.pem" ./ ubuntu@$DEPLOY_HOST:$DIST_DEPLOY_PATH
     - ssh -i "private_key.pem" ubuntu@$DEPLOY_HOST "
-        cd $DIST_DEPLOY_PATH
-        npm install
+        cd $DIST_DEPLOY_PATH &&
+        npm install &&
         sudo systemctl restart backend.service &&
         sudo systemctl status backend.service
       "
