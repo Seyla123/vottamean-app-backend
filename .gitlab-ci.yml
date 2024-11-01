@@ -57,11 +57,11 @@ deploy-backend:
         npm install
         echo 'Deployment complete!'
         ls -l $DIST_DEPLOY_PATH
-        sudo nginx -t &&
-        sudo systemctl restart nginx &&
-        sudo systemctl status nginx
+        sudo systemctl restart backend.service &&
+        sudo systemctl status backend.service
       "
-
+      
   only:
     - develop
     - main
+
