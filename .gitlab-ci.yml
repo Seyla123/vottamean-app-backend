@@ -13,12 +13,18 @@ variables:
   DEPLOY_HOST: 13.212.6.189
   SSH_EC2_PRIVATE_KEY: $SSH_EC2_PRIVATE_KEY
   DIST_DEPLOY_PATH: /home/ubuntu/backend/
+  NODE_ENV: production
 
 # Build job
 build-backend:
   stage: build
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
   script:
-    - npm install
+    - echo "Installing dependencies..."
+    - npm ci
   artifacts:
     paths:
       - ./node_modules
@@ -33,24 +39,23 @@ deploy-backend:
     name: production
     url: https://$PRODUCTION_DOMAIN
   before_script:
+    - echo "Preparing deployment environment..."
     - apt-get update -y && apt-get install -y openssh-client rsync
     - eval $(ssh-agent -s)
     - echo "$SSH_EC2_PRIVATE_KEY" | tr -d '\r' > private_key.pem
     - chmod 400 private_key.pem
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
 
   script:
     - echo "Deploying to EC2 production with rsync..."
-    - rsync -avz -e "ssh -i private_key.pem" ./ ubuntu@$DEPLOY_HOST:$DIST_DEPLOY_PATH
+    - rsync -avz --exclude='node_modules' --exclude='.git' -e "ssh -i private_key.pem" ./ ubuntu@$DEPLOY_HOST:$DIST_DEPLOY_PATH
     - ssh -i "private_key.pem" ubuntu@$DEPLOY_HOST "
-        cd $DIST_DEPLOY_PATH
-        npm install
+        cd $DIST_DEPLOY_PATH &&
+        npm install &&
         sudo systemctl restart backend.service &&
         sudo systemctl status backend.service
       "
-
   only:
     - develop
     - main
