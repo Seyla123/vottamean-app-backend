@@ -42,26 +42,15 @@ deploy-backend:
     - ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
 
   script:
-    - echo "Deploying to EC2 staging..."
-
-    # Method 1: Use rsync to copy the project to EC2
-    - rsync -avz -e "ssh -i private_key.pem" ./ ubuntu@$DEPLOY_HOST:$DIST_DEPLOY_PATH || echo "Rsync failed, attempting git pull"
-
-    # Method 2: SSH into the EC2 instance and pull the latest branch if rsync fails
+    - echo "Deploying to EC2 production with rsync..."
+    - rsync -avz -e "ssh -i private_key.pem" ./ ubuntu@$DEPLOY_HOST:$DIST_DEPLOY_PATH
     - ssh -i "private_key.pem" ubuntu@$DEPLOY_HOST "
-        cd $DIST_DEPLOY_PATH || exit 1
-        echo 'Pulling latest changes from the repository...'
-        git reset --hard
-        git clean -fd
-        git pull origin develop || git pull origin main
+        cd $DIST_DEPLOY_PATH
         npm install
-        echo 'Deployment complete!'
-        ls -l $DIST_DEPLOY_PATH
         sudo systemctl restart backend.service &&
         sudo systemctl status backend.service
       "
-      
+
   only:
     - develop
     - main
-
