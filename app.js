@@ -25,6 +25,8 @@ app.use(
       'http://localhost:5174',
       'https://vottamean.com',
       'https://www.vottamean.com',
+      'https://hexcode.anbschool.org',
+      'https://hexcode.anbschool.org/app',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
