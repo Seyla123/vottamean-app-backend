@@ -1,8 +1,9 @@
 // middlewares/attendanceMiddleware.js
-const { Attendance, Student, Session } = require('../models');
+const { Attendance, Student, Session, DayOfWeek } = require('../models');
 const AppError = require('../utils/appError');
 const { isBelongsToAdmin } = require('../utils/helper');
 const catchAsync = require('../utils/catchAsync');
+const dayjs = require('dayjs');
 
 // check attendance exists and belongs to the school admin ?
 exports.checkAttendanceExists = async (req, res, next) => {
@@ -63,3 +64,31 @@ exports.verifySessionBelongsToClass = catchAsync(async (req, res, next) => {
 
   next();
 });
+
+exports.checkIfMarkedToday = catchAsync(async (req, res, next) => {
+  const { session_id } = req.body;
+  const today = new Date().toISOString().split('T')[0];
+  const findMarkSessionToday = await Attendance.count({
+    where: {
+      session_id: session_id,
+      date: today
+    }
+  })
+  if (findMarkSessionToday) {
+    return next(new AppError('This class is already marked today.', 400));
+  }
+  next();
+})
+
+// Verify if the current day is correct in schedule or not
+exports.verifyCurrentDay = catchAsync(async (req, res, next) => {
+  const { session_id } = req.body;
+  const session = await Session.findOne({
+    where: { session_id, active: true },
+    include: [{ model: DayOfWeek, as: 'DayOfWeek', attributes: ['day'] }]
+  });
+  if (session.DayOfWeek.day !== dayjs().isoWeekday()) {
+    return next(new AppError('Attendance can only be marked for the scheduled day.', 400));
+  }
+  next();
+})

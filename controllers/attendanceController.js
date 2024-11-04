@@ -235,6 +235,17 @@ exports.getFormattedAttendanceData = catchAsync(async (req, res, next) => {
       },
     ],
   });
+  // Fetch student count, school information, and attendance records
+  const [studentCount, schoolAdmin, attendanceRecords] = await Promise.all([
+    getStudentCount(req.school_admin_id, class_id),
+    getSchoolInfo(req.school_admin_id),
+    getAllAttendancesData(req, res, next),
+  ]);
+
+  // use ultis to Format attendance data for the report
+  const formattedData = formatAttendanceReportData(attendanceRecords.attendance);
+  // Get the unique dates from the attendance records, and their corresponding day of the week
+  const datesWithDays = getAttendanceReportDateRange(formattedData);
 
   // Check if any classes were found
   if (getSessionClass && getSessionClass.length > 0) {
@@ -242,18 +253,6 @@ exports.getFormattedAttendanceData = catchAsync(async (req, res, next) => {
     const subjectNames = getSessionClass.map(session => session.Subject.subject_name);
     const classNames = getSessionClass.map(session => session.Class.class_name);
 
-    // Fetch student count, school information, and attendance records
-    const [studentCount, schoolAdmin, attendanceRecords] = await Promise.all([
-      getStudentCount(req.school_admin_id, class_id),
-      getSchoolInfo(req.school_admin_id),
-      getAllAttendancesData(req, res, next),
-    ]);
-    
-    // use ultis to Format attendance data for the report
-    const formattedData = formatAttendanceReportData(attendanceRecords.attendance);
-    // Get the unique dates from the attendance records, and their corresponding day of the week
-    const datesWithDays = getAttendanceReportDateRange(formattedData);
-    
     // Send the formatted result as JSON
     res.status(200).json({
       status: 'success',
@@ -281,8 +280,8 @@ exports.getFormattedAttendanceData = catchAsync(async (req, res, next) => {
     res.status(200).json({
       status: 'success',
       total_summary: [],
-      all_subjects_unique: data.subjects,
-      all_classes_unique: data.classes,
+      all_subjects_unique: attendanceRecords.subjects,
+      all_classes_unique: attendanceRecords.classes,
       results: 0,
       message: 'No data found',
       data: {},
