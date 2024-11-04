@@ -87,7 +87,8 @@ exports.verifyCurrentDay = catchAsync(async (req, res, next) => {
     where: { session_id, active: true },
     include: [{ model: DayOfWeek, as: 'DayOfWeek', attributes: ['day'] }]
   });
-  if (session.DayOfWeek.day !== dayjs().isoWeekday()) {
+
+  if (session.DayOfWeek.day.toLocaleLowerCase() !== dayjs().format('dddd').toLocaleLowerCase()) {
     return next(new AppError('Attendance can only be marked for the scheduled day.', 400));
   }
   next();
