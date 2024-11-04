@@ -228,8 +228,44 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     );
   }
 
-  // Merge filtered body with update data
-  updateData = { ...updateData, ...filteredBody };
+  // Additional logic for Admin to update school information
+  if (req.user.role === 'admin') {
+    if (user.School && user.School.length > 0) {
+      const school = user.School[0];
+
+      // Extract school-related fields from the request body
+      const { school_name, school_address, school_phone_number } = req.body;
+      // Merge filtered body with update data
+      updateData = { ...updateData, ...filteredBody };
+
+      // Update the school information if provided
+      if (school_name || school_address || school_phone_number) {
+        await School.update(
+          {
+            school_name: school_name || school.school_name,
+            school_address: school_address || school.school_address,
+            school_phone_number:
+              school_phone_number || school.school_phone_number,
+          },
+          { where: { school_id: school.school_id } }
+        );
+      }
+    }
+  }
+  // Prevent teachers from updating any school data
+  if (
+    req.user.role === 'teacher' &&
+    (req.body.school_name ||
+      req.body.school_address ||
+      req.body.school_phone_number)
+  ) {
+    return next(
+      new AppError(
+        'Teachers are not allowed to update school information.',
+        403
+      )
+    );
+  }
 
   // Perform the update
   await Info.update(updateData, {
@@ -249,6 +285,7 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     },
   });
 });
+
 // Delete current login user
 exports.deleteMe = catchAsync(async (req, res, next) => {
   // Get the currently logged-in user ID from the token
