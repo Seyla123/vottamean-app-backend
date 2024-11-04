@@ -198,15 +198,12 @@ exports.updateMe = catchAsync(async (req, res, next) => {
 
   // Initialize update data
   let updateData = {};
-console.log('update Data', updateData);
-console.log('request ', req.file)
+
   // Handle photo updates - IMPORTANT: Check remove_photo first
   if (req.body.remove_photo === 'true') {
     updateData.photo = null;
-    console.log('Removing photo, setting to null');
   } else if (req.file) {
     updateData.photo = req.file.location;
-    console.log('Updating photo to:', req.file.location);
   }
 
   // Handle other fields
@@ -234,8 +231,6 @@ console.log('request ', req.file)
   // Merge filtered body with update data
   updateData = { ...updateData, ...filteredBody };
 
-  console.log('Final update data:', updateData);
-
   // Perform the update
   await Info.update(updateData, {
     where: { info_id: infoId },
@@ -245,8 +240,6 @@ console.log('request ', req.file)
   const updatedInfo = await Info.findOne({
     where: { info_id: infoId },
   });
-
-  console.log('Updated info:', updatedInfo);
 
   res.status(200).json({
     status: 'success',
