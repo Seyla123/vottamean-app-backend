@@ -52,6 +52,8 @@ router.use(authController.restrictTo('teacher'));
 router.post('/',
   attendanceMiddleware.verifySessionBelongsToTeacher,
   attendanceMiddleware.verifySessionBelongsToClass,
+  attendanceMiddleware.checkIfMarkedToday,
+  attendanceMiddleware.verifyCurrentDay,
   attendanceController.createAttendance);
 
 
