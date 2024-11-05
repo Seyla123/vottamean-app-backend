@@ -284,7 +284,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
       `${req.headers.origin}/auth/verify-teacher-email/${verificationToken}?token=${tempToken}` ||
       `http://localhost:5173/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
     try {
-      await sendVerificationEmail(email, verificationUrl);
+      await sendVerificationEmail(email, verificationUrl, first_name);
 
       existingUser.verificationRequestedAt = new Date();
       existingUser.emailVerificationToken = hashedToken;
@@ -360,7 +360,7 @@ exports.signupTeacher = catchAsync(async (req, res, next) => {
     `http://localhost:5173/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
 
   try {
-    await sendVerificationEmail(email, verificationUrl);
+    await sendVerificationEmail(email, verificationUrl, first_name);
   } catch (error) {
     return next(new AppError('Failed to send verification email', 500));
   }
