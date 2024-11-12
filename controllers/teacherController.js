@@ -610,8 +610,18 @@ exports.deleteManyTeachers = catchAsync(async (req, res, next) => {
   }
 });
 
-// re-activate the teacher
+// re-activate teacher account
 exports.reactivateTeachers = catchAsync(async (req, res, next) => {
+  factory.restoreOne(User, 'user_id')(req, res, next);
+});
+
+//deactivate teacher account
+exports.deactivateTeachers = catchAsync(async (req, res, next) => {
+  factory.deleteOne(User, 'user_id')(req, res, next);
+})
+
+// middleware to check if user account exists
+exports.checkTeacherAccount = catchAsync(async (req, res, next) =>{
   const id = req.params.id;
 
   // Find the teacher by primary key
@@ -621,6 +631,8 @@ exports.reactivateTeachers = catchAsync(async (req, res, next) => {
       school_admin_id : req.school_admin_id
     }
   });
+
+  // Find Teacher 
   if (!teacher.user_id) {
     return next(new AppError('Teacher not found', 404));
   }
@@ -634,6 +646,6 @@ exports.reactivateTeachers = catchAsync(async (req, res, next) => {
   if (!user) {
     return next(new AppError('Teacher account not found', 404));
   }
-  req.params.id = teacher.user_id;
-  factory.restoreOne(User, 'user_id')(req, res, next);
-});
+  req.params.id=user.user_id;
+  next();
+})

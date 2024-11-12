@@ -73,6 +73,10 @@ router
 
 router
   .route('/reactivate/:id')
-  .post(teacherController.reactivateTeachers);
+  .post(teacherController.checkTeacherAccount, teacherController.reactivateTeachers);
+
+router
+  .route('/deactivate/:id')
+  .post(teacherController.checkTeacherAccount, teacherController.deactivateTeachers);
 
 module.exports = router;
