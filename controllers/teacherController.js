@@ -621,14 +621,14 @@ exports.deactivateTeachers = catchAsync(async (req, res, next) => {
 })
 
 // middleware to check if user account exists
-exports.checkTeacherAccount = catchAsync(async (req, res, next) =>{
+exports.checkTeacherAccount = catchAsync(async (req, res, next) => {
   const id = req.params.id;
 
   // Find the teacher by primary key
   const teacher = await Teacher.findOne({
-    where : {
-      teacher_id : id,
-      school_admin_id : req.school_admin_id
+    where: {
+      teacher_id: id,
+      school_admin_id: req.school_admin_id
     }
   });
 
@@ -646,6 +646,80 @@ exports.checkTeacherAccount = catchAsync(async (req, res, next) =>{
   if (!user) {
     return next(new AppError('Teacher account not found', 404));
   }
-  req.params.id=user.user_id;
+  req.params.id = user.user_id;
   next();
+})
+
+//resend verification email to teacher
+exports.resendVerificationEmail = catchAsync(async (req, res, next) => {
+  const id = req.params.id;
+
+  // Find the teacher by primary key
+  const teacher = await Teacher.findOne({
+    where: {
+      teacher_id: id,
+      school_admin_id: req.school_admin_id
+    },
+    include: [
+      {
+        model: User,
+        as: 'User',
+      },
+      {
+        model: Info,
+        as: 'Info',
+        attributes:['first_name']
+      },
+    ],
+  });
+  
+  // Check if the teacher exists
+  if(!teacher) {
+    return next(new AppError('Teacher account not found', 404));
+  }
+  const existingUser = teacher.User;
+
+  //  Check if the user is already deleted.
+  if (existingUser && !existingUser.active) {
+    return next(new AppError('This account has been deleted', 400));
+  }
+  
+  //  Check if the email is already registered.
+  if (existingUser && existingUser.emailVerified===true) {
+    return next(new AppError('Email is already verified', 400));
+  }
+
+  // 5. If the user exists but is not verified, allow re-verification.
+  if (existingUser && !existingUser.emailVerified) {
+    const { token: verificationToken, hashedToken } = createVerificationToken();
+
+    // Create a temporary JWT token with user data and the hashed verification token.
+    const tempToken = jwt.sign(
+      {
+        email: existingUser.email,
+        emailVerificationToken: hashedToken,
+      },
+      process.env.JWT_SECRET
+    );
+
+    const verificationUrl =req.headers.origin ?
+      `${req.headers.origin}/auth/verify-teacher-email/${verificationToken}?token=${tempToken}` :
+      `http://localhost:5173/auth/verify-teacher-email/${verificationToken}?token=${tempToken}`;
+    try {
+      await sendVerificationEmail(existingUser.email, verificationUrl, teacher.Info.first_name);
+
+      existingUser.verificationRequestedAt = new Date();
+      existingUser.emailVerificationToken = hashedToken;
+      await existingUser.save();
+
+      return res.status(200).json({
+        status: 'success',
+        message:
+          'Verification email re-sent successfully',
+      });
+    } catch (error) {
+      
+      return next(new AppError('Failed to resend verification email', 500));
+    }
+  }
 })
