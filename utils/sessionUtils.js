@@ -10,7 +10,9 @@ exports.fetchTeacherSessions = async (teacherId, filter, currentDay) => {
       },
       include: [
         { model: DayOfWeek, as: 'DayOfWeek' },
-        { model: Class, as: 'Class' },
+        { model: Class, as: 'Class', where: {
+          active: true
+        } },
         { model: Period, as: 'Period' },
         { model: Subject, as: 'Subject' },
       ],
