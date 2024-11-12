@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 // Database Models
-const { Teacher, Info, sequelize, User, Admin } = require('../models');
+const { Teacher, Info, sequelize, User } = require('../models');
 
 // Helper funciton
 const { isBelongsToAdmin } = require('../utils/helper');
@@ -608,4 +608,32 @@ exports.deleteManyTeachers = catchAsync(async (req, res, next) => {
       new AppError(`Failed to delete teachers: ${error.message}`, 500)
     );
   }
+});
+
+// re-activate the teacher
+exports.reactivateTeachers = catchAsync(async (req, res, next) => {
+  const id = req.params.id;
+
+  // Find the teacher by primary key
+  const teacher = await Teacher.findOne({
+    where : {
+      teacher_id : id,
+      school_admin_id : req.school_admin_id
+    }
+  });
+  if (!teacher.user_id) {
+    return next(new AppError('Teacher not found', 404));
+  }
+
+  // Find the teacher's account 
+  const user = await User.findOne({
+    where: {
+      user_id: teacher.user_id,
+    }
+  });
+  if (!user) {
+    return next(new AppError('Teacher account not found', 404));
+  }
+  req.params.id = teacher.user_id;
+  factory.restoreOne(User, 'user_id')(req, res, next);
 });

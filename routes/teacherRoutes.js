@@ -71,4 +71,8 @@ router
   )
   .delete(teacherController.deleteTeacher);
 
+router
+  .route('/reactivate/:id')
+  .post(teacherController.reactivateTeachers);
+
 module.exports = router;

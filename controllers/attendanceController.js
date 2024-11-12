@@ -91,7 +91,9 @@ exports.createAttendance = catchAsync(async (req, res, next) => {
 
     // Offload email sending asynchronously (without waiting)
     formattedStudentAttendance(student_id, sessionData).then((data) => {
-      sendAttendanceEmail(data, status_id); // Don't await, let it run in the background
+      if(status_id === 3 || status_id === 4){
+        sendAttendanceEmail(data, status_id); // Don't await, let it run in the background
+      }
     });
   });
 
