@@ -71,4 +71,16 @@ router
   )
   .delete(teacherController.deleteTeacher);
 
+router
+  .route('/reactivate/:id')
+  .post(teacherController.checkTeacherAccount, teacherController.reactivateTeachers);
+
+router
+  .route('/deactivate/:id')
+  .post(teacherController.checkTeacherAccount, teacherController.deactivateTeachers);
+
+router
+  .route('/resend-verification/:id')
+  .post(teacherController.resendVerificationEmail);
+
 module.exports = router;
