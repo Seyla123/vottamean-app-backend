@@ -237,13 +237,13 @@ exports.updateMe = catchAsync(async (req, res, next) => {
       const { school_name, school_address, school_phone_number } = req.body;
       // Merge filtered body with update data
       updateData = { ...updateData, ...filteredBody };
-
+      
       // Update the school information if provided
       if (school_name || school_address || school_phone_number) {
         await School.update(
           {
             school_name: school_name || school.school_name,
-            school_address: school_address || school.school_address,
+            school_address: school_address,
             school_phone_number:
               school_phone_number || school.school_phone_number,
           },
