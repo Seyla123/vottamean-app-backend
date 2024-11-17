@@ -1,61 +1,56 @@
+# Define image
+image: node:20
+
 # Define pipeline stages
 stages:
   - build
   - deploy
 
-# Build Docker image job
+# Define variables
+variables:
+  PRODUCTION_DOMAIN: hexcode.anbschool.org/api/v1
+  DEPLOY_USER: ubuntu
+  DEPLOY_HOST: 13.212.6.189
+  SSH_EC2_PRIVATE_KEY: $SSH_EC2_PRIVATE_KEY
+  DIST_DEPLOY_PATH: /home/ubuntu/backend/
+
+# Build job
 build-backend:
   stage: build
-  image: docker:latest
-  services:
-    - name: docker:dind
-      command: ["--insecure-registry=git.clp.kr:5050"]
-  variables:
-    DOCKER_DRIVER: overlay2
   script:
-    # Log into Docker registry
-    - echo "Logging in to Docker registry..."
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-
-    # Build and push Docker image
-    - echo "Building Docker image..."
-    - docker build -t "$CI_REGISTRY_IMAGE/backend:latest" -f ./DockerFile .
-    - echo "Pushing Docker image to the registry..."
-    - docker push "$CI_REGISTRY_IMAGE/backend:latest"
-
+    - npm install
+  artifacts:
+    paths:
+      - ./node_modules
   only:
-    - main
     - develop
+    - main
 
-# Deploy job to EC2
+# Deploy job
 deploy-backend:
   stage: deploy
-  image: ubuntu:20.04
-  before_script:
-    # Install SSH client
-    - apt-get update && apt-get install -y openssh-client rsync
-
-  script:
-    # Set up SSH
-    - echo "Setting up SSH..."
-    - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-    - chmod 600 ~/.ssh/id_rsa
-    - ssh-keyscan -H ec2-44-206-226-251.compute-1.amazonaws.com >> ~/.ssh/known_hosts
-    - eval $(ssh-agent -s)
-
-    # SSH into EC2 and deploy
-    - echo "Logging in to Docker registry and restarting application on EC2..."
-    - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@ec2-44-206-226-251.compute-1.amazonaws.com "
-      echo '$CI_REGISTRY_PASSWORD' | sudo docker login -u '$CI_REGISTRY_USER' --password-stdin $CI_REGISTRY &&
-      cd /home/ubuntu/backend &&
-      sudo docker pull $CI_REGISTRY_IMAGE/backend:latest &&
-      sudo docker-compose -f /home/ubuntu/backend/docker-compose.yml up -d --build
-      "
-
   environment:
     name: production
-    url: https://web.vottamean.com/api/v1
+    url: https://$PRODUCTION_DOMAIN
+  before_script:
+    - apt-get update -y && apt-get install -y openssh-client rsync
+    - eval $(ssh-agent -s)
+    - echo "$SSH_EC2_PRIVATE_KEY" | tr -d '\r' > private_key.pem
+    - chmod 400 private_key.pem
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
+
+  script:
+    - echo "Deploying to EC2 production with rsync..."
+    # - rsync -avz -e "ssh -i private_key.pem" ./ ubuntu@$DEPLOY_HOST:$DIST_DEPLOY_PATH
+    - rsync -avz --exclude='node_modules' --exclude='.git' -e "ssh -i private_key.pem" ./ ubuntu@$DEPLOY_HOST:$DIST_DEPLOY_PATH
+    - ssh -i "private_key.pem" ubuntu@$DEPLOY_HOST "
+        cd $DIST_DEPLOY_PATH &&
+        npm install &&
+        sudo systemctl restart backend.service &&
+        sudo systemctl status backend.service
+      "
   only:
-    - main
     - develop
+    - main

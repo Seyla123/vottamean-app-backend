@@ -10,14 +10,52 @@ exports.checkExistingSession = catchAsync(async (req, res, next) => {
             teacher_id: req.body.teacher_id,
             day_id: req.body.day_id,
             period_id: req.body.period_id,
-            subject_id: req.body.subject_id,
             school_admin_id: req.school_admin_id,
             active: true,
         },
     });
     if (existingSession) {
-        return next(new AppError('Session already exists', 400));
+        return next(new AppError('This session already exists', 400));
     }
+
+    const existingClassInSession = await Session.findOne({
+        where: {
+            class_id: req.body.class_id,
+            period_id: req.body.period_id,
+            day_id: req.body.day_id,
+            school_admin_id: req.school_admin_id,
+            active: true,
+        },
+    })
+
+    if (existingClassInSession) {
+        return next(
+            new AppError(
+                'This class already has a session with this time, please adjust the time',
+                400
+            )
+        );
+    }
+
+    const existingTeacher = await Session.findOne({
+        where: {
+            teacher_id: req.body.teacher_id,
+            period_id: req.body.period_id,
+            day_id: req.body.day_id,
+            school_admin_id: req.school_admin_id,
+            active: true,
+        },
+    });
+
+    if (existingTeacher) {
+        return next(
+            new AppError(
+                'This Teacher already has a session with this time, please adjust the time',
+                400
+            )
+        );
+    }
+
     next();
 });
 

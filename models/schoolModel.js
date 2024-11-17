@@ -27,7 +27,9 @@ module.exports = (sequelize, DataTypes) => {
       school_address: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: infoValidator.isValidAddress,
+        validate: {
+          isValidAddress: infoValidator.isValidAddress
+        },
       },
       active: {
         type: DataTypes.BOOLEAN,

@@ -15,10 +15,10 @@ const {
 class Email {
   constructor(user, url) {
     this.to = user.email;
-    this.firstName = user.first_name || '';
+    this.firstName = user.firstName || '';
     this.url = url;
     this.unsubscribeUrl = `${url}/unsubscribe`;
-    this.from = `Vottamean App <${process.env.BREVO_EMAIL_FROM}>`;
+    this.from = `Vottamean App <${process.env.EMAIL_FROM}>`;
   }
 
   // Create Transporter
@@ -113,7 +113,11 @@ class Email {
 
   // Send Email Verification For Registration
   async sendVerification() {
-    await this.send('emailVerification', 'Email Verification Link');
+    await this.send(
+      'emailVerification',
+      'Email Verification Link',
+      this.firstName
+    );
   }
 
   // New Method to Send Attendance Notification
@@ -155,11 +159,6 @@ class Email {
   async sendTeacherVerification() {
     await this.send('teacherVerification', 'Verify Your Teacher Account');
   }
-
-  // // Send Email Verification For Registration
-  // async sendVerification() {
-  //   await this.send('emailVerification', 'Email Verification Link');
-  // }
 
   // Send Welcome Email To New Users
   async sendWelcome() {

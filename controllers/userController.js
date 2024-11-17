@@ -139,7 +139,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
     id: user_id,
     email,
     role,
-    subscriptions : subscriptions, // Only include the root level subscriptions
+    subscriptions: subscriptions, // Only include the root level subscriptions
     adminProfile:
       role === 'admin' && AdminProfile
         ? { ...AdminProfile, Subscriptions: undefined }
@@ -170,7 +170,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
 exports.updateMe = catchAsync(async (req, res, next) => {
   let user;
 
-  // Check if the user is an Admin or Teacher
+  // User validation
   if (req.user.role === 'admin') {
     user = await Admin.findOne({
       where: { user_id: req.user.user_id },
@@ -187,18 +187,26 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     return next(new AppError('Invalid user role', 403));
   }
 
-  // Handle case where no user is found
   if (!user) {
     return next(new AppError('No user found with that ID', 404));
   }
 
-  // Get the info ID for the user
   const infoId = user.info_id || (user.Info && user.Info.info_id);
   if (!infoId) {
     return next(new AppError('No user information found for this ID', 404));
   }
 
-  // Allowed fields for personal information update
+  // Initialize update data
+  let updateData = {};
+
+  // Handle photo updates - IMPORTANT: Check remove_photo first
+  if (req.body.remove_photo === 'true') {
+    updateData.photo = null;
+  } else if (req.file) {
+    updateData.photo = req.file.location;
+  }
+
+  // Handle other fields
   const allowedFields = [
     'first_name',
     'last_name',
@@ -208,10 +216,9 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     'gender',
   ];
 
-  // Filter the body to only include allowed fields
   const filteredBody = filterObj(req.body, ...allowedFields);
 
-  // Validate date of birth format (if provided)
+  // Validate DOB if provided
   if (
     filteredBody.dob &&
     !moment(filteredBody.dob, 'YYYY-MM-DD', true).isValid()
@@ -221,38 +228,6 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     );
   }
 
-  // Log the filtered body for verification
-  console.log('Filtered Body:', filteredBody);
-
-  // Check if there's any update to user information
-  const hasUpdates = Object.keys(filteredBody).length > 0;
-
-  // If there are changes to user information, update them
-  if (hasUpdates) {
-    req.params.id = infoId;
-    await factory.updateOne(Info, 'info_id')(req, res, next);
-  }
-
-  // Independent check for file (photo) upload
-  if (req.file) {
-    console.log('Uploaded file:', req.file.location);
-
-    // Update photo URL in the Info model
-    const updateResult = await Info.update(
-      { photo: req.file.location },
-      { where: { info_id: infoId } }
-    );
-    console.log('Photo update result:', updateResult);
-
-    // Send response if only the photo was updated
-    if (!hasUpdates) {
-      return res.status(200).json({
-        status: 'success',
-        message: 'Profile photo updated successfully',
-      });
-    }
-  }
-
   // Additional logic for Admin to update school information
   if (req.user.role === 'admin') {
     if (user.School && user.School.length > 0) {
@@ -260,13 +235,15 @@ exports.updateMe = catchAsync(async (req, res, next) => {
 
       // Extract school-related fields from the request body
       const { school_name, school_address, school_phone_number } = req.body;
-
+      // Merge filtered body with update data
+      updateData = { ...updateData, ...filteredBody };
+      
       // Update the school information if provided
       if (school_name || school_address || school_phone_number) {
         await School.update(
           {
             school_name: school_name || school.school_name,
-            school_address: school_address || school.school_address,
+            school_address: school_address,
             school_phone_number:
               school_phone_number || school.school_phone_number,
           },
@@ -275,7 +252,6 @@ exports.updateMe = catchAsync(async (req, res, next) => {
       }
     }
   }
-
   // Prevent teachers from updating any school data
   if (
     req.user.role === 'teacher' &&
@@ -291,10 +267,22 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     );
   }
 
-  // Send final response after completing all updates
+  // Perform the update
+  await Info.update(updateData, {
+    where: { info_id: infoId },
+  });
+
+  // Get updated info
+  const updatedInfo = await Info.findOne({
+    where: { info_id: infoId },
+  });
+
   res.status(200).json({
     status: 'success',
     message: 'Profile updated successfully',
+    data: {
+      photo: updatedInfo.photo,
+    },
   });
 });
 

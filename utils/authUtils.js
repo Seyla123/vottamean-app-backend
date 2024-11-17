@@ -45,7 +45,7 @@ exports.createVerificationToken = () => {
 };
 
 // Email Verification For Registration
-exports.sendVerificationEmail = async (email, verificationUrl) => {
-  const emailService = new Email({ email }, verificationUrl);
+exports.sendVerificationEmail = async (email, verificationUrl, firstName) => {
+  const emailService = new Email({ email, firstName }, verificationUrl);
   await emailService.sendVerification();
 };

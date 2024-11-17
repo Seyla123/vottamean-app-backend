@@ -1,5 +1,5 @@
 // Database models
-const { Student, Info, sequelize, Class, Session, Attendance } = require('../models');
+const { Student, Info, sequelize, Class, Session, Attendance, DayOfWeek } = require('../models');
 
 // Info Validators
 const {
@@ -267,7 +267,13 @@ exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
   // Check if session belongs to the teacher
   const session = await Session.findOne({
     where: { session_id, teacher_id , active: true},
-    include: [{ model: Class, as: 'Class', attributes: ['class_name'] }]
+    include: [{ model: Class, as: 'Class', attributes: ['class_name'] }
+  
+  ,{
+    model: DayOfWeek,
+    as: 'DayOfWeek',
+    attributes: ['day']
+  }]
   });
 
   if (!session) {
@@ -282,7 +288,12 @@ exports.getAllStudentsByClassInSession = catchAsync(async (req, res, next) => {
   })
   
   if (findMarkSessionToday) {
-    return next(new AppError('This class is already marked today', 400));
+    return next(new AppError('This class is already marked today.', 400));
+  }
+
+  // check is if current day is correct in schedule or not
+  if (session.DayOfWeek.day.toLocaleLowerCase() !== dayjs().format('dddd').toLocaleLowerCase()) {
+    return next(new AppError('Attendance can only be marked for the scheduled day.', 400));
   }
 
   // Find all students in the same class
